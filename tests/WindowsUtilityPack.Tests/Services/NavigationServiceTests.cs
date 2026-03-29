@@ -4,9 +4,15 @@ using Xunit;
 
 namespace WindowsUtilityPack.Tests.Services;
 
+/// <summary>
+/// Unit tests for <see cref="NavigationService"/>.
+/// These tests verify the core navigation contract without requiring WPF runtime
+/// (no UI thread, no Application object needed).
+/// </summary>
 public class NavigationServiceTests
 {
-    private class TestVm : ViewModelBase { }
+    // Minimal ViewModelBase subclasses used as navigation targets.
+    private class TestVm  : ViewModelBase { }
     private class OtherVm : ViewModelBase { }
 
     [Fact]
@@ -40,6 +46,7 @@ public class NavigationServiceTests
     [Fact]
     public void NavigateTo_UnknownKey_DoesNotChangeView()
     {
+        // Unknown keys should be silently ignored (not throw or clear current view).
         var svc = new NavigationService();
         svc.Register("test", () => new TestVm());
         svc.NavigateTo("test");

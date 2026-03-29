@@ -1,16 +1,38 @@
 namespace WindowsUtilityPack.Services;
 
+/// <summary>Persisted user preferences loaded and saved as JSON.</summary>
 public class AppSettings
 {
+    /// <summary>Last used colour theme (default: Dark).</summary>
     public AppTheme Theme { get; set; } = AppTheme.Dark;
+
+    /// <summary>Saved window left position, or <see cref="double.NaN"/> if unset.</summary>
     public double WindowLeft { get; set; } = double.NaN;
+
+    /// <summary>Saved window top position, or <see cref="double.NaN"/> if unset.</summary>
     public double WindowTop { get; set; } = double.NaN;
+
+    /// <summary>Saved window width (default: 1100).</summary>
     public double WindowWidth { get; set; } = 1100;
+
+    /// <summary>Saved window height (default: 700).</summary>
     public double WindowHeight { get; set; } = 700;
 }
 
+/// <summary>
+/// Contract for loading and persisting application settings.
+/// Settings are stored as JSON in <c>%LOCALAPPDATA%\WindowsUtilityPack\settings.json</c>.
+/// </summary>
 public interface ISettingsService
 {
+    /// <summary>
+    /// Loads settings from disk.  Returns defaults silently if the file is absent or corrupt.
+    /// </summary>
     AppSettings Load();
+
+    /// <summary>
+    /// Persists the supplied settings to disk.
+    /// Failures (e.g. permissions) are swallowed silently to prevent startup crashes.
+    /// </summary>
     void Save(AppSettings settings);
 }

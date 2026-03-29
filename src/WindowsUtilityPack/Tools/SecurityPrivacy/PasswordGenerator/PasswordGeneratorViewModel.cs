@@ -6,106 +6,143 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
 
+/// <summary>
+/// ViewModel for the Password Generator tool.
+///
+/// Generates cryptographically random passwords using <see cref="RandomNumberGenerator.GetInt32"/>
+/// (not <see cref="System.Random"/>) so passwords are suitable for actual security use.
+///
+/// The password is regenerated automatically whenever any option changes (length,
+/// character set toggles), so the UI always reflects the current configuration.
+/// </summary>
 public class PasswordGeneratorViewModel : ViewModelBase
 {
+    // Available character pools.
     private const string Uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private const string Lowercase = "abcdefghijklmnopqrstuvwxyz";
-    private const string Digits = "0123456789";
-    private const string Symbols = "!@#$%^&*()-_=+[]{}|;:,.<>?";
+    private const string Digits    = "0123456789";
+    private const string Symbols   = "!@#$%^&*()-_=+[]{}|;:,.<>?";
 
-    private int _length = 16;
-    private bool _useUppercase = true;
-    private bool _useLowercase = true;
-    private bool _useDigits = true;
-    private bool _useSymbols = false;
+    private int    _length            = 16;
+    private bool   _useUppercase      = true;
+    private bool   _useLowercase      = true;
+    private bool   _useDigits         = true;
+    private bool   _useSymbols        = false;
     private string _generatedPassword = string.Empty;
-    private string _strengthLabel = string.Empty;
+    private string _strengthLabel     = string.Empty;
 
+    /// <summary>Desired password length (regenerates on change).</summary>
     public int Length
     {
         get => _length;
         set { if (SetProperty(ref _length, value)) Generate(); }
     }
 
+    /// <summary>Include A–Z uppercase letters.</summary>
     public bool UseUppercase
     {
         get => _useUppercase;
         set { if (SetProperty(ref _useUppercase, value)) Generate(); }
     }
 
+    /// <summary>Include a–z lowercase letters.</summary>
     public bool UseLowercase
     {
         get => _useLowercase;
         set { if (SetProperty(ref _useLowercase, value)) Generate(); }
     }
 
+    /// <summary>Include 0–9 digits.</summary>
     public bool UseDigits
     {
         get => _useDigits;
         set { if (SetProperty(ref _useDigits, value)) Generate(); }
     }
 
+    /// <summary>Include special symbol characters.</summary>
     public bool UseSymbols
     {
         get => _useSymbols;
         set { if (SetProperty(ref _useSymbols, value)) Generate(); }
     }
 
+    /// <summary>The most recently generated password string.</summary>
     public string GeneratedPassword
     {
         get => _generatedPassword;
         private set { SetProperty(ref _generatedPassword, value); UpdateStrength(); }
     }
 
+    /// <summary>
+    /// Qualitative strength label ("Weak", "Fair", "Strong", "Very Strong")
+    /// computed from the active character sets and password length.
+    /// </summary>
     public string StrengthLabel
     {
         get => _strengthLabel;
         private set => SetProperty(ref _strengthLabel, value);
     }
 
+    /// <summary>Generates a new random password using the current settings.</summary>
     public RelayCommand GenerateCommand { get; }
+
+    /// <summary>Copies <see cref="GeneratedPassword"/> to the system clipboard.  Disabled when empty.</summary>
     public RelayCommand CopyCommand { get; }
 
     public PasswordGeneratorViewModel()
     {
         GenerateCommand = new RelayCommand(_ => Generate());
-        CopyCommand = new RelayCommand(_ => CopyToClipboard(), _ => !string.IsNullOrEmpty(GeneratedPassword));
+        CopyCommand     = new RelayCommand(
+            _ => CopyToClipboard(),
+            _ => !string.IsNullOrEmpty(GeneratedPassword));
+
+        // Generate an initial password immediately.
         Generate();
     }
 
+    /// <summary>
+    /// Builds the character pool from the active options and draws <see cref="Length"/>
+    /// characters using <see cref="RandomNumberGenerator.GetInt32"/> for cryptographic randomness.
+    /// Sets <see cref="GeneratedPassword"/> to empty string if no character sets are selected.
+    /// </summary>
     private void Generate()
     {
         var pool = new StringBuilder();
         if (UseUppercase) pool.Append(Uppercase);
         if (UseLowercase) pool.Append(Lowercase);
-        if (UseDigits) pool.Append(Digits);
-        if (UseSymbols) pool.Append(Symbols);
+        if (UseDigits)    pool.Append(Digits);
+        if (UseSymbols)   pool.Append(Symbols);
 
         if (pool.Length == 0) { GeneratedPassword = string.Empty; return; }
 
-        var chars = pool.ToString();
+        var chars  = pool.ToString();
         var result = new char[Length];
         for (var i = 0; i < Length; i++)
             result[i] = chars[RandomNumberGenerator.GetInt32(chars.Length)];
+
         GeneratedPassword = new string(result);
     }
 
+    /// <summary>
+    /// Computes a simple strength score (0–6) based on active character sets and length.
+    /// Each active set adds 1 point; lengths ≥ 12 and ≥ 20 each add another point.
+    /// </summary>
     private void UpdateStrength()
     {
         var score = 0;
         if (UseUppercase) score++;
         if (UseLowercase) score++;
-        if (UseDigits) score++;
-        if (UseSymbols) score++;
+        if (UseDigits)    score++;
+        if (UseSymbols)   score++;
         if (Length >= 12) score++;
         if (Length >= 20) score++;
 
         StrengthLabel = score switch
         {
-            <= 2 => "Weak",
-            3 or 4 => "Fair",
-            5 => "Strong",
-            _ => "Very Strong"
+            <= 2    => "Weak",
+            3 or 4  => "Fair",
+            5       => "Strong",
+            _       => "Very Strong"
         };
     }
 

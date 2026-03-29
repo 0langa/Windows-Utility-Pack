@@ -3,6 +3,11 @@ using Xunit;
 
 namespace WindowsUtilityPack.Tests.ViewModels;
 
+/// <summary>
+/// Unit tests for <see cref="PasswordGeneratorViewModel"/>.
+/// Verifies password generation logic without requiring any WPF UI components.
+/// Note: clipboard operations are not tested here as they require a UI thread.
+/// </summary>
 public class PasswordGeneratorViewModelTests
 {
     [Fact]
@@ -19,10 +24,10 @@ public class PasswordGeneratorViewModelTests
         var vm = new PasswordGeneratorViewModel
         {
             UseLowercase = false,
-            UseDigits = false,
-            UseSymbols = false,
+            UseDigits    = false,
+            UseSymbols   = false,
             UseUppercase = true,
-            Length = 32,
+            Length       = 32,
         };
         Assert.True(vm.GeneratedPassword.All(char.IsUpper));
     }
@@ -30,12 +35,13 @@ public class PasswordGeneratorViewModelTests
     [Fact]
     public void GeneratedPassword_Empty_WhenNoCharsetSelected()
     {
+        // All character sets disabled → the generated password must be empty.
         var vm = new PasswordGeneratorViewModel
         {
             UseUppercase = false,
             UseLowercase = false,
-            UseDigits = false,
-            UseSymbols = false,
+            UseDigits    = false,
+            UseSymbols   = false,
         };
         Assert.Equal(string.Empty, vm.GeneratedPassword);
     }
@@ -43,9 +49,10 @@ public class PasswordGeneratorViewModelTests
     [Fact]
     public void GenerateCommand_ChangesPassword()
     {
-        var vm = new PasswordGeneratorViewModel();
+        // Statistically, at least one of 10 regenerations should differ from the first.
+        var vm    = new PasswordGeneratorViewModel();
         var first = vm.GeneratedPassword;
-        // Run generate a few times — statistically very unlikely to get same password
+
         var isDifferent = false;
         for (var i = 0; i < 10; i++)
         {
