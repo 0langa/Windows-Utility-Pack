@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WindowsUtilityPack</RootNamespace>
+    <AssemblyName>WindowsUtilityPack</AssemblyName>
+    <StartupObject>WindowsUtilityPack.App</StartupObject>
+    <Version>1.0.0</Version>
+    <Company>Windows Utility Pack</Company>
+    <Product>Windows Utility Pack</Product>
+    <Description>A modular collection of Windows desktop utility tools.</Description>
+  </PropertyGroup>
+</Project>
