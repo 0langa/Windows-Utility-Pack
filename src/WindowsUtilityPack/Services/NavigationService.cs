@@ -2,12 +2,9 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Services;
 
-/// <summary>
-/// Simple navigation service that swaps the active ViewModel.
-/// Extend this with a DI container for more complex navigation needs.
-/// </summary>
 public class NavigationService : INavigationService
 {
+    private readonly Dictionary<string, Func<ViewModelBase>> _factories = new(StringComparer.OrdinalIgnoreCase);
     private ViewModelBase? _currentView;
 
     public ViewModelBase? CurrentView
@@ -23,8 +20,15 @@ public class NavigationService : INavigationService
 
     public event EventHandler<ViewModelBase>? Navigated;
 
-    public void NavigateTo<TViewModel>() where TViewModel : ViewModelBase, new()
+    public void Register(string key, Func<ViewModelBase> factory)
+        => _factories[key] = factory;
+
+    public void NavigateTo(string key)
     {
-        CurrentView = new TViewModel();
+        if (_factories.TryGetValue(key, out var factory))
+            CurrentView = factory();
     }
+
+    public void NavigateTo<TViewModel>() where TViewModel : ViewModelBase, new()
+        => CurrentView = new TViewModel();
 }

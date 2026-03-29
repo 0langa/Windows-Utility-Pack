@@ -1,0 +1,78 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.SystemUtilities.DiskInfo.DiskInfoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="💾 Disk Info Viewer" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
+            <Button Content="⟳ Refresh" Command="{Binding RefreshCommand}"
+                    Margin="20,0,0,0" Padding="12,6"
+                    Background="{DynamicResource AccentBrush}" Foreground="White"
+                    BorderThickness="0" Cursor="Hand">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Drives}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource CardBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="8" Padding="20" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="200"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DisplayLabel}" FontSize="16" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <TextBlock Text="{Binding DriveType}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,12,0"/>
+                                        <TextBlock Text="{Binding Format}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBlock Text="Free: " Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13"/>
+                                        <TextBlock Foreground="{DynamicResource PrimaryTextBrush}" FontSize="13" FontWeight="SemiBold">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0:F1} GB of {1:F1} GB">
+                                                    <Binding Path="FreeSpaceGb"/>
+                                                    <Binding Path="TotalSizeGb"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <ProgressBar Value="{Binding UsedPercent}" Maximum="100" Height="12"
+                                                 Background="{DynamicResource BorderBrush}"
+                                                 Foreground="{DynamicResource AccentBrush}"
+                                                 BorderThickness="0" Margin="0,0,0,4"/>
+                                    <TextBlock HorizontalAlignment="Right" FontSize="12"
+                                               Foreground="{DynamicResource SecondaryTextBrush}">
+                                        <TextBlock.Text>
+                                            <Binding Path="UsedPercent" StringFormat="{}{0:F0}% used"/>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
