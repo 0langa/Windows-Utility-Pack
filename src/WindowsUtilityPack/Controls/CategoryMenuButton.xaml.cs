@@ -2,16 +2,18 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 
 namespace WindowsUtilityPack.Controls;
 
-/// <summary>
-/// Represents a single entry in a CategoryMenuButton's dropdown.
-/// </summary>
 public class MenuEntry : DependencyObject
 {
     public static readonly DependencyProperty LabelProperty =
         DependencyProperty.Register(nameof(Label), typeof(string), typeof(MenuEntry),
+            new PropertyMetadata(string.Empty));
+
+    public static readonly DependencyProperty ToolKeyProperty =
+        DependencyProperty.Register(nameof(ToolKey), typeof(string), typeof(MenuEntry),
             new PropertyMetadata(string.Empty));
 
     public string Label
@@ -19,12 +21,14 @@ public class MenuEntry : DependencyObject
         get => (string)GetValue(LabelProperty);
         set => SetValue(LabelProperty, value);
     }
+
+    public string ToolKey
+    {
+        get => (string)GetValue(ToolKeyProperty);
+        set => SetValue(ToolKeyProperty, value);
+    }
 }
 
-/// <summary>
-/// A category navigation button that shows a stable dropdown popup on hover.
-/// Add items via the MenuItems collection property.
-/// </summary>
 public partial class CategoryMenuButton : UserControl
 {
     public static readonly DependencyProperty LabelProperty =
@@ -37,6 +41,10 @@ public partial class CategoryMenuButton : UserControl
 
     public static readonly DependencyProperty MenuItemsProperty =
         DependencyProperty.Register(nameof(MenuItems), typeof(ObservableCollection<MenuEntry>),
+            typeof(CategoryMenuButton), new PropertyMetadata(null));
+
+    public static readonly DependencyProperty NavigateCommandProperty =
+        DependencyProperty.Register(nameof(NavigateCommand), typeof(ICommand),
             typeof(CategoryMenuButton), new PropertyMetadata(null));
 
     public string Label
@@ -57,25 +65,42 @@ public partial class CategoryMenuButton : UserControl
         set => SetValue(MenuItemsProperty, value);
     }
 
+    public ICommand? NavigateCommand
+    {
+        get => (ICommand?)GetValue(NavigateCommandProperty);
+        set => SetValue(NavigateCommandProperty, value);
+    }
+
     public CategoryMenuButton()
     {
         MenuItems = [];
         InitializeComponent();
     }
 
-    private void OnMouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+    private void OnMouseEnter(object sender, MouseEventArgs e)
     {
         if (FindName("DropdownPopup") is Popup popup)
             popup.IsOpen = true;
     }
 
-    private void OnMouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    private void OnMouseLeave(object sender, MouseEventArgs e)
     {
         if (FindName("DropdownPopup") is Popup popup)
         {
             var pos = e.GetPosition(this);
             if (pos.X < 0 || pos.Y < 0 || pos.X > ActualWidth || pos.Y > ActualHeight)
                 popup.IsOpen = false;
+        }
+    }
+
+    private void OnDropdownItemClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && FindName("DropdownPopup") is Popup popup)
+        {
+            popup.IsOpen = false;
+            var toolKey = btn.Tag as string;
+            if (!string.IsNullOrEmpty(toolKey) && NavigateCommand?.CanExecute(toolKey) == true)
+                NavigateCommand.Execute(toolKey);
         }
     }
 }

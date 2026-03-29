@@ -1,4 +1,5 @@
 using WindowsUtilityPack.ViewModels;
+using Xunit;
 
 namespace WindowsUtilityPack.Tests.ViewModels;
 

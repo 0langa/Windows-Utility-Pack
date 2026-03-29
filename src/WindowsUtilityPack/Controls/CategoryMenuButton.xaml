@@ -76,7 +76,9 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type self:MenuEntry}">
                             <Button Content="{Binding Label}"
-                                    Style="{StaticResource DropdownItemStyle}"/>
+                                    Tag="{Binding ToolKey}"
+                                    Style="{StaticResource DropdownItemStyle}"
+                                    Click="OnDropdownItemClick"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

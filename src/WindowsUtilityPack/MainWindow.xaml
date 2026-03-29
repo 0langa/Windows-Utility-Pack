@@ -3,24 +3,21 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels"
         xmlns:controls="clr-namespace:WindowsUtilityPack.Controls"
         mc:Ignorable="d"
         Title="Windows Utility Pack"
         Width="1100" Height="700"
         MinWidth="900" MinHeight="550"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource AppBackgroundBrush}">
-
-    <Window.DataContext>
-        <vm:MainWindowViewModel/>
-    </Window.DataContext>
+        Background="{DynamicResource AppBackgroundBrush}"
+        Closing="OnWindowClosing">
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -30,21 +27,26 @@
                 BorderThickness="0,0,0,1">
             <Grid Margin="20,0">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="⚙" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"
-                               Foreground="{DynamicResource AccentBrush}"/>
-                    <TextBlock Text="Windows Utility Pack"
-                               FontSize="20" FontWeight="SemiBold"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource PrimaryTextBrush}"/>
-                </StackPanel>
+                <!-- Logo + Title (clickable → home) -->
+                <Button Grid.Column="0" Style="{StaticResource TransparentButtonStyle}"
+                        Command="{Binding NavigateHomeCommand}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="⚙" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"
+                                   Foreground="{DynamicResource AccentBrush}"/>
+                        <TextBlock Text="Windows Utility Pack"
+                                   FontSize="20" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"/>
+                    </StackPanel>
+                </Button>
 
                 <!-- Theme Toggle -->
-                <Button Grid.Column="1"
+                <Button Grid.Column="2"
                         Style="{StaticResource ThemeToggleButtonStyle}"
                         Command="{Binding ToggleThemeCommand}"
                         Content="{Binding ThemeToggleIcon}"
@@ -63,142 +65,80 @@
                 <controls:CategoryMenuButton
                     Label="System Utilities"
                     Icon="🖥"
+                    NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Task Manager Plus"/>
-                        <controls:MenuEntry Label="Startup App Control"/>
-                        <controls:MenuEntry Label="Disk Cleanup Hub"/>
+                        <controls:MenuEntry Label="Disk Info Viewer" ToolKey="disk-info"/>
+                        <controls:MenuEntry Label="Task Manager Plus" ToolKey=""/>
+                        <controls:MenuEntry Label="Startup App Control" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
 
                 <controls:CategoryMenuButton
                     Label="File &amp; Data Tools"
                     Icon="📁"
+                    NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Bulk File Renamer"/>
-                        <controls:MenuEntry Label="Duplicate Finder"/>
-                        <controls:MenuEntry Label="CSV / JSON Tools"/>
+                        <controls:MenuEntry Label="Bulk File Renamer" ToolKey="bulk-renamer"/>
+                        <controls:MenuEntry Label="Duplicate Finder" ToolKey=""/>
+                        <controls:MenuEntry Label="CSV / JSON Tools" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
 
                 <controls:CategoryMenuButton
                     Label="Security &amp; Privacy"
                     Icon="🔒"
+                    NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Privacy Dashboard"/>
-                        <controls:MenuEntry Label="Secure File Shredder"/>
-                        <controls:MenuEntry Label="Password Toolkit"/>
+                        <controls:MenuEntry Label="Password Generator" ToolKey="password-generator"/>
+                        <controls:MenuEntry Label="Privacy Dashboard" ToolKey=""/>
+                        <controls:MenuEntry Label="Secure File Shredder" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
 
                 <controls:CategoryMenuButton
                     Label="Network &amp; Internet"
                     Icon="🌐"
+                    NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Network Scanner"/>
-                        <controls:MenuEntry Label="DNS Utility"/>
-                        <controls:MenuEntry Label="Connection Monitor"/>
+                        <controls:MenuEntry Label="Ping Tool" ToolKey="ping-tool"/>
+                        <controls:MenuEntry Label="Network Scanner" ToolKey=""/>
+                        <controls:MenuEntry Label="DNS Utility" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
 
                 <controls:CategoryMenuButton
                     Label="Developer &amp; Productivity"
                     Icon="💻"
+                    NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Regex Tester"/>
-                        <controls:MenuEntry Label="Text Diff Tool"/>
-                        <controls:MenuEntry Label="Clipboard Manager"/>
+                        <controls:MenuEntry Label="Regex Tester" ToolKey="regex-tester"/>
+                        <controls:MenuEntry Label="Text Diff Tool" ToolKey=""/>
+                        <controls:MenuEntry Label="Clipboard Manager" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
             </UniformGrid>
         </Border>
 
-        <!-- Content Area -->
-        <Grid Grid.Row="2" Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+        <!-- Main Content Area — DataTemplates resolve the correct View automatically -->
+        <ContentControl Grid.Row="2"
+                        Content="{Binding CurrentView}"
+                        Margin="20"/>
 
-            <!-- Welcome Banner -->
-            <Border Grid.Row="0"
-                    Background="{DynamicResource CardBackgroundBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="24,20"
-                    Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="Welcome to Windows Utility Pack"
-                               FontSize="22" FontWeight="SemiBold"
-                               Foreground="{DynamicResource PrimaryTextBrush}"
-                               Margin="0,0,0,8"/>
-                    <TextBlock Text="Hover over any category above to explore available tools. Select a tool to get started."
-                               FontSize="14"
-                               Foreground="{DynamicResource SecondaryTextBrush}"
-                               TextWrapping="Wrap"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Feature Cards -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <UniformGrid Columns="3" HorizontalAlignment="Stretch">
-                    <Border Style="{StaticResource FeatureCardStyle}" Margin="0,0,8,8">
-                        <StackPanel>
-                            <TextBlock Text="🖥" FontSize="32" Margin="0,0,0,10"/>
-                            <TextBlock Text="System Utilities" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Manage tasks, startup items, and disk space."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource FeatureCardStyle}" Margin="4,0,4,8">
-                        <StackPanel>
-                            <TextBlock Text="📁" FontSize="32" Margin="0,0,0,10"/>
-                            <TextBlock Text="File &amp; Data Tools" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Rename, find duplicates, and convert data files."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource FeatureCardStyle}" Margin="8,0,0,8">
-                        <StackPanel>
-                            <TextBlock Text="🔒" FontSize="32" Margin="0,0,0,10"/>
-                            <TextBlock Text="Security &amp; Privacy" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Protect your data and manage privacy settings."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource FeatureCardStyle}" Margin="0,0,8,8">
-                        <StackPanel>
-                            <TextBlock Text="🌐" FontSize="32" Margin="0,0,0,10"/>
-                            <TextBlock Text="Network &amp; Internet" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Scan networks, configure DNS, and monitor connections."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource FeatureCardStyle}" Margin="4,0,4,8">
-                        <StackPanel>
-                            <TextBlock Text="💻" FontSize="32" Margin="0,0,0,10"/>
-                            <TextBlock Text="Developer Tools" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Test regex, diff text, and manage your clipboard."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource FeatureCardStyle}" Margin="8,0,0,8"
-                            Background="{DynamicResource AccentCardBackgroundBrush}">
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="➕" FontSize="32" Margin="0,0,0,10"
-                                       Foreground="{DynamicResource AccentBrush}"/>
-                            <TextBlock Text="More Coming Soon" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="New tools and utilities are being added regularly."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Border>
-                </UniformGrid>
-            </ScrollViewer>
-        </Grid>
+        <!-- Status Bar -->
+        <Border Grid.Row="3"
+                Background="{DynamicResource HeaderBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,0">
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       FontSize="12"
+                       VerticalAlignment="Center"/>
+        </Border>
     </Grid>
 </Window>
