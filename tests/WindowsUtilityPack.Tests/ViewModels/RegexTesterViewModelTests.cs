@@ -3,6 +3,11 @@ using Xunit;
 
 namespace WindowsUtilityPack.Tests.ViewModels;
 
+/// <summary>
+/// Unit tests for <see cref="RegexTesterViewModel"/>.
+/// Verifies that the live regex evaluation logic produces correct match results,
+/// error messages, and status counts without requiring WPF bindings.
+/// </summary>
 public class RegexTesterViewModelTests
 {
     [Fact]
@@ -11,7 +16,7 @@ public class RegexTesterViewModelTests
         var vm = new RegexTesterViewModel
         {
             InputText = "foo 123 bar 456",
-            Pattern = @"\d+",
+            Pattern   = @"\d+",
         };
         Assert.Equal(2, vm.MatchCount);
         Assert.Equal(2, vm.Matches.Count);
@@ -22,10 +27,11 @@ public class RegexTesterViewModelTests
     [Fact]
     public void StatusMessage_ShowsError_ForInvalidPattern()
     {
+        // An unclosed bracket is a malformed regex; the VM should report a pattern error.
         var vm = new RegexTesterViewModel
         {
             InputText = "hello",
-            Pattern = "[invalid",
+            Pattern   = "[invalid",
         };
         Assert.StartsWith("Pattern error", vm.StatusMessage);
     }
@@ -36,7 +42,7 @@ public class RegexTesterViewModelTests
         var vm = new RegexTesterViewModel
         {
             InputText = "hello world",
-            Pattern = @"\d+",
+            Pattern   = @"\d+",
         };
         Assert.Equal(0, vm.MatchCount);
     }

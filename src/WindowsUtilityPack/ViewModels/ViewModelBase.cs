@@ -4,14 +4,22 @@ using System.Runtime.CompilerServices;
 namespace WindowsUtilityPack.ViewModels;
 
 /// <summary>
-/// Base class for all ViewModels. Implements INotifyPropertyChanged for data binding.
+/// Base class for all ViewModels in the application.
+/// Implements <see cref="INotifyPropertyChanged"/> so WPF data bindings
+/// update automatically when bound properties change.
+///
+/// Usage: inherit from this class and call <see cref="SetProperty{T}"/>
+/// inside property setters instead of manually raising <see cref="PropertyChanged"/>.
 /// </summary>
 public abstract class ViewModelBase : INotifyPropertyChanged
 {
+    /// <inheritdoc/>
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
-    /// Raises PropertyChanged for the given property name.
+    /// Raises <see cref="PropertyChanged"/> for the given property.
+    /// Typically called by <see cref="SetProperty{T}"/> automatically;
+    /// can also be called manually for computed/derived properties.
     /// </summary>
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
@@ -19,8 +27,13 @@ public abstract class ViewModelBase : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Sets a backing field and raises PropertyChanged if the value changed.
+    /// Sets a backing field to <paramref name="value"/> and raises <see cref="PropertyChanged"/>
+    /// if the value actually changed.  Returns <see langword="true"/> if the change occurred.
     /// </summary>
+    /// <typeparam name="T">The type of the property.</typeparam>
+    /// <param name="field">Reference to the backing field.</param>
+    /// <param name="value">The new value to assign.</param>
+    /// <param name="propertyName">Auto-filled by the compiler with the caller's member name.</param>
     protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value))

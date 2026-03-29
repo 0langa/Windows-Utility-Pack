@@ -6,6 +6,10 @@ using System.Windows.Input;
 
 namespace WindowsUtilityPack.Controls;
 
+/// <summary>
+/// A single entry in a <see cref="CategoryMenuButton"/> dropdown.
+/// Carries the display label and the tool navigation key.
+/// </summary>
 public class MenuEntry : DependencyObject
 {
     public static readonly DependencyProperty LabelProperty =
@@ -16,12 +20,17 @@ public class MenuEntry : DependencyObject
         DependencyProperty.Register(nameof(ToolKey), typeof(string), typeof(MenuEntry),
             new PropertyMetadata(string.Empty));
 
+    /// <summary>Display text shown in the dropdown list.</summary>
     public string Label
     {
         get => (string)GetValue(LabelProperty);
         set => SetValue(LabelProperty, value);
     }
 
+    /// <summary>
+    /// Navigation key passed to <c>NavigateCommand</c> when this item is clicked.
+    /// Empty string means the tool is not yet implemented; clicking does nothing.
+    /// </summary>
     public string ToolKey
     {
         get => (string)GetValue(ToolKeyProperty);
@@ -29,8 +38,24 @@ public class MenuEntry : DependencyObject
     }
 }
 
+/// <summary>
+/// A navigation bar button that displays a category icon + label and shows a
+/// hover dropdown containing <see cref="MenuEntry"/> items.
+///
+/// How it works:
+/// <list type="bullet">
+///   <item>The control is a <see cref="UserControl"/> with a <see cref="Popup"/> child.</item>
+///   <item>Hovering over the control opens the popup (<see cref="OnMouseEnter"/>).</item>
+///   <item>Moving the mouse outside the control bounds closes it (<see cref="OnMouseLeave"/>).</item>
+///   <item>Clicking a menu item closes the popup and fires <see cref="NavigateCommand"/>
+///         with the item's <see cref="MenuEntry.ToolKey"/> as the parameter.</item>
+///   <item>Items with an empty <c>ToolKey</c> are silently ignored (placeholder entries).</item>
+/// </list>
+/// </summary>
 public partial class CategoryMenuButton : UserControl
 {
+    // ── Dependency properties ─────────────────────────────────────────────────
+
     public static readonly DependencyProperty LabelProperty =
         DependencyProperty.Register(nameof(Label), typeof(string), typeof(CategoryMenuButton),
             new PropertyMetadata(string.Empty));
@@ -47,35 +72,49 @@ public partial class CategoryMenuButton : UserControl
         DependencyProperty.Register(nameof(NavigateCommand), typeof(ICommand),
             typeof(CategoryMenuButton), new PropertyMetadata(null));
 
+    // ── CLR wrappers ──────────────────────────────────────────────────────────
+
+    /// <summary>Category label displayed below the icon.</summary>
     public string Label
     {
         get => (string)GetValue(LabelProperty);
         set => SetValue(LabelProperty, value);
     }
 
+    /// <summary>Emoji or icon character displayed above the label.</summary>
     public string Icon
     {
         get => (string)GetValue(IconProperty);
         set => SetValue(IconProperty, value);
     }
 
+    /// <summary>The dropdown items shown when hovering over this button.</summary>
     public ObservableCollection<MenuEntry> MenuItems
     {
         get => (ObservableCollection<MenuEntry>)GetValue(MenuItemsProperty);
         set => SetValue(MenuItemsProperty, value);
     }
 
+    /// <summary>
+    /// Command invoked with the clicked item's <see cref="MenuEntry.ToolKey"/> as parameter.
+    /// Typically bound to <c>MainWindowViewModel.NavigateCommand</c>.
+    /// </summary>
     public ICommand? NavigateCommand
     {
         get => (ICommand?)GetValue(NavigateCommandProperty);
         set => SetValue(NavigateCommandProperty, value);
     }
 
+    // ── Constructor ───────────────────────────────────────────────────────────
+
     public CategoryMenuButton()
     {
+        // Initialise the collection before InitializeComponent so XAML can bind to it.
         MenuItems = [];
         InitializeComponent();
     }
+
+    // ── Event handlers ────────────────────────────────────────────────────────
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
     {
@@ -87,6 +126,8 @@ public partial class CategoryMenuButton : UserControl
     {
         if (FindName("DropdownPopup") is Popup popup)
         {
+            // Only close if the cursor has genuinely left the control's bounds.
+            // This prevents accidental closure when moving between the button and popup.
             var pos = e.GetPosition(this);
             if (pos.X < 0 || pos.Y < 0 || pos.X > ActualWidth || pos.Y > ActualHeight)
                 popup.IsOpen = false;
@@ -98,6 +139,8 @@ public partial class CategoryMenuButton : UserControl
         if (sender is Button btn && FindName("DropdownPopup") is Popup popup)
         {
             popup.IsOpen = false;
+
+            // Skip placeholder entries that have no registered tool yet.
             var toolKey = btn.Tag as string;
             if (!string.IsNullOrEmpty(toolKey) && NavigateCommand?.CanExecute(toolKey) == true)
                 NavigateCommand.Execute(toolKey);
