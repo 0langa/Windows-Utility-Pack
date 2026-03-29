@@ -24,9 +24,16 @@ public class MatchItem
 /// <see cref="RunRegex"/> is called synchronously because regex evaluation is
 /// fast for typical inputs.  A debounce or background task can be added later
 /// if very large inputs become a concern.
+///
+/// A per-evaluation timeout of <see cref="RegexMatchTimeout"/> guards against
+/// catastrophic backtracking (ReDoS) caused by pathological patterns.
 /// </summary>
 public class RegexTesterViewModel : ViewModelBase
 {
+    // Maximum time allowed for a single regex evaluation.
+    // 2 seconds is generous for interactive use while still protecting the UI thread
+    // from catastrophic backtracking (ReDoS) caused by pathological patterns.
+    private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromSeconds(2);
     private string _inputText     = "Hello World! This is a test string with numbers like 123 and 456.";
     private string _pattern       = @"\d+";
     private string _statusMessage = string.Empty;
@@ -118,7 +125,7 @@ public class RegexTesterViewModel : ViewModelBase
             if (Multiline)   opts |= RegexOptions.Multiline;
             if (SingleLine)  opts |= RegexOptions.Singleline;
 
-            var regex   = new Regex(Pattern, opts);
+            var regex   = new Regex(Pattern, opts, RegexMatchTimeout);
             var matches = regex.Matches(InputText);
             MatchCount  = matches.Count;
 
@@ -142,6 +149,10 @@ public class RegexTesterViewModel : ViewModelBase
         catch (RegexParseException ex)
         {
             StatusMessage = $"Pattern error: {ex.Message}";
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            StatusMessage = "Match timed out — the pattern may cause catastrophic backtracking.";
         }
     }
 }
