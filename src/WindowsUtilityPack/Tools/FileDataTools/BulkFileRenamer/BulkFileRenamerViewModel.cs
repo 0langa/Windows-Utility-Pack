@@ -138,6 +138,13 @@ public class BulkFileRenamerViewModel : ViewModelBase
 
             var newName  = Prefix + modified + Suffix + ext;
 
+            // Strip any path-separator characters from the computed name so that
+            // user-controlled inputs (Prefix, Suffix, ReplaceText) cannot inject a
+            // directory traversal sequence (e.g. "../") into the target filename.
+            newName = newName
+                .Replace(Path.DirectorySeparatorChar, '_')
+                .Replace(Path.AltDirectorySeparatorChar, '_');
+
             // Conflict: another item in this batch already uses the same new name,
             // or the target name already exists on disk (and we're not just keeping it).
             var conflict = seen.Contains(newName) ||
@@ -170,10 +177,18 @@ public class BulkFileRenamerViewModel : ViewModelBase
         IsBusy = true;
         try
         {
+            var resolvedFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(SelectedFolder))
+                                 + Path.DirectorySeparatorChar;
             foreach (var item in PreviewItems.Where(p => !p.HasConflict && p.OriginalName != p.NewName))
             {
                 var src = Path.Combine(SelectedFolder, item.OriginalName);
                 var dst = Path.Combine(SelectedFolder, item.NewName);
+
+                // Defense-in-depth: ensure the resolved destination is still inside the
+                // selected folder even after any path normalisation by the OS.
+                if (!Path.GetFullPath(dst).StartsWith(resolvedFolder, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 if (File.Exists(src) && !File.Exists(dst))
                     File.Move(src, dst);
             }
