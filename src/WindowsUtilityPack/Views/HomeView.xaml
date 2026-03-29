@@ -1,0 +1,15 @@
+<UserControl x:Class="WindowsUtilityPack.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels">
+    <UserControl.DataContext>
+        <vm:HomeViewModel/>
+    </UserControl.DataContext>
+    <Grid>
+        <TextBlock Text="{Binding WelcomeMessage}"
+                   FontSize="18"
+                   Foreground="{DynamicResource PrimaryTextBrush}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+    </Grid>
+</UserControl>

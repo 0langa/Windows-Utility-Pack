@@ -1,0 +1,33 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Background Colors -->
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1A1A2E"/>
+    <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#16213E"/>
+    <SolidColorBrush x:Key="NavBarBackgroundBrush" Color="#0F3460"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#16213E"/>
+    <SolidColorBrush x:Key="PopupBackgroundBrush" Color="#1A1A2E"/>
+    <SolidColorBrush x:Key="AccentCardBackgroundBrush" Color="#1A1A3E"/>
+
+    <!-- Text Colors -->
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#E8E8F0"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#A0A0B0"/>
+
+    <!-- Accent -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#E94560"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF6B6B"/>
+
+    <!-- Borders -->
+    <SolidColorBrush x:Key="BorderBrush" Color="#2A2A4A"/>
+
+    <!-- Button States -->
+    <SolidColorBrush x:Key="CategoryButtonBackgroundBrush" Color="#0F3460"/>
+    <SolidColorBrush x:Key="CategoryButtonHoverBrush" Color="#E94560"/>
+    <SolidColorBrush x:Key="CategoryButtonPressedBrush" Color="#C73652"/>
+    <SolidColorBrush x:Key="MenuItemHoverBrush" Color="#2A2A5A"/>
+
+    <!-- Theme Toggle -->
+    <SolidColorBrush x:Key="ThemeToggleBackgroundBrush" Color="#2A2A4A"/>
+    <SolidColorBrush x:Key="ThemeToggleHoverBrush" Color="#E94560"/>
+
+</ResourceDictionary>
