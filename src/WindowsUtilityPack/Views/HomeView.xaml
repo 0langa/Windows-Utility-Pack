@@ -1,7 +1,7 @@
 <UserControl x:Class="WindowsUtilityPack.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels">
+             xmlns:models="clr-namespace:WindowsUtilityPack.Models">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -21,65 +21,31 @@
             </StackPanel>
         </Border>
 
-        <!-- Feature Cards -->
+        <!-- Feature Cards - data-driven from ToolRegistry via HomeViewModel.FeaturedTools -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <UniformGrid Columns="3">
-                <Button Command="{Binding NavigateCommand}" CommandParameter="disk-info"
-                        Style="{StaticResource CardButtonStyle}" Margin="0,0,8,8">
-                    <StackPanel>
-                        <TextBlock Text="🖥" FontSize="32" Margin="0,0,0,10"/>
-                        <TextBlock Text="Disk Info Viewer" Style="{StaticResource CardTitleStyle}"/>
-                        <TextBlock Text="View drives, free space, and total capacity."
-                                   Style="{StaticResource CardDescriptionStyle}"/>
-                    </StackPanel>
-                </Button>
-                <Button Command="{Binding NavigateCommand}" CommandParameter="bulk-renamer"
-                        Style="{StaticResource CardButtonStyle}" Margin="4,0,4,8">
-                    <StackPanel>
-                        <TextBlock Text="📁" FontSize="32" Margin="0,0,0,10"/>
-                        <TextBlock Text="Bulk File Renamer" Style="{StaticResource CardTitleStyle}"/>
-                        <TextBlock Text="Rename files with prefix, suffix, or find-replace."
-                                   Style="{StaticResource CardDescriptionStyle}"/>
-                    </StackPanel>
-                </Button>
-                <Button Command="{Binding NavigateCommand}" CommandParameter="password-generator"
-                        Style="{StaticResource CardButtonStyle}" Margin="8,0,0,8">
-                    <StackPanel>
-                        <TextBlock Text="🔒" FontSize="32" Margin="0,0,0,10"/>
-                        <TextBlock Text="Password Generator" Style="{StaticResource CardTitleStyle}"/>
-                        <TextBlock Text="Generate strong, random passwords instantly."
-                                   Style="{StaticResource CardDescriptionStyle}"/>
-                    </StackPanel>
-                </Button>
-                <Button Command="{Binding NavigateCommand}" CommandParameter="ping-tool"
-                        Style="{StaticResource CardButtonStyle}" Margin="0,0,8,8">
-                    <StackPanel>
-                        <TextBlock Text="🌐" FontSize="32" Margin="0,0,0,10"/>
-                        <TextBlock Text="Ping Tool" Style="{StaticResource CardTitleStyle}"/>
-                        <TextBlock Text="Test network connectivity and measure latency."
-                                   Style="{StaticResource CardDescriptionStyle}"/>
-                    </StackPanel>
-                </Button>
-                <Button Command="{Binding NavigateCommand}" CommandParameter="regex-tester"
-                        Style="{StaticResource CardButtonStyle}" Margin="4,0,4,8">
-                    <StackPanel>
-                        <TextBlock Text="💻" FontSize="32" Margin="0,0,0,10"/>
-                        <TextBlock Text="Regex Tester" Style="{StaticResource CardTitleStyle}"/>
-                        <TextBlock Text="Test and debug regular expressions interactively."
-                                   Style="{StaticResource CardDescriptionStyle}"/>
-                    </StackPanel>
-                </Button>
-                <Border Style="{StaticResource FeatureCardStyle}" Margin="8,0,0,8"
-                        Background="{DynamicResource AccentCardBackgroundBrush}">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="➕" FontSize="32" Margin="0,0,0,10"
-                                   Foreground="{DynamicResource AccentBrush}"/>
-                        <TextBlock Text="More Coming Soon" Style="{StaticResource CardTitleStyle}"/>
-                        <TextBlock Text="New tools and utilities are being added regularly."
-                                   Style="{StaticResource CardDescriptionStyle}"/>
-                    </StackPanel>
-                </Border>
-            </UniformGrid>
+            <ItemsControl ItemsSource="{Binding FeaturedTools}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="3"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type models:ToolDefinition}">
+                        <Button Command="{Binding DataContext.NavigateCommand,
+                                         RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding Key}"
+                                Style="{StaticResource CardButtonStyle}"
+                                Margin="4,0,4,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Icon}" FontSize="32" Margin="0,0,0,10"/>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitleStyle}"/>
+                                <TextBlock Text="{Binding Description}"
+                                           Style="{StaticResource CardDescriptionStyle}"/>
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </ScrollViewer>
     </Grid>
 </UserControl>
