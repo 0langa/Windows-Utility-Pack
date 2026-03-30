@@ -568,6 +568,7 @@ public sealed class TextFormatConverterViewModel : ViewModelBase
         RefreshTargetFormats();
         RefreshDirectionState();
         RefreshSourceNotices();
+        OnPropertyChanged(nameof(HasActiveInput));
         OnPropertyChanged(nameof(HasLoadedFile));
         OnPropertyChanged(nameof(IsDirectInputEnabled));
         OnPropertyChanged(nameof(LoadedFileName));

@@ -20,6 +20,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using HtmlAgilityPack;
 using Markdig;
 using PdfSharp.Drawing;
+using PdfSharp.Fonts;
 using PdfSharp.Pdf;
 using ReverseMarkdown;
 using Paragraph = System.Windows.Documents.Paragraph;
@@ -37,6 +38,7 @@ namespace WindowsUtilityPack.Services.TextConversion;
 /// </summary>
 public sealed class TextFormatConversionService : ITextFormatConversionService
 {
+    private static readonly object PdfSharpFontLock = new();
     private static readonly Encoding Utf8NoBom =
         new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
@@ -182,21 +184,43 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
         switch (format)
         {
             case TextFormatKind.Docx:
-                conversionText = await ExtractDocxTextAsync(filePath, cancellationToken);
-                previewText = conversionText;
-                warnings.Add("DOCX input is converted from extracted text paragraphs. Complex layout is not preserved.");
+                try
+                {
+                    conversionText = await ExtractDocxTextAsync(filePath, cancellationToken);
+                    previewText = conversionText;
+                    warnings.Add("DOCX input is converted from extracted text paragraphs. Complex layout is not preserved.");
+                }
+                catch (Exception ex) when (ex is OpenXmlPackageException or FileFormatException)
+                {
+                    throw new InvalidOperationException("The selected DOCX file could not be read.", ex);
+                }
                 break;
 
             case TextFormatKind.Pdf:
-                conversionText = await ExtractPdfTextAsync(filePath, cancellationToken);
-                previewText = conversionText;
-                warnings.Add("PDF input is converted from extracted text. Visual layout and embedded media are not preserved.");
+                try
+                {
+                    conversionText = await ExtractPdfTextAsync(filePath, cancellationToken);
+                    previewText = conversionText;
+                    warnings.Add("PDF input is converted from extracted text. Visual layout and embedded media are not preserved.");
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or IOException)
+                {
+                    throw new InvalidOperationException("The selected PDF file could not be read.", ex);
+                }
                 break;
 
             case TextFormatKind.Rtf:
                 conversionText = await File.ReadAllTextAsync(filePath, cancellationToken);
-                previewText = await ConvertRtfToPlainTextAsync(conversionText, cancellationToken);
-                warnings.Add("RTF input is loaded as rich text, but the preview uses plain text for readability.");
+
+                try
+                {
+                    previewText = await ConvertRtfToPlainTextAsync(conversionText, cancellationToken);
+                    warnings.Add("RTF input is loaded as rich text, but the preview uses plain text for readability.");
+                }
+                catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+                {
+                    throw new InvalidOperationException("The selected RTF file could not be read.", ex);
+                }
                 break;
 
             default:
@@ -245,70 +269,77 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
         string previewText;
         byte[] outputBytes;
 
-        switch (request.TargetFormat)
+        try
         {
-            case TextFormatKind.Json:
-                outputText = ConvertToJson(request.SourceFormat, normalizedInput, warnings);
-                previewText = outputText;
-                outputBytes = Utf8NoBom.GetBytes(outputText);
-                break;
+            switch (request.TargetFormat)
+            {
+                case TextFormatKind.Json:
+                    outputText = ConvertToJson(request.SourceFormat, normalizedInput, warnings);
+                    previewText = outputText;
+                    outputBytes = Utf8NoBom.GetBytes(outputText);
+                    break;
 
-            case TextFormatKind.Xml:
-                outputText = ConvertToXml(request.SourceFormat, normalizedInput, warnings);
-                previewText = outputText;
-                outputBytes = Utf8NoBom.GetBytes(outputText);
-                break;
+                case TextFormatKind.Xml:
+                    outputText = ConvertToXml(request.SourceFormat, normalizedInput, warnings);
+                    previewText = outputText;
+                    outputBytes = Utf8NoBom.GetBytes(outputText);
+                    break;
 
-            case TextFormatKind.Html:
-                outputText = ConvertToHtml(request.SourceFormat, normalizedInput, warnings);
-                previewText = outputText;
-                outputBytes = Utf8NoBom.GetBytes(outputText);
-                break;
+                case TextFormatKind.Html:
+                    outputText = ConvertToHtml(request.SourceFormat, normalizedInput, warnings);
+                    previewText = outputText;
+                    outputBytes = Utf8NoBom.GetBytes(outputText);
+                    break;
 
-            case TextFormatKind.Markdown:
-                outputText = ConvertToMarkdown(request.SourceFormat, normalizedInput, warnings);
-                previewText = outputText;
-                outputBytes = Utf8NoBom.GetBytes(outputText);
-                break;
+                case TextFormatKind.Markdown:
+                    outputText = ConvertToMarkdown(request.SourceFormat, normalizedInput, warnings);
+                    previewText = outputText;
+                    outputBytes = Utf8NoBom.GetBytes(outputText);
+                    break;
 
-            case TextFormatKind.Rtf:
-                previewText = await ConvertSourceToPlainTextAsync(
-                    request.SourceFormat,
-                    normalizedInput,
-                    warnings,
-                    cancellationToken);
+                case TextFormatKind.Rtf:
+                    previewText = await ConvertSourceToPlainTextAsync(
+                        request.SourceFormat,
+                        normalizedInput,
+                        warnings,
+                        cancellationToken);
 
-                outputText = await ConvertPlainTextToRtfAsync(previewText, cancellationToken);
-                outputBytes = Utf8NoBom.GetBytes(outputText);
-                warnings.Add("RTF output preserves readable paragraph structure, but advanced styling is intentionally kept minimal.");
-                break;
+                    outputText = await ConvertPlainTextToRtfAsync(previewText, cancellationToken);
+                    outputBytes = Utf8NoBom.GetBytes(outputText);
+                    warnings.Add("RTF output preserves readable paragraph structure, but advanced styling is intentionally kept minimal.");
+                    break;
 
-            case TextFormatKind.Docx:
-                previewText = await ConvertSourceToPlainTextAsync(
-                    request.SourceFormat,
-                    normalizedInput,
-                    warnings,
-                    cancellationToken);
+                case TextFormatKind.Docx:
+                    previewText = await ConvertSourceToPlainTextAsync(
+                        request.SourceFormat,
+                        normalizedInput,
+                        warnings,
+                        cancellationToken);
 
-                outputText = previewText;
-                outputBytes = CreateDocxDocument(previewText);
-                warnings.Add("DOCX output is generated as a clean text-focused document with paragraph preservation.");
-                break;
+                    outputText = previewText;
+                    outputBytes = CreateDocxDocument(previewText);
+                    warnings.Add("DOCX output is generated as a clean text-focused document with paragraph preservation.");
+                    break;
 
-            case TextFormatKind.Pdf:
-                previewText = await ConvertSourceToPlainTextAsync(
-                    request.SourceFormat,
-                    normalizedInput,
-                    warnings,
-                    cancellationToken);
+                case TextFormatKind.Pdf:
+                    previewText = await ConvertSourceToPlainTextAsync(
+                        request.SourceFormat,
+                        normalizedInput,
+                        warnings,
+                        cancellationToken);
 
-                outputText = previewText;
-                outputBytes = CreatePdfDocument(previewText);
-                warnings.Add("PDF output is generated as a text-focused document. Complex source styling cannot be round-tripped.");
-                break;
+                    outputText = previewText;
+                    outputBytes = CreatePdfDocument(previewText);
+                    warnings.Add("PDF output is generated as a text-focused document. Complex source styling cannot be round-tripped.");
+                    break;
 
-            default:
-                throw new InvalidOperationException("The selected target format is not supported.");
+                default:
+                    throw new InvalidOperationException("The selected target format is not supported.");
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw NormalizeConversionException(ex);
         }
 
         return new TextConversionResult
@@ -604,8 +635,16 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
 
     private static string ConvertJsonToXml(string json, List<string> warnings)
     {
-        var rootNode = JsonNode.Parse(json)
+        JsonNode rootNode;
+        try
+        {
+            rootNode = JsonNode.Parse(json)
                        ?? throw new InvalidOperationException("The input is not valid JSON.");
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException("The input is not valid JSON.", ex);
+        }
 
         var document = new XDocument(
             new XDeclaration("1.0", "utf-8", null),
@@ -665,7 +704,16 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
 
     private static string ConvertXmlToJson(string xml, List<string> warnings)
     {
-        var document = XDocument.Parse(xml, LoadOptions.PreserveWhitespace);
+        XDocument document;
+        try
+        {
+            document = XDocument.Parse(xml, LoadOptions.PreserveWhitespace);
+        }
+        catch (XmlException ex)
+        {
+            throw new InvalidOperationException("The input is not valid XML.", ex);
+        }
+
         var root = document.Root
                    ?? throw new InvalidOperationException("The input XML does not contain a root element.");
 
@@ -873,6 +921,8 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
 
     private static byte[] CreatePdfDocument(string text)
     {
+        EnsurePdfSharpFontConfiguration();
+
         var wrappedLines = WrapLines(text, 95);
         using var stream = new MemoryStream();
         using var document = new PdfDocument();
@@ -880,7 +930,7 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
 
         const double margin = 40;
         const double lineHeight = 14;
-        var font = new XFont("Consolas", 10);
+        var font = new XFont("Arial", 10);
 
         var page = document.AddPage();
         var graphics = XGraphics.FromPdfPage(page);
@@ -905,6 +955,26 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
         graphics.Dispose();
         document.Save(stream, closeStream: false);
         return stream.ToArray();
+    }
+
+    private static Exception NormalizeConversionException(Exception exception)
+    {
+        return exception switch
+        {
+            InvalidOperationException => exception,
+            JsonException => new InvalidOperationException("The input is not valid JSON.", exception),
+            XmlException => new InvalidOperationException("The input is not valid XML.", exception),
+            OpenXmlPackageException or FileFormatException => new InvalidOperationException("The document content could not be read.", exception),
+            _ => exception,
+        };
+    }
+
+    private static void EnsurePdfSharpFontConfiguration()
+    {
+        lock (PdfSharpFontLock)
+        {
+            GlobalFontSettings.UseWindowsFontsUnderWindows = true;
+        }
     }
 
     private static IEnumerable<string> WrapLines(string text, int maxLineLength)

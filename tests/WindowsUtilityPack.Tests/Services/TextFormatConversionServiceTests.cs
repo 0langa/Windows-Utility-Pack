@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using System.IO;
 using WindowsUtilityPack.Services.TextConversion;
 using Xunit;
@@ -105,7 +104,7 @@ public sealed class TextFormatConversionServiceTests : IDisposable
     [Fact]
     public async Task ConvertAsync_ThrowsForMalformedJson()
     {
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ConvertAsync(
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ConvertAsync(
             new TextConversionRequest
             {
                 SourceFormat = TextFormatKind.Json,
@@ -113,6 +112,8 @@ public sealed class TextFormatConversionServiceTests : IDisposable
                 InputText = "{invalid}",
             },
             CancellationToken.None));
+
+        Assert.Contains("not valid JSON", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -177,7 +178,9 @@ public sealed class TextFormatConversionServiceTests : IDisposable
     {
         var filePath = CreateFile("broken.docx", "not-a-docx");
 
-        await Assert.ThrowsAsync<OpenXmlPackageException>(() => _service.LoadFileAsync(filePath, CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.LoadFileAsync(filePath, CancellationToken.None));
+
+        Assert.Contains("DOCX", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private string CreateFile(string fileName, string content)
