@@ -23,6 +23,9 @@
                     </ControlTemplate>
                 </Button.Template>
             </Button>
+            <TextBlock Text="Loading…" Foreground="{DynamicResource SecondaryTextBrush}"
+                       VerticalAlignment="Center" Margin="12,0,0,0"
+                       Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"/>
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
