@@ -69,16 +69,15 @@
                                    Style="{StaticResource CardDescriptionStyle}"/>
                     </StackPanel>
                 </Button>
-                <Border Style="{StaticResource FeatureCardStyle}" Margin="8,0,0,8"
-                        Background="{DynamicResource AccentCardBackgroundBrush}">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="➕" FontSize="32" Margin="0,0,0,10"
-                                   Foreground="{DynamicResource AccentBrush}"/>
-                        <TextBlock Text="More Coming Soon" Style="{StaticResource CardTitleStyle}"/>
-                        <TextBlock Text="New tools and utilities are being added regularly."
+                <Button Command="{Binding NavigateCommand}" CommandParameter="text-format-converter"
+                        Style="{StaticResource CardButtonStyle}" Margin="8,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="🧾" FontSize="32" Margin="0,0,0,10"/>
+                        <TextBlock Text="Text Format Converter" Style="{StaticResource CardTitleStyle}"/>
+                        <TextBlock Text="Convert, format, preview, and export text across seven supported formats."
                                    Style="{StaticResource CardDescriptionStyle}"/>
                     </StackPanel>
-                </Border>
+                </Button>
             </UniformGrid>
         </ScrollViewer>
     </Grid>

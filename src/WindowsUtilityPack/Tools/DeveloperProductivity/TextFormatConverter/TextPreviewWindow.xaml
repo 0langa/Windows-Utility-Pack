@@ -1,0 +1,72 @@
+<Window x:Class="WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter.TextPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:behaviors="clr-namespace:WindowsUtilityPack.Behaviors"
+        xmlns:local="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter"
+        Title="Text Preview"
+        Width="920"
+        Height="680"
+        MinWidth="640"
+        MinHeight="420"
+        Background="{DynamicResource AppBackgroundBrush}"
+        WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type local:TextPreviewWindowViewModel}">
+            <Grid Margin="18">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border Style="{StaticResource ToolPanelBorderStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="{Binding WindowTitle}"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"/>
+                            <TextBlock Text="{Binding Summary}"
+                                       Style="{StaticResource MetadataTextStyle}"
+                                       Margin="0,6,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button Content="Copy"
+                                    Command="{Binding CopyCommand}"
+                                    Style="{StaticResource SecondaryActionButtonStyle}"
+                                    Margin="0,0,8,0"/>
+                            <Button Content="Save"
+                                    Command="{Binding SaveCommand}"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Style="{StaticResource ToolPanelBorderStyle}"
+                        Margin="0,12,0,12"
+                        Padding="12">
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+                <RichTextBox Grid.Row="2"
+                             Style="{StaticResource PreviewRichTextBoxStyle}"
+                             behaviors:BindableRichTextBox.Document="{Binding PreviewDocument}"/>
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <ContentPresenter Content="{Binding}"/>
+    </Grid>
+</Window>

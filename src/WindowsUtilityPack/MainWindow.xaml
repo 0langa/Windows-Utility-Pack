@@ -116,6 +116,7 @@
                     NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
+                        <controls:MenuEntry Label="Text Format Converter" ToolKey="text-format-converter"/>
                         <controls:MenuEntry Label="Regex Tester" ToolKey="regex-tester"/>
                         <controls:MenuEntry Label="Text Diff Tool" ToolKey=""/>
                         <controls:MenuEntry Label="Clipboard Manager" ToolKey=""/>

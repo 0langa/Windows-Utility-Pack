@@ -29,7 +29,7 @@ public interface ITextPreviewWindowHost
 
     event EventHandler? Closed;
 
-    void Activate();
+    bool Activate();
 
     void Show();
 }

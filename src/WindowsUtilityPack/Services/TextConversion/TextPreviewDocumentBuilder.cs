@@ -235,17 +235,17 @@ public sealed class TextPreviewDocumentBuilder : ITextPreviewDocumentBuilder
 
     private static Brush GetMarkdownBrush(string token)
     {
-        if (token.StartsWith("```", StringComparison.Ordinal) || token.StartsWith('`'))
+        if (token.StartsWith("```", StringComparison.Ordinal) || token.StartsWith("`", StringComparison.Ordinal))
         {
             return GetBrush("AccentBrush", Brushes.SteelBlue);
         }
 
-        if (token.StartsWith('#'))
+        if (token.StartsWith("#", StringComparison.Ordinal))
         {
             return GetBrush("AccentHoverBrush", Brushes.IndianRed);
         }
 
-        if (token.StartsWith("![", StringComparison.Ordinal) || token.StartsWith('[', StringComparison.Ordinal))
+        if (token.StartsWith("![", StringComparison.Ordinal) || token.StartsWith("[", StringComparison.Ordinal))
         {
             return GetBrush("SuccessBrush", Brushes.SeaGreen);
         }
@@ -285,7 +285,8 @@ public sealed class TextPreviewDocumentBuilder : ITextPreviewDocumentBuilder
 
     private static Brush GetBrush(string resourceKey, Brush fallback)
     {
-        if (Application.Current.TryFindResource(resourceKey) is Brush brush)
+        var application = Application.Current;
+        if (application is not null && application.TryFindResource(resourceKey) is Brush brush)
         {
             return brush;
         }

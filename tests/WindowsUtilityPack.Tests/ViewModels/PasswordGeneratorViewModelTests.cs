@@ -91,12 +91,25 @@ public class PasswordGeneratorViewModelTests
 
     private sealed class NullClipboardService : IClipboardService
     {
+        public bool TryGetText(out string text)
+        {
+            text = string.Empty;
+            return false;
+        }
+
         public void SetText(string text) { }
     }
 
     private sealed class CapturingClipboardService : IClipboardService
     {
         public string? LastText { get; private set; }
+
+        public bool TryGetText(out string text)
+        {
+            text = LastText ?? string.Empty;
+            return LastText is not null;
+        }
+
         public void SetText(string text) => LastText = text;
     }
 }
