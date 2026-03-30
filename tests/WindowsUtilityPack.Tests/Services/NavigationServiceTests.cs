@@ -53,31 +53,4 @@ public class NavigationServiceTests
         svc.NavigateTo("unknown");
         Assert.IsType<TestVm>(svc.CurrentView);
     }
-
-    [Fact]
-    public void NavigateTo_String_SetsCurrentKey()
-    {
-        var svc = new NavigationService();
-        svc.Register("test", () => new TestVm());
-        svc.NavigateTo("test");
-        Assert.Equal("test", svc.CurrentKey);
-    }
-
-    [Fact]
-    public void NavigateTo_UnknownKey_DoesNotChangeCurrentKey()
-    {
-        var svc = new NavigationService();
-        svc.Register("test", () => new TestVm());
-        svc.NavigateTo("test");
-        svc.NavigateTo("unknown");
-        // CurrentKey should still reflect the last successful navigation.
-        Assert.Equal("test", svc.CurrentKey);
-    }
-
-    [Fact]
-    public void CurrentKey_IsNull_BeforeAnyNavigation()
-    {
-        var svc = new NavigationService();
-        Assert.Null(svc.CurrentKey);
-    }
 }

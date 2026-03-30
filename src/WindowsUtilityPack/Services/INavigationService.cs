@@ -16,9 +16,6 @@ public interface INavigationService
     /// <summary>Gets the currently displayed ViewModel, or <see langword="null"/> on startup.</summary>
     ViewModelBase? CurrentView { get; }
 
-    /// <summary>Gets the key of the currently displayed tool, or <see langword="null"/> before first navigation.</summary>
-    string? CurrentKey { get; }
-
     /// <summary>
     /// Registers a named factory so that <see cref="NavigateTo(string)"/> can create the ViewModel.
     /// Called once during application startup for each tool.
