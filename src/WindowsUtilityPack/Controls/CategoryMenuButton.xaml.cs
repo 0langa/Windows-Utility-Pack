@@ -118,8 +118,7 @@ public partial class CategoryMenuButton : UserControl
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
     {
-        if (FindName("DropdownPopup") is Popup popup)
-            popup.IsOpen = true;
+        DropdownPopup.IsOpen = true;
     }
 
     private void OnMouseLeave(object sender, MouseEventArgs e)
@@ -133,23 +132,23 @@ public partial class CategoryMenuButton : UserControl
     // Runs on the Input dispatcher priority so IsMouseOver is already up-to-date.
     private void CloseIfMouseGone()
     {
-        if (FindName("DropdownPopup") is not Popup popup || !popup.IsOpen)
+        if (!DropdownPopup.IsOpen)
             return;
 
         if (IsMouseOver)
             return;
 
-        if (popup.Child is UIElement popupContent && popupContent.IsMouseOver)
+        if (DropdownPopup.Child is UIElement popupContent && popupContent.IsMouseOver)
             return;
 
-        popup.IsOpen = false;
+        DropdownPopup.IsOpen = false;
     }
 
     private void OnDropdownItemClick(object sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && FindName("DropdownPopup") is Popup popup)
+        if (sender is Button btn)
         {
-            popup.IsOpen = false;
+            DropdownPopup.IsOpen = false;
 
             // Skip placeholder entries that have no registered tool yet.
             var toolKey = btn.Tag as string;

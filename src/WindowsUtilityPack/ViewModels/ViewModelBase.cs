@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Collections.Concurrent;
 
 namespace WindowsUtilityPack.ViewModels;
 
@@ -13,6 +14,8 @@ namespace WindowsUtilityPack.ViewModels;
 /// </summary>
 public abstract class ViewModelBase : INotifyPropertyChanged
 {
+    private static readonly ConcurrentDictionary<string, PropertyChangedEventArgs> PropertyChangedEventArgsCache = new(StringComparer.Ordinal);
+
     /// <inheritdoc/>
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -23,7 +26,7 @@ public abstract class ViewModelBase : INotifyPropertyChanged
     /// </summary>
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        PropertyChanged?.Invoke(this, GetPropertyChangedEventArgs(propertyName));
     }
 
     /// <summary>
@@ -42,5 +45,15 @@ public abstract class ViewModelBase : INotifyPropertyChanged
         field = value;
         OnPropertyChanged(propertyName);
         return true;
+    }
+
+    private static PropertyChangedEventArgs GetPropertyChangedEventArgs(string? propertyName)
+    {
+        if (propertyName is null)
+        {
+            return new PropertyChangedEventArgs(null);
+        }
+
+        return PropertyChangedEventArgsCache.GetOrAdd(propertyName, static name => new PropertyChangedEventArgs(name));
     }
 }
