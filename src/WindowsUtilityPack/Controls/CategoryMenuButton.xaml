@@ -63,7 +63,7 @@
         <Popup x:Name="DropdownPopup"
                PlacementTarget="{Binding ElementName=MainButton}"
                Placement="Bottom"
-               StaysOpen="False"
+               StaysOpen="True"
                AllowsTransparency="True"
                PopupAnimation="Fade">
             <Border Background="{DynamicResource PopupBackgroundBrush}"
@@ -71,7 +71,7 @@
                     BorderThickness="1"
                     CornerRadius="6"
                     Padding="4"
-                    MinWidth="180"
+                    Width="{Binding ActualWidth, ElementName=MainButton}"
                     Effect="{StaticResource DropShadowEffect}"
                     MouseLeave="OnPopupMouseLeave">
                 <ItemsControl ItemsSource="{Binding MenuItems, ElementName=Root}">
