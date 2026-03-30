@@ -14,7 +14,7 @@ A modular collection of Windows desktop utility tools built with WPF, .NET 10, a
 
 ## Current Status
 
-The project is in an active, compilable, and runnable state.  Five tools are fully implemented and tested.
+The project is in an active, compilable, and runnable state. Six tools are currently integrated, including the new text conversion workflow for structured and document formats.
 
 | Tool | Category | Status |
 |------|----------|--------|
@@ -23,6 +23,7 @@ The project is in an active, compilable, and runnable state.  Five tools are ful
 | Password Generator | Security & Privacy | ✅ Complete |
 | Ping Tool | Network & Internet | ✅ Complete |
 | Regex Tester | Developer & Productivity | ✅ Complete |
+| Text Format Converter & Formatter | Developer & Productivity | ✅ Complete |
 
 Nine additional tool slots are reserved as navigation placeholders (Task Manager Plus, Duplicate Finder, etc.) and can be implemented incrementally.
 
@@ -100,7 +101,7 @@ All colours are defined as `DynamicResource` brushes in `Themes/DarkTheme.xaml` 
 3. Add a `DataTemplate` in `App.xaml`.
 4. Add a `MenuEntry` in the relevant `CategoryMenuButton` in `MainWindow.xaml`.
 
-See **[docs/PROJECT_STATUS_AND_QUICKSTART.md](docs/PROJECT_STATUS_AND_QUICKSTART.md)** for detailed step-by-step instructions.
+See **[docs/TEXT_FORMAT_CONVERTER.md](docs/TEXT_FORMAT_CONVERTER.md)** for the text conversion architecture and extension guidance.
 
 ## Settings Persistence
 
@@ -109,7 +110,7 @@ Persisted values: theme (dark/light), window position and size.
 
 ## Detailed Documentation
 
-For architecture details, quickstart guidance, known limitations, and next steps, see:
+For architecture details about the Text Format Converter & Formatter, supported conversion directions, preview/export flow, and extension guidance, see:
 
-📄 **[docs/PROJECT_STATUS_AND_QUICKSTART.md](docs/PROJECT_STATUS_AND_QUICKSTART.md)**
+📄 **[docs/TEXT_FORMAT_CONVERTER.md](docs/TEXT_FORMAT_CONVERTER.md)**
 

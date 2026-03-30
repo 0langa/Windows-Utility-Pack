@@ -14,4 +14,12 @@
     <Product>Windows Utility Pack</Product>
     <Description>A modular collection of Windows desktop utility tools.</Description>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
+    <PackageReference Include="Markdig" Version="1.1.2" />
+    <PackageReference Include="PdfPig" Version="0.1.14" />
+    <PackageReference Include="PDFsharp" Version="6.2.4" />
+    <PackageReference Include="ReverseMarkdown" Version="5.2.0" />
+  </ItemGroup>
 </Project>

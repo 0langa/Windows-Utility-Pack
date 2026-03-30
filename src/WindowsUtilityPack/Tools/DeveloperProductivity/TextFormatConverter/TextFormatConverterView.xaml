@@ -1,0 +1,413 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter.TextFormatConverterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:behaviors="clr-namespace:WindowsUtilityPack.Behaviors"
+             xmlns:local="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter">
+    <UserControl.Resources>
+        <DataTemplate x:Key="TextFormatOptionTemplate" DataType="{x:Type local:TextFormatOption}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Glyph}"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Margin="0,0,8,0"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding DisplayName}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="NoticeTemplate" DataType="{x:Type local:TextNotice}">
+            <Border x:Name="NoticeBorder"
+                    CornerRadius="6"
+                    Padding="10,6"
+                    Margin="0,0,0,6"
+                    Background="{DynamicResource AccentCardBackgroundBrush}">
+                <TextBlock x:Name="NoticeText"
+                           Text="{Binding Message}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource PrimaryTextBrush}"
+                           FontSize="12"/>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static local:TextNoticeSeverity.Warning}">
+                    <Setter TargetName="NoticeBorder" Property="Background" Value="{DynamicResource WarningSurfaceBrush}"/>
+                    <Setter TargetName="NoticeText" Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static local:TextNoticeSeverity.Error}">
+                    <Setter TargetName="NoticeBorder" Property="Background" Value="{DynamicResource ErrorSurfaceBrush}"/>
+                    <Setter TargetName="NoticeText" Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static local:TextNoticeSeverity.Success}">
+                    <Setter TargetName="NoticeBorder" Property="Background" Value="{DynamicResource SuccessSurfaceBrush}"/>
+                    <Setter TargetName="NoticeText" Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="🧾 Text Format Converter &amp; Formatter"
+                   FontSize="22"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource PrimaryTextBrush}"
+                   Margin="0,0,0,14"/>
+
+        <Border Grid.Row="1"
+                Style="{StaticResource ToolPanelBorderStyle}"
+                Margin="0,0,0,14"
+                Padding="12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Content="Convert"
+                        Command="{Binding ConvertCommand}"
+                        Style="{StaticResource PrimaryActionButtonStyle}"
+                        Margin="0,0,8,0"/>
+                <Button Grid.Column="1"
+                        Content="Format Only"
+                        Command="{Binding FormatCommand}"
+                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Margin="0,0,8,0"/>
+                <Button Grid.Column="2"
+                        Content="Swap"
+                        Command="{Binding SwapFormatsCommand}"
+                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Margin="0,0,8,0"/>
+                <Button Grid.Column="3"
+                        Content="Clear All"
+                        Command="{Binding ClearAllCommand}"
+                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Margin="0,0,12,0"/>
+
+                <StackPanel Grid.Column="4"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <ProgressBar IsIndeterminate="True"
+                                 Width="120"
+                                 Height="8"
+                                 VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding BusyMessage}"
+                               Margin="10,0,0,0"
+                               Style="{StaticResource MetadataTextStyle}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Button Grid.Column="6"
+                        Content="Cancel"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.12*"/>
+                <ColumnDefinition Width="0.88*"/>
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          Margin="0,0,14,0">
+                <StackPanel>
+                    <Border Style="{StaticResource ToolPanelBorderStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Source &amp; Format Controls"
+                                       Style="{StaticResource PanelHeaderTextStyle}"
+                                       Margin="0,0,0,12"/>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel>
+                                    <TextBlock Text="{Binding LoadedFileName}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                    <TextBlock Text="{Binding LoadedFileSummary}"
+                                               Style="{StaticResource MetadataTextStyle}"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="1"
+                                        Content="Load File"
+                                        Command="{Binding LoadFileCommand}"
+                                        Style="{StaticResource SecondaryActionButtonStyle}"
+                                        Margin="12,0,8,0"/>
+                                <Button Grid.Column="2"
+                                        Content="Clear File"
+                                        Command="{Binding ClearFileCommand}"
+                                        Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Source format"
+                                           Style="{StaticResource MetadataTextStyle}"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Target format"
+                                           Style="{StaticResource MetadataTextStyle}"/>
+
+                                <ComboBox Grid.Row="1"
+                                          Margin="0,6,8,0"
+                                          ItemsSource="{Binding SourceFormats}"
+                                          ItemTemplate="{StaticResource TextFormatOptionTemplate}"
+                                          SelectedValuePath="Kind"
+                                          SelectedValue="{Binding SelectedSourceFormat}"
+                                          IsEnabled="{Binding IsManualSourceSelectionEnabled}"/>
+                                <ComboBox Grid.Row="1"
+                                          Grid.Column="1"
+                                          Margin="8,6,0,0"
+                                          ItemsSource="{Binding TargetFormats}"
+                                          ItemTemplate="{StaticResource TextFormatOptionTemplate}"
+                                          SelectedValuePath="Kind"
+                                          SelectedValue="{Binding SelectedTargetFormat}"/>
+
+                                <CheckBox Grid.Row="2"
+                                          Grid.ColumnSpan="2"
+                                          Margin="0,10,0,0"
+                                          Content="Auto-detect source format when possible"
+                                          IsChecked="{Binding AutoDetectSource}"
+                                          Foreground="{DynamicResource PrimaryTextBrush}"/>
+                            </Grid>
+
+                            <Border Margin="0,0,0,10"
+                                    CornerRadius="6"
+                                    Padding="10,8"
+                                    Background="{DynamicResource AccentCardBackgroundBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DirectionMessage}"
+                                               TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DirectionSeverity}" Value="{x:Static local:TextNoticeSeverity.Warning}">
+                                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DirectionSeverity}" Value="{x:Static local:TextNoticeSeverity.Error}">
+                                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DirectionSeverity}" Value="{x:Static local:TextNoticeSeverity.Success}">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding EffectiveSourceFormatLabel, StringFormat=Effective source: {0}}"
+                                               Style="{StaticResource MetadataTextStyle}"
+                                               Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <ItemsControl ItemsSource="{Binding SourceNotices}"
+                                          ItemTemplate="{StaticResource NoticeTemplate}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource ToolPanelBorderStyle}"
+                            Margin="0,14,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Direct Input"
+                                           Style="{StaticResource PanelHeaderTextStyle}"/>
+                                <Button Grid.Column="1"
+                                        Content="Paste"
+                                        Command="{Binding PasteCommand}"
+                                        Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            </Grid>
+
+                            <TextBox Grid.Row="1"
+                                     Margin="0,12,0,0"
+                                     Text="{Binding DirectInputText, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto"
+                                     TextWrapping="Wrap"
+                                     FontFamily="Consolas"
+                                     FontSize="13"
+                                     MaxLength="5000"
+                                     MinHeight="220"
+                                     IsEnabled="{Binding IsDirectInputEnabled}"
+                                     Background="{DynamicResource PreviewBackgroundBrush}"
+                                     Foreground="{DynamicResource PrimaryTextBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     Padding="12"/>
+
+                            <Grid Grid.Row="2"
+                                  Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Direct text input is inactive while a file source is loaded."
+                                           Style="{StaticResource MetadataTextStyle}"
+                                           Visibility="{Binding HasLoadedFile, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding DirectInputCounterText}"
+                                           Style="{StaticResource MetadataTextStyle}"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource ToolPanelBorderStyle}"
+                            Margin="0,14,0,0"
+                            Visibility="{Binding HasLoadedFile, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Loaded File Preview"
+                                       Style="{StaticResource PanelHeaderTextStyle}"/>
+
+                            <TextBox Grid.Row="1"
+                                     Margin="0,12,0,0"
+                                     Text="{Binding LoadedFilePreviewText}"
+                                     IsReadOnly="True"
+                                     AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto"
+                                     TextWrapping="Wrap"
+                                     FontFamily="Consolas"
+                                     FontSize="12"
+                                     MinHeight="180"
+                                     Background="{DynamicResource PreviewBackgroundBrush}"
+                                     Foreground="{DynamicResource PrimaryTextBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     Padding="12"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Column="1"
+                    Style="{StaticResource ToolPanelBorderStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="Result Preview"
+                                       Style="{StaticResource PanelHeaderTextStyle}"/>
+                            <TextBlock Text="{Binding ResultSummary}"
+                                       Style="{StaticResource MetadataTextStyle}"
+                                       Margin="0,6,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button Content="Copy"
+                                    Command="{Binding CopyResultCommand}"
+                                    Style="{StaticResource SecondaryActionButtonStyle}"
+                                    Margin="0,0,8,0"/>
+                            <Button Content="Save"
+                                    Command="{Binding SaveResultCommand}"
+                                    Style="{StaticResource SecondaryActionButtonStyle}"
+                                    Margin="0,0,8,0"/>
+                            <Button Content="Open Preview"
+                                    Command="{Binding OpenPreviewCommand}"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            Margin="0,12,0,0"
+                            CornerRadius="6"
+                            Padding="10,8"
+                            Background="{DynamicResource AccentCardBackgroundBrush}">
+                        <TextBlock Text="{Binding ResultStatusMessage}"
+                                   TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ResultStatusSeverity}" Value="{x:Static local:TextNoticeSeverity.Warning}">
+                                            <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ResultStatusSeverity}" Value="{x:Static local:TextNoticeSeverity.Error}">
+                                            <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ResultStatusSeverity}" Value="{x:Static local:TextNoticeSeverity.Success}">
+                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+
+                    <ItemsControl Grid.Row="2"
+                                  Margin="0,12,0,0"
+                                  ItemsSource="{Binding ResultWarnings}"
+                                  ItemTemplate="{StaticResource NoticeTemplate}"
+                                  Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                    <Grid Grid.Row="3"
+                          Margin="0,12,0,0">
+                        <TextBlock Text="Convert or format content to generate a preview here."
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding HasResult, Converter={StaticResource InvertedBoolToVisibilityConverter}}"/>
+
+                        <RichTextBox Style="{StaticResource PreviewRichTextBoxStyle}"
+                                     Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibilityConverter}}"
+                                     behaviors:BindableRichTextBox.Document="{Binding ResultPreviewDocument}"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

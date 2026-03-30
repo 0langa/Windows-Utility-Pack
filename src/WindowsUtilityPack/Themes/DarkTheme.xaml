@@ -16,9 +16,16 @@
     <!-- Accent -->
     <SolidColorBrush x:Key="AccentBrush" Color="#E94560"/>
     <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF6B6B"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#34D399"/>
+    <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="#163A34"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#FBBF24"/>
+    <SolidColorBrush x:Key="WarningSurfaceBrush" Color="#3F3011"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#F87171"/>
+    <SolidColorBrush x:Key="ErrorSurfaceBrush" Color="#40202A"/>
 
     <!-- Borders -->
     <SolidColorBrush x:Key="BorderBrush" Color="#2A2A4A"/>
+    <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#111827"/>
 
     <!-- Button States -->
     <SolidColorBrush x:Key="CategoryButtonBackgroundBrush" Color="#0F3460"/>
