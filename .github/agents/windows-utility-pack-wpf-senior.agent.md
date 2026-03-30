@@ -1,7 +1,5 @@
 # Copilot Custom Agent Text
 
-This repository now includes a GitHub custom agent profile that follows GitHub's documented custom-agent structure:
-
 - Live agent profile: `.github/agents/windows-utility-pack-wpf-senior.agent.md`
 - Purpose: senior WPF/.NET 10 coding agent for GitHub Copilot on GitHub
 - Target: `github-copilot`
