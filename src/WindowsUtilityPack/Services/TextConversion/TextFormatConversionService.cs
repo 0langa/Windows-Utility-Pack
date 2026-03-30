@@ -128,8 +128,10 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
         {
             return new TextConversionSupport(
                 true,
-                false,
-                "Format-only normalization is supported.");
+                source.IsBinaryDocument(),
+                source.IsBinaryDocument()
+                    ? "Format-only regeneration is supported using a best-effort text-focused document output."
+                    : "Format-only normalization is supported.");
         }
 
         if (source.GetSupportedTargets().Contains(target))

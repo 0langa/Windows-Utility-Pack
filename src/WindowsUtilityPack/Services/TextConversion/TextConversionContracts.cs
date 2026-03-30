@@ -67,6 +67,24 @@ public sealed class TextConversionResult
 }
 
 /// <summary>
+/// Presentation mode used by the read-only preview surfaces.
+/// </summary>
+public enum TextPreviewMode
+{
+    Syntax,
+    Document,
+}
+
+/// <summary>
+/// Ready-to-display preview payload for both the inline result surface and the pop-out window.
+/// </summary>
+public sealed class TextPreviewDocument
+{
+    public required System.Windows.Documents.FlowDocument Document { get; init; }
+    public required TextPreviewMode Mode { get; init; }
+}
+
+/// <summary>
 /// Shared format metadata and supported conversion matrix helpers.
 /// </summary>
 public static class TextFormatKindExtensions
@@ -97,6 +115,18 @@ public static class TextFormatKindExtensions
         _ => kind.ToString(),
     };
 
+    public static string GetDisplayGlyph(this TextFormatKind kind) => kind switch
+    {
+        TextFormatKind.Html => "</>",
+        TextFormatKind.Xml => "<x>",
+        TextFormatKind.Markdown => "MD",
+        TextFormatKind.Rtf => "RTF",
+        TextFormatKind.Pdf => "PDF",
+        TextFormatKind.Docx => "DOCX",
+        TextFormatKind.Json => "{ }",
+        _ => "TXT",
+    };
+
     public static string GetDefaultExtension(this TextFormatKind kind) => kind switch
     {
         TextFormatKind.Html => ".html",
@@ -117,6 +147,9 @@ public static class TextFormatKindExtensions
 
     public static bool IsDocumentFamily(this TextFormatKind kind)
         => kind is TextFormatKind.Html or TextFormatKind.Markdown or TextFormatKind.Rtf or TextFormatKind.Docx or TextFormatKind.Pdf;
+
+    public static bool IsBinaryDocument(this TextFormatKind kind)
+        => kind is TextFormatKind.Rtf or TextFormatKind.Docx or TextFormatKind.Pdf;
 
     public static TextFormatKind? FromFilePath(string filePath)
     {

@@ -6,6 +6,12 @@ namespace WindowsUtilityPack.Services;
 /// </summary>
 public interface IClipboardService
 {
+    /// <summary>
+    /// Attempts to read text from the system clipboard.
+    /// Returns <see langword="false"/> when no text is available or clipboard access fails.
+    /// </summary>
+    bool TryGetText(out string text);
+
     /// <summary>Places <paramref name="text"/> on the system clipboard.</summary>
     void SetText(string text);
 }
