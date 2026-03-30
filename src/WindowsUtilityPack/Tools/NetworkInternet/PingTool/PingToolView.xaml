@@ -24,11 +24,9 @@
                          BorderBrush="{DynamicResource BorderBrush}" Padding="8,6" Margin="0,0,16,0"/>
                 <TextBlock Text="Count:" Foreground="{DynamicResource SecondaryTextBrush}"
                            VerticalAlignment="Center" Width="50"/>
-                <TextBox x:Name="PingCountBox"
-                         Text="{Binding PingCount, UpdateSourceTrigger=LostFocus}" Width="50"
+                <TextBox Text="{Binding PingCount, UpdateSourceTrigger=PropertyChanged}" Width="50"
                          Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}" Padding="8,6" Margin="0,0,16,0"
-                         PreviewTextInput="PingCountBox_PreviewTextInput"/>
+                         BorderBrush="{DynamicResource BorderBrush}" Padding="8,6" Margin="0,0,16,0"/>
                 <Button Content="▶ Ping" Command="{Binding PingCommand}"
                         Padding="16,6" Background="{DynamicResource AccentBrush}"
                         Foreground="White" BorderThickness="0" Cursor="Hand">

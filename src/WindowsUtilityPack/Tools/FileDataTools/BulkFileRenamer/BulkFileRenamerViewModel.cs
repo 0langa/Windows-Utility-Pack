@@ -1,7 +1,8 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Windows;
+using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
-using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer;
@@ -36,9 +37,6 @@ public class RenamePreviewItem
 /// </summary>
 public class BulkFileRenamerViewModel : ViewModelBase
 {
-    private readonly IFolderPickerService _folderPicker;
-    private readonly IUserDialogService   _dialogs;
-
     private string _selectedFolder = string.Empty;
     private string _prefix         = string.Empty;
     private string _suffix         = string.Empty;
@@ -101,13 +99,7 @@ public class BulkFileRenamerViewModel : ViewModelBase
     public RelayCommand ApplyRenameCommand { get; }
 
     public BulkFileRenamerViewModel()
-        : this(new FolderPickerService(), new UserDialogService()) { }
-
-    /// <summary>Constructor used in tests or custom wiring with injected services.</summary>
-    public BulkFileRenamerViewModel(IFolderPickerService folderPicker, IUserDialogService dialogs)
     {
-        _folderPicker = folderPicker;
-        _dialogs      = dialogs;
         BrowseFolderCommand = new RelayCommand(_ => BrowseFolder());
         ApplyRenameCommand  = new RelayCommand(
             _ => ApplyRename(),
@@ -116,9 +108,9 @@ public class BulkFileRenamerViewModel : ViewModelBase
 
     private void BrowseFolder()
     {
-        var folder = _folderPicker.PickFolder("Select folder to rename files in");
-        if (folder is not null)
-            SelectedFolder = folder;
+        var dialog = new OpenFolderDialog { Title = "Select folder to rename files in" };
+        if (dialog.ShowDialog() == true)
+            SelectedFolder = dialog.FolderName;
     }
 
     /// <summary>
@@ -178,7 +170,8 @@ public class BulkFileRenamerViewModel : ViewModelBase
             ? $"Rename {PreviewItems.Count} files? ({conflicts.Count} conflicts will be skipped)"
             : $"Rename {PreviewItems.Count} files?";
 
-        if (!_dialogs.Confirm("Confirm Rename", msg))
+        if (MessageBox.Show(msg, "Confirm Rename",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             return;
 
         IsBusy = true;
@@ -200,11 +193,11 @@ public class BulkFileRenamerViewModel : ViewModelBase
                     File.Move(src, dst);
             }
             RefreshPreview();
-            _dialogs.ShowInfo("Done", "Files renamed successfully.");
+            MessageBox.Show("Files renamed successfully.", "Done", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            _dialogs.ShowError("Error", $"Error renaming files: {ex.Message}");
+            MessageBox.Show($"Error renaming files: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
