@@ -52,8 +52,8 @@ namespace WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;V1.0.0.0;component/tools/securityprivacy/passwordgenerator/pa" +
-                    "sswordgeneratorview.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;component/tools/securityprivacy/passwordgenerator/passwordgen" +
+                    "eratorview.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\..\Tools\SecurityPrivacy\PasswordGenerator\PasswordGeneratorView.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

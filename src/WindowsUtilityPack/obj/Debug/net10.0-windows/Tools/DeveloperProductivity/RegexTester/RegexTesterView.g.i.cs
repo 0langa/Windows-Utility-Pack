@@ -52,8 +52,8 @@ namespace WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;V1.0.0.0;component/tools/developerproductivity/regextester/re" +
-                    "gextesterview.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;component/tools/developerproductivity/regextester/regextester" +
+                    "view.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\..\Tools\DeveloperProductivity\RegexTester\RegexTesterView.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

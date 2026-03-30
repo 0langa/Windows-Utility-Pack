@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("A modular collection of Windows desktop utility tools.")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+555280ec360e7594603cb3f6893751babe756332")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fc6ab2f8f8cde2fff4c5edcd5d7695c31e38a625")]
 [assembly: System.Reflection.AssemblyProductAttribute("Windows Utility Pack")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WindowsUtilityPack")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

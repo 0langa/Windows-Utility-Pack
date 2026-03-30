@@ -57,7 +57,7 @@
                                     </StackPanel>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <ProgressBar Value="{Binding UsedPercent}" Maximum="100" Height="12"
+                                    <ProgressBar Value="{Binding UsedPercent, Mode=OneWay}" Maximum="100" Height="12"
                                                  Background="{DynamicResource BorderBrush}"
                                                  Foreground="{DynamicResource AccentBrush}"
                                                  BorderThickness="0" Margin="0,0,0,4"/>

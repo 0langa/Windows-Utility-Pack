@@ -52,8 +52,7 @@ namespace WindowsUtilityPack.Tools.SystemUtilities.DiskInfo {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;V1.0.0.0;component/tools/systemutilities/diskinfo/diskinfovie" +
-                    "w.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;component/tools/systemutilities/diskinfo/diskinfoview.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\..\Tools\SystemUtilities\DiskInfo\DiskInfoView.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

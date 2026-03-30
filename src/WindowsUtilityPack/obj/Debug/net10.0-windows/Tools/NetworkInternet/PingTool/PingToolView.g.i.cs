@@ -52,8 +52,7 @@ namespace WindowsUtilityPack.Tools.NetworkInternet.PingTool {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;V1.0.0.0;component/tools/networkinternet/pingtool/pingtoolvie" +
-                    "w.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;component/tools/networkinternet/pingtool/pingtoolview.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\..\Tools\NetworkInternet\PingTool\PingToolView.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

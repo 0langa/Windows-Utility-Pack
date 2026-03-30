@@ -52,8 +52,8 @@ namespace WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;V1.0.0.0;component/tools/filedatatools/bulkfilerenamer/bulkfi" +
-                    "lerenamerview.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/WindowsUtilityPack;component/tools/filedatatools/bulkfilerenamer/bulkfilerenamer" +
+                    "view.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\..\Tools\FileDataTools\BulkFileRenamer\BulkFileRenamerView.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);
