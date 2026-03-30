@@ -44,7 +44,8 @@
         <!-- Category Button -->
         <Button x:Name="MainButton"
                 Style="{StaticResource CategoryButtonStyle}"
-                HorizontalAlignment="Stretch">
+                HorizontalAlignment="Stretch"
+                Focusable="False">
             <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="4,0">
                 <TextBlock Text="{Binding Icon, ElementName=Root}"
                            FontSize="18"
@@ -71,7 +72,8 @@
                     CornerRadius="6"
                     Padding="4"
                     MinWidth="180"
-                    Effect="{StaticResource DropShadowEffect}">
+                    Effect="{StaticResource DropShadowEffect}"
+                    MouseLeave="OnPopupMouseLeave">
                 <ItemsControl ItemsSource="{Binding MenuItems, ElementName=Root}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type self:MenuEntry}">

@@ -123,15 +123,26 @@ public partial class CategoryMenuButton : UserControl
     }
 
     private void OnMouseLeave(object sender, MouseEventArgs e)
+        => Dispatcher.BeginInvoke(CloseIfMouseGone, System.Windows.Threading.DispatcherPriority.Input);
+
+    // Called when the mouse leaves the popup's content border.
+    private void OnPopupMouseLeave(object sender, MouseEventArgs e)
+        => Dispatcher.BeginInvoke(CloseIfMouseGone, System.Windows.Threading.DispatcherPriority.Input);
+
+    // Closes the popup only when the cursor is genuinely outside both the control and the popup.
+    // Runs on the Input dispatcher priority so IsMouseOver is already up-to-date.
+    private void CloseIfMouseGone()
     {
-        if (FindName("DropdownPopup") is Popup popup)
-        {
-            // Only close if the cursor has genuinely left the control's bounds.
-            // This prevents accidental closure when moving between the button and popup.
-            var pos = e.GetPosition(this);
-            if (pos.X < 0 || pos.Y < 0 || pos.X > ActualWidth || pos.Y > ActualHeight)
-                popup.IsOpen = false;
-        }
+        if (FindName("DropdownPopup") is not Popup popup || !popup.IsOpen)
+            return;
+
+        if (IsMouseOver)
+            return;
+
+        if (popup.Child is UIElement popupContent && popupContent.IsMouseOver)
+            return;
+
+        popup.IsOpen = false;
     }
 
     private void OnDropdownItemClick(object sender, RoutedEventArgs e)
