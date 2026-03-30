@@ -49,5 +49,5 @@ public class RelayCommand : ICommand
     /// by invalidating the CommandManager's re-query cache.
     /// Call this when external state that affects <c>canExecute</c> changes.
     /// </summary>
-    public void RaiseCanExecuteChanged() => CommandManager.InvalidateRequerySuggested();
+    public static void RaiseCanExecuteChanged() => CommandManager.InvalidateRequerySuggested();
 }
