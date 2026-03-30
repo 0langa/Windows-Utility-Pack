@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Windows;
 using WindowsUtilityPack.Commands;
+using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
@@ -22,6 +22,8 @@ public class PasswordGeneratorViewModel : ViewModelBase
     private const string Lowercase = "abcdefghijklmnopqrstuvwxyz";
     private const string Digits    = "0123456789";
     private const string Symbols   = "!@#$%^&*()-_=+[]{}|;:,.<>?";
+
+    private readonly IClipboardService _clipboard;
 
     private int    _length            = 16;
     private bool   _useUppercase      = true;
@@ -90,7 +92,12 @@ public class PasswordGeneratorViewModel : ViewModelBase
     public RelayCommand CopyCommand { get; }
 
     public PasswordGeneratorViewModel()
+        : this(new ClipboardService()) { }
+
+    /// <summary>Constructor used in tests or custom wiring with an injected clipboard service.</summary>
+    public PasswordGeneratorViewModel(IClipboardService clipboard)
     {
+        _clipboard      = clipboard;
         GenerateCommand = new RelayCommand(_ => Generate());
         CopyCommand     = new RelayCommand(
             _ => CopyToClipboard(),
@@ -149,6 +156,6 @@ public class PasswordGeneratorViewModel : ViewModelBase
     private void CopyToClipboard()
     {
         if (!string.IsNullOrEmpty(GeneratedPassword))
-            Clipboard.SetText(GeneratedPassword);
+            _clipboard.SetText(GeneratedPassword);
     }
 }

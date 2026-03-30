@@ -45,6 +45,15 @@ public partial class App : Application
     /// <summary>Raises events when in-app toast notifications should be shown.</summary>
     public static INotificationService NotificationService { get; private set; } = null!;
 
+    /// <summary>Presents folder-picker dialogs to the user.</summary>
+    public static IFolderPickerService FolderPickerService { get; private set; } = null!;
+
+    /// <summary>Presents message boxes and confirmation dialogs to the user.</summary>
+    public static IUserDialogService UserDialogService { get; private set; } = null!;
+
+    /// <summary>Provides access to the system clipboard.</summary>
+    public static IClipboardService ClipboardService { get; private set; } = null!;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -56,11 +65,14 @@ public partial class App : Application
         base.OnStartup(e);
 
         // Initialise services in dependency order (logging first so everything else can log).
-        LoggingService    = new LoggingService();
-        SettingsService   = new SettingsService();
-        NavigationService = new NavigationService();
-        ThemeService      = new ThemeService();
+        LoggingService      = new LoggingService();
+        SettingsService     = new SettingsService();
+        NavigationService   = new NavigationService();
+        ThemeService        = new ThemeService();
         NotificationService = new NotificationService();
+        FolderPickerService = new FolderPickerService();
+        UserDialogService   = new UserDialogService();
+        ClipboardService    = new ClipboardService();
 
         // Restore the saved theme preference.
         // App.xaml already loads DarkTheme.xaml; ThemeService will swap to LightTheme if needed.
@@ -122,7 +134,7 @@ public partial class App : Application
             Category    = "File & Data Tools",
             Icon        = "📁",
             Description = "Rename multiple files with prefix/suffix/find-replace",
-            Factory     = () => new BulkFileRenamerViewModel(),
+            Factory     = () => new BulkFileRenamerViewModel(FolderPickerService, UserDialogService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -132,7 +144,7 @@ public partial class App : Application
             Category    = "Security & Privacy",
             Icon        = "🔒",
             Description = "Generate secure random passwords",
-            Factory     = () => new PasswordGeneratorViewModel(),
+            Factory     = () => new PasswordGeneratorViewModel(ClipboardService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition

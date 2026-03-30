@@ -20,6 +20,7 @@
             <!-- Converters -->
             <converters:BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <converters:BooleanToVisibilityConverter x:Key="InvertedBoolToVisibilityConverter" Invert="True"/>
+            <converters:BoolNegationConverter x:Key="BoolNegationConverter"/>
 
             <!-- DataTemplates: map ViewModels to Views -->
             <DataTemplate DataType="{x:Type vm:HomeViewModel}">
