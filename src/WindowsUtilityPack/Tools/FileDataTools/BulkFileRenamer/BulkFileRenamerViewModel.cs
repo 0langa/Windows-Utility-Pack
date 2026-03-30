@@ -132,50 +132,24 @@ public class BulkFileRenamerViewModel : ViewModelBase
         if (string.IsNullOrEmpty(SelectedFolder) || !Directory.Exists(SelectedFolder))
             return;
 
-        var files = Directory.GetFiles(SelectedFolder);
-        var seen  = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var file in files)
+        foreach (var filePath in Directory.GetFiles(SelectedFolder))
         {
-            var original = Path.GetFileNameWithoutExtension(file);
-            var ext      = Path.GetExtension(file);
-            var modified = original;
-
-            if (!string.IsNullOrEmpty(FindText))
-                modified = modified.Replace(FindText, ReplaceText, StringComparison.Ordinal);
-
-            var newName  = Prefix + modified + Suffix + ext;
-
-            // Strip any path-separator characters from the computed name so that
-            // user-controlled inputs (Prefix, Suffix, ReplaceText) cannot inject a
-            // directory traversal sequence (e.g. "../") into the target filename.
-            newName = newName
-                .Replace(Path.DirectorySeparatorChar, '_')
-                .Replace(Path.AltDirectorySeparatorChar, '_');
-
-            // Conflict: another item in this batch already uses the same new name,
-            // or the target name already exists on disk (and we're not just keeping it).
-            var conflict = seen.Contains(newName) ||
-                           (newName != Path.GetFileName(file) &&
-                            File.Exists(Path.Combine(SelectedFolder, newName)));
-            seen.Add(newName);
-
-            PreviewItems.Add(new RenamePreviewItem
-            {
-                OriginalName = Path.GetFileName(file),
-                NewName      = newName,
-                HasConflict  = conflict,
-            });
+            PreviewItems.Add(CreatePreviewItem(filePath, seen));
         }
     }
 
     private void ApplyRename()
     {
-        if (PreviewItems.Count == 0) return;
+        if (PreviewItems.Count == 0)
+        {
+            return;
+        }
 
-        var conflicts = PreviewItems.Where(p => p.HasConflict).ToList();
-        var msg       = conflicts.Count > 0
-            ? $"Rename {PreviewItems.Count} files? ({conflicts.Count} conflicts will be skipped)"
+        var conflictCount = PreviewItems.Count(static previewItem => previewItem.HasConflict);
+        var msg           = conflictCount > 0
+            ? $"Rename {PreviewItems.Count} files? ({conflictCount} conflicts will be skipped)"
             : $"Rename {PreviewItems.Count} files?";
 
         if (!_dialogs.Confirm("Confirm Rename", msg))
@@ -186,19 +160,12 @@ public class BulkFileRenamerViewModel : ViewModelBase
         {
             var resolvedFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(SelectedFolder))
                                  + Path.DirectorySeparatorChar;
+
             foreach (var item in PreviewItems.Where(p => !p.HasConflict && p.OriginalName != p.NewName))
             {
-                var src = Path.Combine(SelectedFolder, item.OriginalName);
-                var dst = Path.Combine(SelectedFolder, item.NewName);
-
-                // Defense-in-depth: ensure the resolved destination is still inside the
-                // selected folder even after any path normalisation by the OS.
-                if (!Path.GetFullPath(dst).StartsWith(resolvedFolder, StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                if (File.Exists(src) && !File.Exists(dst))
-                    File.Move(src, dst);
+                TryRenameFile(item, resolvedFolder);
             }
+
             RefreshPreview();
             _dialogs.ShowInfo("Done", "Files renamed successfully.");
         }
@@ -209,6 +176,62 @@ public class BulkFileRenamerViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private RenamePreviewItem CreatePreviewItem(string filePath, HashSet<string> seenNames)
+    {
+        var originalFileName = Path.GetFileName(filePath);
+        var originalName     = Path.GetFileNameWithoutExtension(filePath);
+        var extension        = Path.GetExtension(filePath);
+        var newName          = BuildNewFileName(originalName, extension);
+        var hasConflict      = seenNames.Contains(newName) ||
+                               (newName != originalFileName && File.Exists(Path.Combine(SelectedFolder, newName)));
+
+        seenNames.Add(newName);
+
+        return new RenamePreviewItem
+        {
+            OriginalName = originalFileName,
+            NewName      = newName,
+            HasConflict  = hasConflict,
+        };
+    }
+
+    private string BuildNewFileName(string originalName, string extension)
+    {
+        var updatedName = originalName;
+
+        if (!string.IsNullOrEmpty(FindText))
+        {
+            updatedName = updatedName.Replace(FindText, ReplaceText, StringComparison.Ordinal);
+        }
+
+        return SanitizeFileName(Prefix + updatedName + Suffix + extension);
+    }
+
+    private static string SanitizeFileName(string fileName)
+    {
+        return fileName
+            .Replace(Path.DirectorySeparatorChar, '_')
+            .Replace(Path.AltDirectorySeparatorChar, '_');
+    }
+
+    private void TryRenameFile(RenamePreviewItem item, string resolvedFolder)
+    {
+        var sourcePath      = Path.Combine(SelectedFolder, item.OriginalName);
+        var destinationPath = Path.Combine(SelectedFolder, item.NewName);
+
+        // Defense-in-depth: ensure the resolved destination is still inside the
+        // selected folder even after any path normalisation by the OS.
+        if (!Path.GetFullPath(destinationPath).StartsWith(resolvedFolder, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (File.Exists(sourcePath) && !File.Exists(destinationPath))
+        {
+            File.Move(sourcePath, destinationPath);
         }
     }
 }
