@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:WindowsUtilityPack.Controls"
+        xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels"
         mc:Ignorable="d"
         Title="Windows Utility Pack"
         Width="1100" Height="700"
@@ -55,73 +56,30 @@
             </Grid>
         </Border>
 
-        <!-- Category Navigation Bar -->
+        <!-- Category Navigation Bar - data-driven from MainWindowViewModel.Categories -->
         <Border Grid.Row="1"
                 Background="{DynamicResource NavBarBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 Padding="12,10">
-            <UniformGrid Rows="1" Columns="5" HorizontalAlignment="Stretch">
-                <controls:CategoryMenuButton
-                    Label="System Utilities"
-                    Icon="🖥"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Disk Info Viewer" ToolKey="disk-info"/>
-                        <controls:MenuEntry Label="Task Manager Plus" ToolKey=""/>
-                        <controls:MenuEntry Label="Startup App Control" ToolKey=""/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-
-                <controls:CategoryMenuButton
-                    Label="File &amp; Data Tools"
-                    Icon="📁"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Bulk File Renamer" ToolKey="bulk-renamer"/>
-                        <controls:MenuEntry Label="Duplicate Finder" ToolKey=""/>
-                        <controls:MenuEntry Label="CSV / JSON Tools" ToolKey=""/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-
-                <controls:CategoryMenuButton
-                    Label="Security &amp; Privacy"
-                    Icon="🔒"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Password Generator" ToolKey="password-generator"/>
-                        <controls:MenuEntry Label="Privacy Dashboard" ToolKey=""/>
-                        <controls:MenuEntry Label="Secure File Shredder" ToolKey=""/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-
-                <controls:CategoryMenuButton
-                    Label="Network &amp; Internet"
-                    Icon="🌐"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Ping Tool" ToolKey="ping-tool"/>
-                        <controls:MenuEntry Label="Network Scanner" ToolKey=""/>
-                        <controls:MenuEntry Label="DNS Utility" ToolKey=""/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-
-                <controls:CategoryMenuButton
-                    Label="Developer &amp; Productivity"
-                    Icon="💻"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Regex Tester" ToolKey="regex-tester"/>
-                        <controls:MenuEntry Label="Text Diff Tool" ToolKey=""/>
-                        <controls:MenuEntry Label="Clipboard Manager" ToolKey=""/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-            </UniformGrid>
+            <ItemsControl ItemsSource="{Binding Categories}" HorizontalAlignment="Stretch">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:CategoryNavItem}">
+                        <controls:CategoryMenuButton
+                            Label="{Binding Label}"
+                            Icon="{Binding Icon}"
+                            MenuItems="{Binding MenuItems}"
+                            NavigateCommand="{Binding DataContext.NavigateCommand,
+                                             RelativeSource={RelativeSource AncestorType=Window}}"
+                            Margin="4,0"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </Border>
 
         <!-- Main Content Area — DataTemplates resolve the correct View automatically -->

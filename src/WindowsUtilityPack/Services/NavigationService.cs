@@ -19,6 +19,9 @@ public class NavigationService : INavigationService
     private ViewModelBase? _currentView;
 
     /// <inheritdoc/>
+    public string? CurrentKey { get; private set; }
+
+    /// <inheritdoc/>
     public ViewModelBase? CurrentView
     {
         get => _currentView;
@@ -44,7 +47,10 @@ public class NavigationService : INavigationService
     {
         // Silently ignore unknown keys — prevents crashes from placeholder menu entries.
         if (_factories.TryGetValue(key, out var factory))
+        {
+            CurrentKey = key;
             CurrentView = factory();
+        }
     }
 
     /// <inheritdoc/>

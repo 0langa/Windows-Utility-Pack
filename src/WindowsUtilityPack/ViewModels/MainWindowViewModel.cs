@@ -1,5 +1,8 @@
+using System.Collections.ObjectModel;
 using WindowsUtilityPack.Commands;
+using WindowsUtilityPack.Controls;
 using WindowsUtilityPack.Services;
+using WindowsUtilityPack.Tools;
 
 namespace WindowsUtilityPack.ViewModels;
 
@@ -12,6 +15,7 @@ namespace WindowsUtilityPack.ViewModels;
 ///   <item>Manages dark/light theme toggling via <see cref="ToggleThemeCommand"/>.</item>
 ///   <item>Provides <see cref="NavigateCommand"/> for menu/button click handlers.</item>
 ///   <item>Maintains the <see cref="StatusMessage"/> shown in the status bar.</item>
+///   <item>Exposes <see cref="Categories"/> derived from <see cref="ToolRegistry"/> to drive the nav bar.</item>
 /// </list>
 /// </summary>
 public class MainWindowViewModel : ViewModelBase
@@ -20,6 +24,19 @@ public class MainWindowViewModel : ViewModelBase
     private readonly IThemeService _theme;
     private bool _isDarkTheme = true;
     private string _statusMessage = "Ready";
+
+    // Per-category icons for the navigation bar.
+    // Defined here so there is exactly one place to update them rather than
+    // duplicating the same mapping across multiple XAML files.
+    private static readonly IReadOnlyDictionary<string, string> _categoryIcons =
+        new Dictionary<string, string>
+        {
+            ["System Utilities"]         = "🖥",
+            ["File & Data Tools"]        = "📁",
+            ["Security & Privacy"]       = "🔒",
+            ["Network & Internet"]       = "🌐",
+            ["Developer & Productivity"] = "💻",
+        };
 
     /// <summary>
     /// Whether the dark theme is currently active.
@@ -54,6 +71,12 @@ public class MainWindowViewModel : ViewModelBase
     /// </summary>
     public ViewModelBase? CurrentView => _navigation.CurrentView;
 
+    /// <summary>
+    /// Navigation categories derived from <see cref="ToolRegistry"/> metadata.
+    /// Drives the shell's category navigation bar via data binding instead of hard-coded XAML.
+    /// </summary>
+    public IReadOnlyList<CategoryNavItem> Categories { get; }
+
     // ── Commands ──────────────────────────────────────────────────────────────
 
     /// <summary>Toggles between dark and light themes.</summary>
@@ -78,11 +101,33 @@ public class MainWindowViewModel : ViewModelBase
         // Sync the toggle state with whatever theme is already applied.
         _isDarkTheme = theme.CurrentTheme == AppTheme.Dark;
 
+        // Build navigation categories from ToolRegistry metadata.
+        // Excludes "home" (a special shell destination, not a navigable category).
+        // GroupBy preserves registration order so categories appear in the same
+        // sequence as they were registered in App.xaml.cs.
+        Categories = ToolRegistry.All
+            .Where(t => t.Key != "home")
+            .GroupBy(t => t.Category)
+            .Select(g => new CategoryNavItem
+            {
+                Label    = g.Key,
+                Icon     = _categoryIcons.TryGetValue(g.Key, out var icon) ? icon : g.First().Icon,
+                MenuItems = new ObservableCollection<MenuEntry>(
+                    g.Select(t => new MenuEntry { Label = t.Name, ToolKey = t.Key })),
+            })
+            .ToList()
+            .AsReadOnly();
+
         // When NavigationService reports a navigation, update CurrentView and the status bar.
+        // Use ToolDefinition.Name for user-visible text rather than deriving it from the
+        // runtime type name, so the label is intentional and decoupled from class naming.
         _navigation.Navigated += (_, vm) =>
         {
             OnPropertyChanged(nameof(CurrentView));
-            StatusMessage = $"Navigated to {vm.GetType().Name.Replace("ViewModel", "")}";
+            var toolName = ToolRegistry.All
+                .FirstOrDefault(t => t.Key == _navigation.CurrentKey)
+                ?.Name ?? vm.GetType().Name.Replace("ViewModel", "");
+            StatusMessage = $"Navigated to {toolName}";
         };
 
         ToggleThemeCommand  = new RelayCommand(_ => ToggleTheme());

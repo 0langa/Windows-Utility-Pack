@@ -1,11 +1,13 @@
 using WindowsUtilityPack.Commands;
+using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
+using WindowsUtilityPack.Tools;
 
 namespace WindowsUtilityPack.ViewModels;
 
 /// <summary>
 /// ViewModel for the application home/dashboard screen.
-/// Provides navigation commands used by the home page feature cards.
+/// Provides navigation commands and the tool card data used by the home page.
 /// </summary>
 public class HomeViewModel : ViewModelBase
 {
@@ -18,14 +20,26 @@ public class HomeViewModel : ViewModelBase
     public RelayCommand NavigateCommand { get; }
 
     /// <summary>
-    /// Initialises HomeViewModel with a navigation service.
-    /// Falls back to the static App.NavigationService if none is provided,
-    /// which keeps compatibility with the DataTemplate instantiation path.
+    /// All registered non-home tools from <see cref="ToolRegistry"/>.
+    /// Drives the home page feature cards via data binding.
     /// </summary>
-    public HomeViewModel(INavigationService? navigation = null)
+    public IReadOnlyList<ToolDefinition> FeaturedTools { get; }
+
+    /// <summary>
+    /// Initialises HomeViewModel with the required navigation service.
+    /// The service is injected via the factory registered in <c>App.xaml.cs</c>,
+    /// ensuring no static fallback is needed.
+    /// </summary>
+    public HomeViewModel(INavigationService navigation)
     {
-        // Prefer injected service; fall back to static accessor (used when WPF creates the VM via DataTemplate).
-        _navigation = navigation ?? App.NavigationService;
+        _navigation = navigation;
         NavigateCommand = new RelayCommand(key => _navigation.NavigateTo(key?.ToString() ?? "home"));
+
+        // Expose all registered tools except the "home" entry itself.
+        // The home view renders one card per tool using this collection.
+        FeaturedTools = ToolRegistry.All
+            .Where(t => t.Key != "home")
+            .ToList()
+            .AsReadOnly();
     }
 }

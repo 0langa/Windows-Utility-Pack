@@ -114,7 +114,7 @@ public partial class App : Application
             Category    = "General",
             Icon        = "🏠",
             Description = "Application dashboard",
-            Factory     = () => new HomeViewModel(),
+            Factory     = () => new HomeViewModel(NavigationService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
