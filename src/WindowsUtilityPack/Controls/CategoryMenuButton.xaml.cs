@@ -1,8 +1,10 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace WindowsUtilityPack.Controls;
 
@@ -105,12 +107,27 @@ public partial class CategoryMenuButton : UserControl
         set => SetValue(NavigateCommandProperty, value);
     }
 
+    // ── Fields ────────────────────────────────────────────────────────────────
+
+    // Delay before closing the popup after the mouse leaves, giving the mouse-over
+    // state time to settle when the cursor moves from the button onto the popup.
+    private static readonly TimeSpan CloseDelay = TimeSpan.FromMilliseconds(80);
+
+    private readonly DispatcherTimer _closeTimer;
+
     // ── Constructor ───────────────────────────────────────────────────────────
 
     public CategoryMenuButton()
     {
         // Initialise the collection before InitializeComponent so XAML can bind to it.
         MenuItems = [];
+
+        _closeTimer = new DispatcherTimer(DispatcherPriority.Input)
+        {
+            Interval = CloseDelay
+        };
+        _closeTimer.Tick += (_, _) => CloseIfMouseGone();
+
         InitializeComponent();
     }
 
@@ -118,21 +135,24 @@ public partial class CategoryMenuButton : UserControl
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
     {
+        _closeTimer.Stop();
+
         if (FindName("DropdownPopup") is Popup popup)
             popup.IsOpen = true;
     }
 
     private void OnMouseLeave(object sender, MouseEventArgs e)
-        => Dispatcher.BeginInvoke(CloseIfMouseGone, System.Windows.Threading.DispatcherPriority.Input);
+        => _closeTimer.Start();
 
     // Called when the mouse leaves the popup's content border.
     private void OnPopupMouseLeave(object sender, MouseEventArgs e)
-        => Dispatcher.BeginInvoke(CloseIfMouseGone, System.Windows.Threading.DispatcherPriority.Input);
+        => _closeTimer.Start();
 
     // Closes the popup only when the cursor is genuinely outside both the control and the popup.
-    // Runs on the Input dispatcher priority so IsMouseOver is already up-to-date.
     private void CloseIfMouseGone()
     {
+        _closeTimer.Stop();
+
         if (FindName("DropdownPopup") is not Popup popup || !popup.IsOpen)
             return;
 
