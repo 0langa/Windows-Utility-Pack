@@ -1,7 +1,8 @@
 using System.Windows;
 using WindowsUtilityPack.Services;
+using WindowsUtilityPack.Services.Storage;
 using WindowsUtilityPack.Tools;
-using WindowsUtilityPack.Tools.SystemUtilities.DiskInfo;
+using WindowsUtilityPack.Tools.SystemUtilities.StorageMaster;
 using WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer;
 using WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
 using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
@@ -14,57 +15,49 @@ namespace WindowsUtilityPack;
 /// Application entry point and service host.
 ///
 /// Startup sequence:
-///   1. <see cref="OnStartup"/> initialises all singleton services.
-///   2. The saved theme is applied (App.xaml already loaded DarkTheme.xaml;
-///      ThemeService switches to the saved preference if it differs).
-///   3. <see cref="RegisterTools"/> populates the <see cref="ToolRegistry"/>
-///      and wires every tool key to the <see cref="NavigationService"/>.
-///   4. WPF then creates <c>MainWindow</c> (via <c>StartupUri</c>) and
-///      the window navigates to "home" on first load.
+///   1. OnStartup initialises all singleton services.
+///   2. The saved theme is applied.
+///   3. RegisterTools populates the ToolRegistry and wires every tool key to the NavigationService.
+///   4. WPF creates MainWindow and navigates to "home" on first load.
 ///
-/// Services are exposed as static properties so that ViewModels that
-/// cannot receive constructor injection (e.g. those created by WPF DataTemplates)
-/// can still access them.  The preferred pattern is constructor injection where possible.
+/// Services are exposed as static properties so ViewModels can access them.
+/// The preferred pattern is constructor injection where possible.
 /// </summary>
 public partial class App : Application
 {
-    // ── Singleton service accessors ───────────────────────────────────────────
+    // Singleton service accessors
 
-    /// <summary>Manages dark/light theme switching.</summary>
-    public static IThemeService ThemeService { get; private set; } = null!;
-
-    /// <summary>Handles key-based navigation between tool ViewModels.</summary>
+    public static IThemeService      ThemeService      { get; private set; } = null!;
     public static INavigationService NavigationService { get; private set; } = null!;
-
-    /// <summary>Loads and saves user preferences (theme, window geometry).</summary>
-    public static ISettingsService SettingsService { get; private set; } = null!;
-
-    /// <summary>Writes timestamped log entries to %LOCALAPPDATA%\WindowsUtilityPack\app.log.</summary>
-    public static ILoggingService LoggingService { get; private set; } = null!;
-
-    /// <summary>Raises events when in-app toast notifications should be shown.</summary>
+    public static ISettingsService   SettingsService   { get; private set; } = null!;
+    public static ILoggingService    LoggingService    { get; private set; } = null!;
     public static INotificationService NotificationService { get; private set; } = null!;
-
-    /// <summary>Presents folder-picker dialogs to the user.</summary>
     public static IFolderPickerService FolderPickerService { get; private set; } = null!;
+    public static IUserDialogService   UserDialogService   { get; private set; } = null!;
+    public static IClipboardService    ClipboardService    { get; private set; } = null!;
 
-    /// <summary>Presents message boxes and confirmation dialogs to the user.</summary>
-    public static IUserDialogService UserDialogService { get; private set; } = null!;
+    // Storage Master services
 
-    /// <summary>Provides access to the system clipboard.</summary>
-    public static IClipboardService ClipboardService { get; private set; } = null!;
+    /// <summary>Core storage scan engine for Storage Master.</summary>
+    public static IScanEngine                   ScanEngine                  { get; private set; } = null!;
+    /// <summary>Duplicate file detection service.</summary>
+    public static IDuplicateDetectionService    DuplicateDetectionService   { get; private set; } = null!;
+    /// <summary>Cleanup recommendation analysis service.</summary>
+    public static ICleanupRecommendationService CleanupRecommendationService { get; private set; } = null!;
+    /// <summary>Snapshot persistence service.</summary>
+    public static ISnapshotService              SnapshotService             { get; private set; } = null!;
+    /// <summary>Report and export generation service.</summary>
+    public static IReportService                ReportService               { get; private set; } = null!;
+    /// <summary>Application-level elevation/admin mode service.</summary>
+    public static IElevationService             ElevationService            { get; private set; } = null!;
+    /// <summary>Drive analysis and media type detection service.</summary>
+    public static IDriveAnalysisService         DriveAnalysisService        { get; private set; } = null!;
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Called by WPF before the first window is shown.
-    /// Initialises services, restores theme, and registers tools.
-    /// </summary>
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // Initialise services in dependency order (logging first so everything else can log).
+        // Initialise core services
         LoggingService      = new LoggingService();
         SettingsService     = new SettingsService();
         NavigationService   = new NavigationService();
@@ -74,36 +67,36 @@ public partial class App : Application
         UserDialogService   = new UserDialogService();
         ClipboardService    = new ClipboardService();
 
-        // Restore the saved theme preference.
-        // App.xaml already loads DarkTheme.xaml; ThemeService will swap to LightTheme if needed.
+        // Initialise Storage Master services
+        ScanEngine                   = new ScanEngine();
+        DuplicateDetectionService    = new DuplicateDetectionService();
+        CleanupRecommendationService = new CleanupRecommendationService();
+        SnapshotService              = new SnapshotService();
+        ReportService                = new ReportService();
+        ElevationService             = new ElevationService();
+        DriveAnalysisService         = new DriveAnalysisService();
+
         var settings = SettingsService.Load();
         ThemeService.SetTheme(settings.Theme);
 
-        // Populate ToolRegistry and register all tool keys with the NavigationService.
         RegisterTools();
-
         LoggingService.LogInfo("Application started.");
     }
 
-    /// <summary>Called when the application is closing.  Log the exit event.</summary>
     protected override void OnExit(ExitEventArgs e)
     {
         LoggingService.LogInfo("Application exiting.");
         base.OnExit(e);
     }
 
-    // ── Tool registration ─────────────────────────────────────────────────────
-
     /// <summary>
-    /// Registers every available tool with the <see cref="ToolRegistry"/> and
-    /// subsequently calls <see cref="ToolRegistry.RegisterAll"/> to map each key
-    /// to the <see cref="NavigationService"/>.
+    /// Registers every available tool with the ToolRegistry.
     ///
     /// To add a new tool:
-    ///   1. Create the ViewModel + View pair under <c>Tools/&lt;Category&gt;/&lt;ToolName&gt;/</c>.
-    ///   2. Add a <c>ToolDefinition</c> block here.
-    ///   3. Add the matching <c>DataTemplate</c> in <c>App.xaml</c>.
-    ///   4. Optionally add a <c>MenuEntry</c> to <c>MainWindow.xaml</c>.
+    ///   1. Create the ViewModel + View pair under Tools/Category/ToolName/.
+    ///   2. Add a ToolDefinition block here.
+    ///   3. Add the matching DataTemplate in App.xaml.
+    ///   4. Optionally add a MenuEntry to MainWindow.xaml.
     /// </summary>
     private static void RegisterTools()
     {
@@ -112,19 +105,30 @@ public partial class App : Application
             Key         = "home",
             Name        = "Home",
             Category    = "General",
-            Icon        = "🏠",
+            Icon        = "\U0001F3E0",
             Description = "Application dashboard",
             Factory     = () => new HomeViewModel(),
         });
 
+        // Storage Master replaces the old Disk Info tool
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "disk-info",
-            Name        = "Disk Info Viewer",
+            Key         = "storage-master",
+            Name        = "Storage Master",
             Category    = "System Utilities",
-            Icon        = "💾",
-            Description = "View drive information and disk usage",
-            Factory     = () => new DiskInfoViewModel(),
+            Icon        = "\U0001F4BD",
+            Description = "Advanced storage analysis, cleanup, and optimization",
+            Factory     = () => new StorageMasterViewModel(
+                ScanEngine,
+                DuplicateDetectionService,
+                CleanupRecommendationService,
+                SnapshotService,
+                ReportService,
+                ElevationService,
+                DriveAnalysisService,
+                FolderPickerService,
+                UserDialogService,
+                ClipboardService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -132,7 +136,7 @@ public partial class App : Application
             Key         = "bulk-renamer",
             Name        = "Bulk File Renamer",
             Category    = "File & Data Tools",
-            Icon        = "📁",
+            Icon        = "\U0001F4C1",
             Description = "Rename multiple files with prefix/suffix/find-replace",
             Factory     = () => new BulkFileRenamerViewModel(FolderPickerService, UserDialogService),
         });
@@ -142,7 +146,7 @@ public partial class App : Application
             Key         = "password-generator",
             Name        = "Password Generator",
             Category    = "Security & Privacy",
-            Icon        = "🔒",
+            Icon        = "\U0001F512",
             Description = "Generate secure random passwords",
             Factory     = () => new PasswordGeneratorViewModel(ClipboardService),
         });
@@ -152,7 +156,7 @@ public partial class App : Application
             Key         = "ping-tool",
             Name        = "Ping Tool",
             Category    = "Network & Internet",
-            Icon        = "🌐",
+            Icon        = "\U0001F310",
             Description = "Ping hosts and measure network latency",
             Factory     = () => new PingToolViewModel(),
         });
@@ -162,12 +166,11 @@ public partial class App : Application
             Key         = "regex-tester",
             Name        = "Regex Tester",
             Category    = "Developer & Productivity",
-            Icon        = "💻",
+            Icon        = "\U0001F4BB",
             Description = "Test regular expressions against input text",
             Factory     = () => new RegexTesterViewModel(),
         });
 
-        // Wire all registered tool keys into the NavigationService.
         ToolRegistry.RegisterAll(NavigationService);
     }
 }
