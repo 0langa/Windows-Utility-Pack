@@ -24,12 +24,12 @@
         <!-- Feature Cards -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <UniformGrid Columns="3">
-                <Button Command="{Binding NavigateCommand}" CommandParameter="disk-info"
+                <Button Command="{Binding NavigateCommand}" CommandParameter="storage-master"
                         Style="{StaticResource CardButtonStyle}" Margin="0,0,8,8">
                     <StackPanel>
-                        <TextBlock Text="🖥" FontSize="32" Margin="0,0,0,10"/>
-                        <TextBlock Text="Disk Info Viewer" Style="{StaticResource CardTitleStyle}"/>
-                        <TextBlock Text="View drives, free space, and total capacity."
+                        <TextBlock Text="💽" FontSize="32" Margin="0,0,0,10"/>
+                        <TextBlock Text="Storage Master" Style="{StaticResource CardTitleStyle}"/>
+                        <TextBlock Text="Analyse storage, find duplicates, and clean up space."
                                    Style="{StaticResource CardDescriptionStyle}"/>
                     </StackPanel>
                 </Button>

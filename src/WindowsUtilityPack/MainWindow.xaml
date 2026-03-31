@@ -68,7 +68,7 @@
                     NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Disk Info Viewer" ToolKey="disk-info"/>
+                        <controls:MenuEntry Label="Storage Master" ToolKey="storage-master"/>
                         <controls:MenuEntry Label="Task Manager Plus" ToolKey=""/>
                         <controls:MenuEntry Label="Startup App Control" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
