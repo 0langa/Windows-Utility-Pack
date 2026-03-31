@@ -1,90 +1,78 @@
+using System;
 using System.IO;
 
 namespace WindowsUtilityPack.Models;
 
-/// <summary>
-/// Extended drive information including type detection (SSD/HDD/removable).
-/// Wraps <see cref="DriveInfo"/> with additional metadata for the Storage Master overview.
-/// </summary>
-public class DriveInfoExtended
-{
-    /// <summary>Drive root (e.g. "C:\").</summary>
-    public string RootPath { get; init; } = string.Empty;
+// ── StorageMediaType ──────────────────────────────────────────────────────────
 
-    /// <summary>Volume label (may be empty).</summary>
+/// <summary>
+/// Classifies the physical storage medium of a drive,
+/// as detected by <c>DriveAnalysisService</c>.
+/// </summary>
+public enum StorageMediaType
+{
+    /// <summary>Detection failed or media type is indeterminate.</summary>
+    Unknown = 0,
+
+    /// <summary>Solid-state drive (no seek penalty).</summary>
+    SSD,
+
+    /// <summary>Hard disk drive (rotational media, has seek penalty).</summary>
+    HDD,
+
+    /// <summary>Removable media (USB, SD card, optical, etc.).</summary>
+    Removable,
+
+    /// <summary>Virtual, RAM, or network-mapped drive.</summary>
+    Virtual
+}
+
+// ── DriveInfoExtended ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Immutable snapshot of a drive's identity and capacity metrics.
+/// Populated via object-initializer syntax inside DriveAnalysisService.BuildExtended.
+/// </summary>
+public sealed class DriveInfoExtended
+{
+    // ── Identity ─────────────────────────────────────────────────────────────
+
+    /// <summary>Root path, e.g. "C:\".</summary>
+    public string RootPath    { get; init; } = string.Empty;
+
+    /// <summary>User-assigned volume label.</summary>
     public string VolumeLabel { get; init; } = string.Empty;
 
-    /// <summary>Filesystem format (NTFS, FAT32, exFAT, etc.).</summary>
-    public string FileSystem { get; init; } = string.Empty;
+    /// <summary>File-system name, e.g. "NTFS", "FAT32".</summary>
+    public string FileSystem  { get; init; } = string.Empty;
 
-    /// <summary>Windows DriveType enum value.</summary>
-    public DriveType DriveType { get; init; }
+    /// <summary>BCL drive-type classification.</summary>
+    public DriveType DriveType { get; init; } = DriveType.Unknown;
 
-    /// <summary>Total capacity in bytes.</summary>
+    // ── Capacity ─────────────────────────────────────────────────────────────
+
+    /// <summary>Total drive capacity in bytes.</summary>
     public long TotalBytes { get; init; }
 
     /// <summary>Available free space in bytes.</summary>
-    public long FreeBytes { get; init; }
+    public long FreeBytes  { get; init; }
 
-    /// <summary>Used space in bytes.</summary>
-    public long UsedBytes => TotalBytes - FreeBytes;
+    /// <summary>Consumed space in bytes (derived).</summary>
+    public long UsedBytes  => TotalBytes - FreeBytes;
 
-    /// <summary>Percentage of space used (0–100).</summary>
-    public double UsedPercent => TotalBytes > 0 ? (UsedBytes / (double)TotalBytes) * 100 : 0;
+    /// <summary>Percentage of drive space currently used (0–100).</summary>
+    public double UsedPercent
+        => TotalBytes > 0 ? (double)UsedBytes / TotalBytes * 100.0 : 0.0;
 
-    /// <summary>Detected storage media type (SSD, HDD, removable, etc.).</summary>
-    public StorageMediaType MediaType { get; set; } = StorageMediaType.Unknown;
+    // ── Media detection ───────────────────────────────────────────────────────
 
-    /// <summary>Whether the drive is likely an SSD (affects optimization recommendations).</summary>
-    public bool IsSsd => MediaType == StorageMediaType.SSD;
+    /// <summary>
+    /// Human-readable media-type string, e.g. "SSD", "HDD", "Removable".
+    /// Populated by <see cref="Storage.StorageDeviceHelper.GetMediaType"/>.
+    /// </summary>
+    public string MediaType { get; init; } = "Unknown";
 
-    // ── Display helpers ───────────────────────────────────────────────────────
-
-    public string DisplayLabel => string.IsNullOrEmpty(VolumeLabel)
-        ? RootPath
-        : $"{VolumeLabel} ({RootPath})";
-
-    public string TotalFormatted => StorageItem.FormatBytes(TotalBytes);
-    public string FreeFormatted  => StorageItem.FormatBytes(FreeBytes);
-    public string UsedFormatted  => StorageItem.FormatBytes(UsedBytes);
-
-    public string DriveTypeIcon => DriveType switch
-    {
-        DriveType.Fixed     => MediaType == StorageMediaType.SSD ? "⚡" : "💾",
-        DriveType.Removable => "🔌",
-        DriveType.Network   => "🌐",
-        DriveType.CDRom     => "💿",
-        _                   => "🖥"
-    };
-
-    public string MediaTypeDisplay => MediaType switch
-    {
-        StorageMediaType.SSD      => "SSD",
-        StorageMediaType.HDD      => "HDD",
-        StorageMediaType.Removable=> "Removable",
-        StorageMediaType.Virtual  => "Virtual",
-        _                         => DriveType.ToString()
-    };
-
-    public string OptimizationAdvice => MediaType switch
-    {
-        StorageMediaType.SSD =>
-            "SSD detected — avoid defragmentation. Ensure TRIM is enabled for optimal performance.",
-        StorageMediaType.HDD =>
-            "HDD detected — periodic defragmentation may improve performance. Keep at least 15% free.",
-        StorageMediaType.Removable =>
-            "Removable drive — safely eject before removal. Avoid interrupting write operations.",
-        _ =>
-            "Monitor free space and remove unused files to maintain performance."
-    };
-}
-
-/// <summary>Storage media type classification.</summary>
-public enum StorageMediaType
-{
-    Unknown,
-    SSD,
-    HDD,
-    Removable,
-    Virtual
+    public override string ToString()
+        => $"{RootPath} [{VolumeLabel}] {FileSystem} | {MediaType} | "
+         + $"Free {FreeBytes:N0} / {TotalBytes:N0} bytes";
 }

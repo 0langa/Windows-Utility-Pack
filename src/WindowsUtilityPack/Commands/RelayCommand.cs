@@ -14,7 +14,7 @@ namespace WindowsUtilityPack.Commands;
 public class RelayCommand : ICommand
 {
     private readonly Action<object?> _execute;
-    private readonly Predicate<object?>? _canExecute;
+    private readonly Func<object?, bool>? _canExecute;
 
     /// <summary>
     /// Initialises a new <see cref="RelayCommand"/> with the given execute action
@@ -25,10 +25,20 @@ public class RelayCommand : ICommand
     /// Optional predicate returning <see langword="true"/> when the command should be enabled.
     /// When <see langword="null"/>, the command is always enabled.
     /// </param>
-    public RelayCommand(Action<object?> execute, Predicate<object?>? canExecute = null)
+    public RelayCommand(Action<object?> execute, Func<object?, bool>? canExecute = null)
     {
         _execute    = execute ?? throw new ArgumentNullException(nameof(execute));
         _canExecute = canExecute;
+    }
+
+    /// <summary>
+    /// Creates a parameterless relay command.
+    /// </summary>
+    public RelayCommand(Action execute, Func<bool>? canExecute = null)
+        : this(
+              _ => execute(),
+              canExecute != null ? _ => canExecute() : null)
+    {
     }
 
     /// <inheritdoc/>
@@ -39,10 +49,16 @@ public class RelayCommand : ICommand
     }
 
     /// <inheritdoc/>
-    public bool CanExecute(object? parameter) => _canExecute?.Invoke(parameter) ?? true;
+    public bool CanExecute(object? parameter)
+    {
+        return _canExecute?.Invoke(parameter) ?? true;
+    }
 
     /// <inheritdoc/>
-    public void Execute(object? parameter) => _execute(parameter);
+    public void Execute(object? parameter)
+    {
+        _execute(parameter);
+    }
 
     /// <summary>
     /// Forces WPF to re-evaluate <see cref="CanExecute"/> on all bound commands

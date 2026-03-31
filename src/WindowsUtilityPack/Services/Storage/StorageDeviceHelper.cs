@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -12,8 +13,8 @@ namespace WindowsUtilityPack.Services.Storage;
 /// </summary>
 internal static class StorageDeviceHelper
 {
-    private const uint IOCTL_STORAGE_QUERY_PROPERTY  = 0x002D1400;
-    private const int  StorageDeviceSeekPenaltyProperty = 7;
+    private const uint IOCTL_STORAGE_QUERY_PROPERTY      = 0x002D1400;
+    private const int  StorageDeviceSeekPenaltyProperty  = 7;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct STORAGE_PROPERTY_QUERY
@@ -36,11 +37,11 @@ internal static class StorageDeviceHelper
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     private static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFile(
         string lpFileName,
-        uint dwDesiredAccess,
-        uint dwShareMode,
+        uint   dwDesiredAccess,
+        uint   dwShareMode,
         IntPtr lpSecurityAttributes,
-        uint dwCreationDisposition,
-        uint dwFlagsAndAttributes,
+        uint   dwCreationDisposition,
+        uint   dwFlagsAndAttributes,
         IntPtr hTemplateFile);
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -60,18 +61,17 @@ internal static class StorageDeviceHelper
     private const uint FILE_ATTRIBUTE_NORMAL = 0x80;
 
     /// <summary>
-    /// Returns true if the drive at the given root path has rotational media (HDD).
-    /// Throws on access denied or unsupported platforms.
+    /// Returns <c>true</c> if the drive at <paramref name="rootPath"/> has rotational
+    /// media (HDD). Throws on access denied or unsupported platforms.
     /// </summary>
     public static bool IsRotational(string rootPath)
     {
-        // Convert "C:\" → "\\.\C:"
         var driveLetter = Path.GetPathRoot(rootPath)?.TrimEnd('\\') ?? rootPath.TrimEnd('\\');
         var devicePath  = $@"\\.\{driveLetter}";
 
         using var handle = CreateFile(
             devicePath,
-            0,                        // No access needed — query only
+            0,                       // query-only — no read/write access needed
             FILE_SHARE_READ_WRITE,
             IntPtr.Zero,
             OPEN_EXISTING,
@@ -84,11 +84,11 @@ internal static class StorageDeviceHelper
         var query = new STORAGE_PROPERTY_QUERY
         {
             PropertyId           = StorageDeviceSeekPenaltyProperty,
-            QueryType            = 0, // PropertyStandardQuery
+            QueryType            = 0,  // PropertyStandardQuery
             AdditionalParameters = [0],
         };
 
-        var descriptor  = new DEVICE_SEEK_PENALTY_DESCRIPTOR();
+        var descriptor = new DEVICE_SEEK_PENALTY_DESCRIPTOR();
         bool ok = DeviceIoControl(
             handle,
             IOCTL_STORAGE_QUERY_PROPERTY,
@@ -100,8 +100,51 @@ internal static class StorageDeviceHelper
             IntPtr.Zero);
 
         if (!ok)
-            throw new IOException("DeviceIoControl failed for seek penalty query.");
+            throw new IOException("DeviceIoControl failed for seek-penalty query.");
 
         return descriptor.IncursSeekPenalty;
+    }
+
+    /// <summary>
+    /// Returns a human-readable media-type string for the given drive root (e.g. "C:\").
+    /// Uses the <see cref="DriveType"/> BCL enum as a reliable cross-context fallback.
+    /// </summary>
+    public static string GetMediaType(string driveName)
+    {
+        if (string.IsNullOrWhiteSpace(driveName))
+            return "Unknown";
+
+        // Try rotational detection first (Windows only, may fail without elevation)
+        try
+        {
+            return IsRotational(driveName) ? "HDD" : "SSD";
+        }
+        catch
+        {
+            // Graceful degradation to DriveType-based string
+            return GetMediaTypeFallback(driveName);
+        }
+    }
+
+    private static string GetMediaTypeFallback(string driveName)
+    {
+        try
+        {
+            var di = new DriveInfo(driveName);
+            return di.DriveType switch
+            {
+                DriveType.Fixed            => "Fixed Disk",
+                DriveType.Removable        => "Removable",
+                DriveType.Network          => "Network",
+                DriveType.CDRom            => "Optical",
+                DriveType.Ram              => "RAM Disk",
+                DriveType.NoRootDirectory  => "No Root",
+                _                          => "Unknown"
+            };
+        }
+        catch
+        {
+            return "Unknown";
+        }
     }
 }

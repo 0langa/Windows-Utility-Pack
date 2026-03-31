@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using WindowsUtilityPack.Models;
 
 namespace WindowsUtilityPack.Services.Storage;
@@ -8,12 +11,19 @@ namespace WindowsUtilityPack.Services.Storage;
 /// </summary>
 public interface IDriveAnalysisService
 {
-    /// <summary>Returns extended information for all ready drives on the system.</summary>
-    IReadOnlyList<DriveInfoExtended> GetAllDrives();
+    Task<IReadOnlyList<DriveInfoExtended>> GetAllDrivesAsync(
+        CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Returns extended information for a specific drive root path.
-    /// Returns null if the drive is not ready or doesn't exist.
-    /// </summary>
-    DriveInfoExtended? GetDrive(string rootPath);
+    Task<DriveInfoExtended?> GetDriveInfoExtendedAsync(
+        string driveLetter,
+        CancellationToken cancellationToken = default);
+
+    Task<long> GetFolderSizeAsync(
+        string path,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<(string FolderPath, long SizeBytes)>> GetTopFoldersBySize(
+        string rootPath,
+        int topN = 10,
+        CancellationToken cancellationToken = default);
 }

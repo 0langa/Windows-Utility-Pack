@@ -1,149 +1,115 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 using WindowsUtilityPack.Models;
 
-namespace WindowsUtilityPack.Services.Storage;
-
-/// <summary>
-/// Staged duplicate detection implementation.
-/// See <see cref="IDuplicateDetectionService"/> for the algorithm description.
-/// </summary>
-public class DuplicateDetectionService : IDuplicateDetectionService
+namespace WindowsUtilityPack.Services.Storage
 {
-    private const long MinFileSizeForDuplicates = 1024; // Skip files smaller than 1 KB
-    private const int  QuickHashBytes = 8192;            // First 8 KB for quick-hash stage
-
-    /// <inheritdoc/>
-    public async Task<IReadOnlyList<DuplicateGroup>> FindDuplicatesAsync(
-        StorageItem root,
-        IProgress<string>? progress,
-        CancellationToken cancellationToken)
+    /// <summary>
+    /// Detects duplicate files within a directory tree using SHA-256 content hashing.
+    /// Files are first grouped by size (cheap) then hashed (expensive) to minimise I/O.
+    /// </summary>
+    public sealed class DuplicateDetectionService : IDuplicateDetectionService
     {
-        return await Task.Run(() => FindDuplicates(root, progress, cancellationToken), cancellationToken);
-    }
+        private const int BufferSize = 81_920; // 80 KB streaming buffer
 
-    private static IReadOnlyList<DuplicateGroup> FindDuplicates(
-        StorageItem root,
-        IProgress<string>? progress,
-        CancellationToken ct)
-    {
-        // ── Stage 1: collect all files and group by size ──────────────────────
-        progress?.Report("Collecting files…");
-        var allFiles = new List<StorageItem>(1024);
-        CollectFiles(root, allFiles, ct);
-
-        // Group by size, keeping only groups where 2+ files have the same size
-        var bySize = allFiles
-            .Where(f => f.SizeBytes >= MinFileSizeForDuplicates)
-            .GroupBy(f => f.SizeBytes)
-            .Where(g => g.Count() > 1)
-            .ToList();
-
-        ct.ThrowIfCancellationRequested();
-        progress?.Report($"Stage 1 complete: {bySize.Count} size groups with potential duplicates.");
-
-        // ── Stage 2: quick-hash the first 8 KB of each candidate ─────────────
-        progress?.Report("Computing quick hashes…");
-        var quickHashCandidates = new List<(string quickHash, StorageItem file)>();
-
-        foreach (var group in bySize)
+        public async Task<IReadOnlyList<DuplicateGroup>> FindDuplicatesAsync(
+            string rootPath,
+            IProgress<int>? progress = null,
+            CancellationToken cancellationToken = default)
         {
-            ct.ThrowIfCancellationRequested();
-            foreach (var file in group)
+            if (string.IsNullOrWhiteSpace(rootPath))
+                throw new ArgumentException("Root path must not be empty.", nameof(rootPath));
+
+            if (!Directory.Exists(rootPath))
+                throw new DirectoryNotFoundException($"Directory not found: {rootPath}");
+
+            // Step 1 — enumerate all files
+            var allFiles = await Task.Run(
+                () => Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories)
+                               .ToList(),
+                cancellationToken);
+
+            if (allFiles.Count == 0)
+                return Array.Empty<DuplicateGroup>();
+
+            // Step 2 — group by size (instant filter; files with unique sizes cannot be duplicates)
+            var sizeGroups = allFiles
+                .Select(f => new FileInfo(f))
+                .Where(fi => fi.Exists && fi.Length > 0)
+                .GroupBy(fi => fi.Length)
+                .Where(g => g.Count() > 1)
+                .ToList();
+
+            var results = new List<DuplicateGroup>();
+            int processed = 0;
+            int total = sizeGroups.Sum(g => g.Count());
+
+            // Step 3 — hash each candidate group
+            foreach (var sizeGroup in sizeGroups)
             {
-                var qh = ComputeQuickHash(file.FullPath, QuickHashBytes);
-                if (qh != null)
-                    quickHashCandidates.Add((qh, file));
-            }
-        }
+                cancellationToken.ThrowIfCancellationRequested();
 
-        var byQuickHash = quickHashCandidates
-            .GroupBy(x => x.quickHash)
-            .Where(g => g.Count() > 1)
-            .ToList();
+                var hashGroups = new Dictionary<string, List<FileInfo>>();
 
-        ct.ThrowIfCancellationRequested();
-        progress?.Report($"Stage 2 complete: {byQuickHash.Count} quick-hash groups.");
-
-        // ── Stage 3: full SHA-256 hash to confirm duplicates ──────────────────
-        progress?.Report("Confirming duplicates with full hash…");
-        var results = new List<DuplicateGroup>();
-        int processed = 0;
-
-        foreach (var group in byQuickHash)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var fullHashGroup = new List<(string hash, StorageItem file)>();
-            foreach (var (_, file) in group)
-            {
-                var fh = ComputeFullHash(file.FullPath);
-                if (fh != null)
-                    fullHashGroup.Add((fh, file));
-            }
-
-            var byFullHash = fullHashGroup
-                .GroupBy(x => x.hash)
-                .Where(g => g.Count() > 1);
-
-            foreach (var dupGroup in byFullHash)
-            {
-                results.Add(new DuplicateGroup
+                foreach (var fi in sizeGroup)
                 {
-                    GroupKey   = dupGroup.Key,
-                    Files      = dupGroup.Select(x => x.file).ToList(),
-                    Confidence = DuplicateConfidence.FullHash,
-                });
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        string hash = await ComputeHashAsync(fi.FullName, cancellationToken)
+                            .ConfigureAwait(false);
+
+                        if (!hashGroups.TryGetValue(hash, out var list))
+                            hashGroups[hash] = list = new List<FileInfo>();
+
+                        list.Add(fi);
+                    }
+                    catch (IOException) { /* skip locked / inaccessible files */ }
+                    catch (UnauthorizedAccessException) { /* skip files we can't read */ }
+                    finally
+                    {
+                        progress?.Report((int)(++processed * 100.0 / total));
+                    }
+                }
+
+                // Any hash bucket with 2+ files is a duplicate group
+                foreach (var kvp in hashGroups.Where(kv => kv.Value.Count > 1))
+                {
+                    results.Add(new DuplicateGroup(
+                        kvp.Key,
+                        kvp.Value.Select(fi => fi.FullName).ToList(),
+                        kvp.Value[0].Length));
+                }
             }
 
-            processed++;
-            if (processed % 50 == 0)
-                progress?.Report($"Processed {processed}/{byQuickHash.Count} hash groups…");
+            return results;
         }
 
-        // Sort by wasted bytes descending (most impactful duplicates first)
-        results.Sort((a, b) => b.WastedBytes.CompareTo(a.WastedBytes));
+        // ── private helpers ──────────────────────────────────────────────────────
 
-        progress?.Report($"Done — {results.Count} duplicate groups found.");
-        return results;
-    }
-
-    private static void CollectFiles(StorageItem node, List<StorageItem> files, CancellationToken ct)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        foreach (var child in node.Children)
+        private static async Task<string> ComputeHashAsync(
+            string filePath,
+            CancellationToken cancellationToken)
         {
-            if (child.IsDirectory)
-                CollectFiles(child, files, ct);
-            else
-                files.Add(child);
-        }
-    }
+            using var sha256 = SHA256.Create();
+            using var stream = new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                BufferSize,
+                useAsync: true);
 
-    private static string? ComputeQuickHash(string path, int byteCount)
-    {
-        try
-        {
-            using var fs     = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096);
-            var       buffer = new byte[byteCount];
-            int       read   = fs.Read(buffer, 0, byteCount);
-            using var sha    = SHA256.Create();
-            var       hash   = sha.ComputeHash(buffer, 0, read);
-            return Convert.ToHexString(hash);
-        }
-        catch { return null; }
-    }
+            byte[] hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken)
+                .ConfigureAwait(false);
 
-    private static string? ComputeFullHash(string path)
-    {
-        try
-        {
-            using var fs   = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536);
-            using var sha  = SHA256.Create();
-            var       hash = sha.ComputeHash(fs);
-            return Convert.ToHexString(hash);
+            return Convert.ToHexString(hashBytes); // .NET 5+ built-in, no allocations
         }
-        catch { return null; }
     }
 }

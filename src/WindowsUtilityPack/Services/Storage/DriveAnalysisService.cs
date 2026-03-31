@@ -1,4 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using WindowsUtilityPack.Models;
 
 namespace WindowsUtilityPack.Services.Storage;
@@ -20,48 +25,124 @@ namespace WindowsUtilityPack.Services.Storage;
 public class DriveAnalysisService : IDriveAnalysisService
 {
     /// <inheritdoc/>
-    public IReadOnlyList<DriveInfoExtended> GetAllDrives()
+    public Task<IReadOnlyList<DriveInfoExtended>> GetAllDrivesAsync(
+        CancellationToken cancellationToken = default)
     {
-        var results = new List<DriveInfoExtended>();
-
-        foreach (var drive in System.IO.DriveInfo.GetDrives().Where(d => d.IsReady))
+        return Task.Run<IReadOnlyList<DriveInfoExtended>>(() =>
         {
-            results.Add(BuildDriveInfo(drive));
-        }
+            cancellationToken.ThrowIfCancellationRequested();
 
-        return results;
+            var drives = DriveInfo.GetDrives()
+                .Where(d => d.IsReady)
+                .Select(d => BuildExtended(d))
+                .ToList();
+
+            return drives;
+        }, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public DriveInfoExtended? GetDrive(string rootPath)
+    public Task<DriveInfoExtended?> GetDriveInfoExtendedAsync(
+        string driveLetter,
+        CancellationToken cancellationToken = default)
     {
-        try
+        return Task.Run<DriveInfoExtended?>(() =>
         {
-            var drive = new System.IO.DriveInfo(rootPath);
-            return drive.IsReady ? BuildDriveInfo(drive) : null;
-        }
-        catch
-        {
-            return null;
-        }
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var drive = DriveInfo.GetDrives()
+                .FirstOrDefault(d => d.IsReady &&
+                    string.Equals(d.Name, driveLetter, StringComparison.OrdinalIgnoreCase));
+
+            return drive is null ? null : BuildExtended(drive);
+        }, cancellationToken);
     }
 
-    private static DriveInfoExtended BuildDriveInfo(System.IO.DriveInfo drive)
+    /// <inheritdoc/>
+    public Task<long> GetFolderSizeAsync(
+        string path,
+        CancellationToken cancellationToken = default)
     {
-        var extended = new DriveInfoExtended
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("Path must not be empty.", nameof(path));
+
+        return Task.Run(() =>
         {
-            RootPath    = drive.RootDirectory.FullName,
-            VolumeLabel = SafeGet(() => drive.VolumeLabel, string.Empty),
-            FileSystem  = SafeGet(() => drive.DriveFormat, string.Empty),
-            DriveType   = drive.DriveType,
-            TotalBytes  = SafeGet(() => drive.TotalSize, 0L),
-            FreeBytes   = SafeGet(() => drive.AvailableFreeSpace, 0L),
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!Directory.Exists(path))
+                return 0L;
+
+            return Directory
+                .EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                .Sum(f =>
+                {
+                    try { return new FileInfo(f).Length; }
+                    catch (IOException) { return 0L; }
+                    catch (UnauthorizedAccessException) { return 0L; }
+                });
+        }, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public Task<IReadOnlyList<(string FolderPath, long SizeBytes)>> GetTopFoldersBySize(
+        string rootPath,
+        int topN = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(rootPath))
+            throw new ArgumentException("Root path must not be empty.", nameof(rootPath));
+
+        return Task.Run<IReadOnlyList<(string, long)>>(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!Directory.Exists(rootPath))
+                return Array.Empty<(string, long)>();
+
+            var results = Directory
+                .EnumerateDirectories(rootPath, "*", SearchOption.TopDirectoryOnly)
+                .Select(dir =>
+                {
+                    long size = 0;
+                    try
+                    {
+                        size = Directory
+                            .EnumerateFiles(dir, "*", SearchOption.AllDirectories)
+                            .Sum(f =>
+                            {
+                                try { return new FileInfo(f).Length; }
+                                catch { return 0L; }
+                            });
+                    }
+                    catch (UnauthorizedAccessException) { }
+                    catch (IOException) { }
+                    return (FolderPath: dir, SizeBytes: size);
+                })
+                .OrderByDescending(t => t.SizeBytes)
+                .Take(topN)
+                .ToList();
+
+            return results;
+        }, cancellationToken);
+    }
+
+    // ── private helpers ──────────────────────────────────────────────────────
+
+    private static DriveInfoExtended BuildExtended(DriveInfo d)
+    {
+        string mediaType = StorageDeviceHelper.GetMediaType(d.Name);
+
+        return new DriveInfoExtended
+        {
+            RootPath    = d.RootDirectory.FullName,
+            VolumeLabel = SafeGet(() => d.VolumeLabel, string.Empty),
+            FileSystem  = SafeGet(() => d.DriveFormat, string.Empty),
+            DriveType   = d.DriveType,
+            TotalBytes  = SafeGet(() => d.TotalSize, 0L),
+            FreeBytes   = SafeGet(() => d.AvailableFreeSpace, 0L),
+            MediaType   = mediaType
         };
-
-        // Detect media type
-        extended.MediaType = DetectMediaType(drive);
-
-        return extended;
     }
 
     private static StorageMediaType DetectMediaType(System.IO.DriveInfo drive)

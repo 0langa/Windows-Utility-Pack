@@ -1,37 +1,55 @@
+using System;
+using System.Windows.Controls;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Services;
 
 /// <summary>
-/// Manages in-app navigation between tool ViewModels.
-///
-/// The navigation model is intentionally ViewModel-first:
-/// each tool is identified by a string key (e.g. <c>"disk-info"</c>).
-/// When a key is navigated to, a fresh ViewModel instance is created
-/// via its registered factory.  WPF <c>DataTemplate</c> entries in
-/// <c>App.xaml</c> then automatically resolve the correct View.
+/// Abstraction for in-app view-model–based navigation.
 /// </summary>
 public interface INavigationService
 {
-    /// <summary>Gets the currently displayed ViewModel, or <see langword="null"/> on startup.</summary>
-    ViewModelBase? CurrentView { get; }
+    /// <summary>The currently displayed view-model, or null if none.</summary>
+    object? CurrentView { get; }
+
+    /// <summary>Raised whenever <see cref="CurrentView"/> changes.</summary>
+    event EventHandler? CurrentViewChanged;
+
+    /// <summary>True when the back-stack has at least one entry.</summary>
+    bool CanGoBack { get; }
+
+    /// <summary>Attaches the WPF <see cref="ContentControl"/> that hosts views.</summary>
+    void SetContentHost(ContentControl host);
+
+    /// <summary>Resolves <typeparamref name="TViewModel"/> from DI and navigates to it.</summary>
+    void Navigate<TViewModel>() where TViewModel : ViewModelBase;
+
+    /// <summary>Navigates to an already-constructed view-model instance.</summary>
+    void NavigateTo(object viewModel);
+
+    /// <summary>Navigates to the previous entry on the back-stack.</summary>
+    void GoBack();
+
+    /// <summary>Clears the navigation history without navigating.</summary>
+    void ClearHistory();
 
     /// <summary>
-    /// Registers a named factory so that <see cref="NavigateTo(string)"/> can create the ViewModel.
-    /// Called once during application startup for each tool.
+    /// Gets the currently active view model.
     /// </summary>
-    void Register(string key, Func<ViewModelBase> factory);
-
-    /// <summary>Navigates to the tool registered under <paramref name="key"/>.</summary>
-    /// <param name="key">The tool key (case-insensitive).  Unknown keys are silently ignored.</param>
-    void NavigateTo(string key);
+    ViewModelBase CurrentViewModel { get; }
 
     /// <summary>
-    /// Navigates directly to a new instance of <typeparamref name="TViewModel"/>,
-    /// bypassing the key registry.  Useful for programmatic navigation in tests.
+    /// Navigates to the view model of the specified type.
     /// </summary>
-    void NavigateTo<TViewModel>() where TViewModel : ViewModelBase, new();
+    void NavigateTo<TViewModel>() where TViewModel : ViewModelBase;
 
-    /// <summary>Raised after every successful navigation with the new ViewModel as the argument.</summary>
-    event EventHandler<ViewModelBase>? Navigated;
+    /// <summary>
+    /// Registers a factory for a view model type.
+    /// </summary>
+    void Register<TViewModel>(Func<TViewModel> factory) where TViewModel : ViewModelBase;
+
+    /// <summary>
+    /// Occurs when navigation completes.
+    /// </summary>
+    event EventHandler<Type>? Navigated;
 }

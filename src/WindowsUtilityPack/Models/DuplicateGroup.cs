@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace WindowsUtilityPack.Models;
 
 /// <summary>
@@ -33,6 +36,32 @@ public class DuplicateGroup
 
     /// <summary>The "original" file (earliest creation date); the rest are candidates for deletion.</summary>
     public StorageItem? Original => Files.OrderBy(f => f.CreatedAt).FirstOrDefault();
+
+    /// <summary>Human-friendly count of duplicate copies.</summary>
+    public int DuplicateCount => Files.Count;
+
+    public DuplicateGroup(string groupKey, List<StorageItem> files)
+    {
+        if (string.IsNullOrWhiteSpace(groupKey))
+            throw new ArgumentException("Hash must not be empty.", nameof(groupKey));
+
+        ArgumentNullException.ThrowIfNull(files);
+
+        if (files.Count < 2)
+            throw new ArgumentException("A duplicate group requires at least two files.", nameof(files));
+
+        GroupKey = groupKey;
+        Files = files;
+
+        foreach (var file in files)
+        {
+            if (file is null)
+                throw new ArgumentException("File list contains null item.", nameof(files));
+        }
+    }
+
+    public override string ToString()
+        => $"DuplicateGroup [Hash={GroupKey[..8]}…, Files={Files.Count}, WastedBytes={WastedBytes:N0}]";
 }
 
 /// <summary>Confidence level of a duplicate detection match.</summary>
