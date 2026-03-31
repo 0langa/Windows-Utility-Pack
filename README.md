@@ -33,7 +33,7 @@ Nine additional tool slots are reserved as navigation placeholders (Task Manager
 
 ```bash
 git clone https://github.com/0langa/Windows-Utility-Pack.git
-dotnet build WindowsUtilityPack.sln
+dotnet buildWindowsUtilityPack.sln
 dotnet run --project src/WindowsUtilityPack/WindowsUtilityPack.csproj
 
 # Tests (requires Windows — WPF Desktop runtime needed):

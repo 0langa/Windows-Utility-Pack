@@ -6,6 +6,12 @@ public class AppSettings
     /// <summary>Last used colour theme (default: Dark).</summary>
     public AppTheme Theme { get; set; } = AppTheme.Dark;
 
+    /// <summary>Tool key to navigate to on startup (default: "home").</summary>
+    public string StartupPage { get; set; } = "home";
+
+    /// <summary>Whether the app saves/restores window position and size.</summary>
+    public bool RememberWindowPosition { get; set; } = true;
+
     /// <summary>Saved window left position, or <see cref="double.NaN"/> if unset.</summary>
     public double WindowLeft { get; set; } = double.NaN;
 

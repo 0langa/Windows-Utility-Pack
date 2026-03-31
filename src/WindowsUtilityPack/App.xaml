@@ -15,6 +15,9 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+                <ResourceDictionary Source="Resources/Icons.xaml"/>
+                <ResourceDictionary Source="Resources/ScrollBarStyles.xaml"/>
+                <ResourceDictionary Source="Resources/InputStyles.xaml"/>
                 <ResourceDictionary Source="Resources/Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
@@ -23,6 +26,7 @@
             <converters:BooleanToVisibilityConverter x:Key="InvertedBoolToVisibilityConverter" Invert="True"/>
             <converters:BoolNegationConverter x:Key="BoolNegationConverter"/>
             <converters:BytesToSizeConverter x:Key="BytesToSizeConverter"/>
+            <converters:EnumToBooleanConverter x:Key="EnumToBoolConverter"/>
 
             <!-- DataTemplates: map ViewModels to Views -->
             <DataTemplate DataType="{x:Type vm:HomeViewModel}">

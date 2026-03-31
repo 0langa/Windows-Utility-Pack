@@ -1,0 +1,355 @@
+Okay seems llike I can only attach 3 pictures at the time but thats fine. Before even going into stuff that doesnt work like its supposed to in the UI, I first wanna address the overall style. The layout I like, took some time till I found something I liked but those  buttons + dropdown menus CAN look rly nice when properly designed and well animated. But the think I currently dislike the most are the color schemes. Dark/Light mode switch was basically the first thing I added after dropping in some boiilerplate UI but since havent touched the general design AT ALL since. To make it short: wtf is that light mode like 3 blue elements in a sea of light and the design flaws of the UI elements is so visible it hurts. (the buttons at the top dont even have a margin to tthe left and rright, the inactive buttons look like there is some soft light filter on top of them, text is barely readable just to name a few)... At the same time in "dark" mode its  all blue with like 3 red spots, the icons on the landing page are black and not visible at all basically, the dropdowns look like windows98 and the whole app looks like one big block of widows forms apps, which its obviously not :D Also once a page has more than 2 larger elements its already filled out by them and those ugly scroll bars appear. fyi Im on a 2160x1440 resolution with 150% zoom on a Microsoft Surface 8. It looks actually okay on 1920x1080 on 100% native screen zoom but then everything is like way too small due to my small screen size...
+I could go on but I think what Im trying to say is the whole design needs a rework. 
+
+
+
+Now I have a full picture of your codebase. Here's my comprehensive assessment and redesign strategy.
+---
+🔍 Diagnosis: What's Wrong
+1. Color Palette — Both themes are broken
+Issue	Dark Theme	Light Theme
+Dominant color	Navy blue monolith (#1A1A2E→#0F3460) — everything blends into one block	#2563EB blue splashed on nav, buttons, accent, hover — 3 blue elements in a sea of white
+Accent	Hot pink #E94560 — clashes with navy, creates a "cyberpunk" vibe not a Windows app	Same blue as everything else — no visual hierarchy
+Icons	Emoji TextBlock rendered as black glyphs on dark backgrounds → invisible	Slightly better, but still platform-dependent emoji rendering
+Contrast	Secondary text #A0A0B0 on #16213E = poor WCAG contrast ratio (~3.5:1)	Secondary text #6B6B7B on white ≈ OK but body text is too faint
+2. Layout — Not DPI/scaling-aware
+•	MainWindow uses hardcoded Width="1100" Height="700" — on your Surface at 2160×1440 with 150% scaling, the effective area is only ~1440×960 logical pixels, so the window takes up most of the screen but content is cramped.
+•	UniformGrid Columns="3" home cards have no adaptive breakpoints — 3 columns is tight at effective widths below ~1000px, and cards fill up fast.
+•	NavBar padding is only 12,10 with button margins of 4,0 — no left/right outer margin, so buttons touch the edges.
+3. Missing Control Styles — The "Windows Forms" Look
+Your Styles.xaml defines styles for Button and Border only. These controls are completely unstyled (falling back to default Win32 chrome):
+•	ComboBox → the "Windows 98" dropdowns you see
+•	ScrollBar / ScrollViewer → thick ugly scrollbars
+•	TextBox → default white boxes with black borders
+•	CheckBox → default chrome checkmarks
+•	ToolTip → default yellow/white system tooltip
+4. No Animations
+Zero storyboards or visual state transitions. Buttons snap between states, dropdowns appear/disappear abruptly, theme switching is jarring.
+---
+🎯 Redesign Strategy: Windows 11 Fluent Design
+Phase 1: Design System Foundation
+Goal: Replace the ad-hoc color scheme with a proper token-based system modeled on WinUI 3 / Fluent Design.
+New Color Tokens
+
+
+
+
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Surface layers (from WinUI dark palette) -->
+    <SolidColorBrush x:Key="AppBackgroundBrush"         Color="#202020"/>
+    <SolidColorBrush x:Key="HeaderBackgroundBrush"       Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="NavBarBackgroundBrush"       Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush"         Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="CardHoverBackgroundBrush"    Color="#383838"/>
+    <SolidColorBrush x:Key="PopupBackgroundBrush"        Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="AccentCardBackgroundBrush"   Color="#383838"/>
+    <SolidColorBrush x:Key="InputBackgroundBrush"        Color="#1E1E1E"/>
+    <SolidColorBrush x:Key="InputBorderBrush"            Color="#555555"/>
+    <SolidColorBrush x:Key="InputFocusBorderBrush"       Color="#60CDFF"/>
+
+    <!-- Text (high-contrast accessible) -->
+    <SolidColorBrush x:Key="PrimaryTextBrush"            Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush"          Color="#C5C5C5"/>
+    <SolidColorBrush x:Key="TertiaryTextBrush"           Color="#9A9A9A"/>
+    <SolidColorBrush x:Key="DisabledTextBrush"           Color="#5C5C5C"/>
+
+    <!-- Accent: Windows 11 blue -->
+    <SolidColorBrush x:Key="AccentBrush"                 Color="#60CDFF"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"            Color="#98DEFF"/>
+    <SolidColorBrush x:Key="AccentPressedBrush"          Color="#40B4E6"/>
+    <SolidColorBrush x:Key="AccentSubtleBrush"           Color="#0F3D5F"/>
+
+    <!-- Semantic -->
+    <SolidColorBrush x:Key="SuccessBrush"                Color="#6CCB5F"/>
+    <SolidColorBrush x:Key="SuccessSurfaceBrush"         Color="#1A3A18"/>
+    <SolidColorBrush x:Key="WarningBrush"                Color="#FCE100"/>
+    <SolidColorBrush x:Key="WarningSurfaceBrush"         Color="#3B3500"/>
+    <SolidColorBrush x:Key="ErrorBrush"                  Color="#FF99A4"/>
+    <SolidColorBrush x:Key="ErrorSurfaceBrush"           Color="#442726"/>
+
+    <!-- Borders + Dividers -->
+    <SolidColorBrush x:Key="BorderBrush"                 Color="#3A3A3A"/>
+    <SolidColorBrush x:Key="DividerBrush"                Color="#303030"/>
+    <SolidColorBrush x:Key="PreviewBackgroundBrush"      Color="#1A1A1A"/>
+
+    <!-- Navigation buttons -->
+    <SolidColorBrush x:Key="CategoryButtonBackgroundBrush"  Color="Transparent"/>
+    <SolidColorBrush x:Key="CategoryButtonHoverBrush"       Color="#383838"/>
+    <SolidColorBrush x:Key="CategoryButtonPressedBrush"     Color="#444444"/>
+    <SolidColorBrush x:Key="CategoryButtonActiveBrush"      Color="#60CDFF"/>
+    <SolidColorBrush x:Key="MenuItemHoverBrush"             Color="#383838"/>
+
+    <!-- Scrollbar -->
+    <SolidColorBrush x:Key="ScrollBarThumbBrush"            Color="#555555"/>
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush"       Color="#777777"/>
+    <SolidColorBrush x:Key="ScrollBarTrackBrush"            Color="Transparent"/>
+
+    <!-- Theme Toggle -->
+    <SolidColorBrush x:Key="ThemeToggleBackgroundBrush"     Color="#383838"/>
+    <SolidColorBrush x:Key="ThemeToggleHoverBrush"          Color="#60CDFF"/>
+
+</ResourceDictionary>
+
+
+
+
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Surface layers (WinUI light palette) -->
+    <SolidColorBrush x:Key="AppBackgroundBrush"         Color="#F3F3F3"/>
+    <SolidColorBrush x:Key="HeaderBackgroundBrush"       Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="NavBarBackgroundBrush"       Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush"         Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="CardHoverBackgroundBrush"    Color="#F5F5F5"/>
+    <SolidColorBrush x:Key="PopupBackgroundBrush"        Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="AccentCardBackgroundBrush"   Color="#F0F6FF"/>
+    <SolidColorBrush x:Key="InputBackgroundBrush"        Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBorderBrush"            Color="#C4C4C4"/>
+    <SolidColorBrush x:Key="InputFocusBorderBrush"       Color="#005FB8"/>
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="PrimaryTextBrush"            Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush"          Color="#616161"/>
+    <SolidColorBrush x:Key="TertiaryTextBrush"           Color="#8A8A8A"/>
+    <SolidColorBrush x:Key="DisabledTextBrush"           Color="#A0A0A0"/>
+
+    <!-- Accent: Windows 11 blue -->
+    <SolidColorBrush x:Key="AccentBrush"                 Color="#005FB8"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"            Color="#004C95"/>
+    <SolidColorBrush x:Key="AccentPressedBrush"          Color="#003D7A"/>
+    <SolidColorBrush x:Key="AccentSubtleBrush"           Color="#E0EFFF"/>
+
+    <!-- Semantic -->
+    <SolidColorBrush x:Key="SuccessBrush"                Color="#0F7B0F"/>
+    <SolidColorBrush x:Key="SuccessSurfaceBrush"         Color="#DFF6DD"/>
+    <SolidColorBrush x:Key="WarningBrush"                Color="#9D5D00"/>
+    <SolidColorBrush x:Key="WarningSurfaceBrush"         Color="#FFF4CE"/>
+    <SolidColorBrush x:Key="ErrorBrush"                  Color="#C42B1C"/>
+    <SolidColorBrush x:Key="ErrorSurfaceBrush"           Color="#FDE7E9"/>
+
+    <!-- Borders + Dividers -->
+    <SolidColorBrush x:Key="BorderBrush"                 Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="DividerBrush"                Color="#EEEEEE"/>
+    <SolidColorBrush x:Key="PreviewBackgroundBrush"      Color="#FAFAFA"/>
+
+    <!-- Navigation buttons (transparent on light surface) -->
+    <SolidColorBrush x:Key="CategoryButtonBackgroundBrush"  Color="Transparent"/>
+    <SolidColorBrush x:Key="CategoryButtonHoverBrush"       Color="#E8E8E8"/>
+    <SolidColorBrush x:Key="CategoryButtonPressedBrush"     Color="#DBDBDB"/>
+    <SolidColorBrush x:Key="CategoryButtonActiveBrush"      Color="#005FB8"/>
+    <SolidColorBrush x:Key="MenuItemHoverBrush"             Color="#F0F0F0"/>
+
+    <!-- Scrollbar -->
+    <SolidColorBrush x:Key="ScrollBarThumbBrush"            Color="#C2C2C2"/>
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush"       Color="#A0A0A0"/>
+    <SolidColorBrush x:Key="ScrollBarTrackBrush"            Color="Transparent"/>
+
+    <!-- Theme Toggle -->
+    <SolidColorBrush x:Key="ThemeToggleBackgroundBrush"     Color="#E8E8E8"/>
+    <SolidColorBrush x:Key="ThemeToggleHoverBrush"          Color="#005FB8"/>
+
+</ResourceDictionary>
+
+
+
+
+
+
+
+
+Key design decisions:
+•	Nav bar is the same surface as header (not a colored block) — tools stand on their own
+•	Category buttons are transparent by default, highlighted on hover/active with subtle fill — not colored slabs
+•	One accent color (Windows 11 blue) used sparingly for interactive indicators, not backgrounds
+•	Text hierarchy: Primary → Secondary → Tertiary → Disabled (all WCAG AA compliant)
+•	New tokens: InputBackgroundBrush, InputBorderBrush, InputFocusBorderBrush, ScrollBarThumbBrush, CardHoverBackgroundBrush, CategoryButtonActiveBrush
+---
+Phase 2: Control Style Overhaul
+Add to Styles.xaml (or split into separate files under Resources/):
+Must-style controls (in priority order):
+1.	ScrollBar / ScrollViewer — thin, auto-hiding, rounded thumb
+2.	ComboBox — rounded border, themed dropdown, accent focus ring
+3.	TextBox — rounded corners, subtle bottom-accent on focus (WinUI style)
+4.	CheckBox — rounded check, accent fill
+5.	ToolTip — themed popup with rounded corners + shadow
+6.	ContextMenu / Popup — acrylic-like background, rounded, shadow
+Here's the critical scrollbar fix as an example:
+
+
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Thin modern scrollbar thumb -->
+    <Style x:Key="ScrollBarThumbStyle" TargetType="Thumb">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="ThumbBorder"
+                            Background="{DynamicResource ScrollBarThumbBrush}"
+                            CornerRadius="3"
+                            Margin="1"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ThumbBorder" Property="Background"
+                                    Value="{DynamicResource ScrollBarThumbHoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Vertical scrollbar: 6px wide, no arrows -->
+    <ControlTemplate x:Key="VerticalScrollBarTemplate" TargetType="ScrollBar">
+        <Grid Width="6">
+            <Border Background="{DynamicResource ScrollBarTrackBrush}" CornerRadius="3"/>
+            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                <Track.Thumb>
+                    <Thumb Style="{StaticResource ScrollBarThumbStyle}"/>
+                </Track.Thumb>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <!-- Horizontal scrollbar: 6px tall, no arrows -->
+    <ControlTemplate x:Key="HorizontalScrollBarTemplate" TargetType="ScrollBar">
+        <Grid Height="6">
+            <Border Background="{DynamicResource ScrollBarTrackBrush}" CornerRadius="3"/>
+            <Track x:Name="PART_Track" IsDirectionReversed="False">
+                <Track.Thumb>
+                    <Thumb Style="{StaticResource ScrollBarThumbStyle}"/>
+                </Track.Thumb>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <!-- Apply globally -->
+    <Style TargetType="ScrollBar">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Vertical">
+                <Setter Property="Width" Value="6"/>
+                <Setter Property="Template" Value="{StaticResource VerticalScrollBarTemplate}"/>
+            </Trigger>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Height" Value="6"/>
+                <Setter Property="Template" Value="{StaticResource HorizontalScrollBarTemplate}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>
+Phase 3: Layout — Responsive + DPI-Aware
+MainWindow.xaml changes:
+
+<!-- Replace the hard-coded sizes: -->
+<Window ...
+        Width="1100" Height="700"
+        MinWidth="800" MinHeight="500"
+        WindowState="Normal"
+        SizeToContent="Manual"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType">
+		
+		
+		
+		Key layout fixes needed:
+Problem	Fix
+Nav buttons touching edges	Add Margin="16,0" to the nav UniformGrid's parent Border padding → Padding="16,10"
+Home cards: fixed 3-column	Replace UniformGrid Columns="3" with WrapPanel using cards of MinWidth="280" MaxWidth="400" — adapts from 2 to 4 columns
+Content overflow / scrollbars	Each tool view should have its own ScrollViewer inside a DockPanel with header docked, and use MaxWidth="1200" + HorizontalAlignment="Center" so content doesn't stretch infinitely
+Category buttons inactive look	Replace Opacity="0.5" disabled state with proper DisabledTextBrush foreground
+Text readability	Bump body text from 12px → 13px, secondary from 12px → 13px, ensure line-height ≥ 1.5×
+For your Surface (150% DPI): WPF handles DPI scaling automatically if you use UseLayoutRounding="True" and avoid hardcoded pixel sizes for margins/padding. The issue is that your Width="1100" at 150% becomes 1650 physical pixels — nearly filling a 2160-wide screen. Set Width to something like 960 or let the window start maximized for high-DPI.
+---
+Phase 4: Icons — Replace Emoji with Geometry Paths
+Emoji rendering is platform/font-dependent and won't theme with your colors. Replace with Path data using Segoe Fluent Icons or custom SVG geometry:
+
+
+Create a Resources/Icons.xaml dictionary with named Geometry resources for each tool.
+---
+Phase 5: Animations + Polish
+Add these to Styles.xaml:
+•	Button hover: ColorAnimation on Background over 0.15s with QuadraticEase
+•	Card hover: Subtle ScaleTransform to 1.01 + border accent transition
+•	Theme switch: Animate Opacity 1→0→1 over 0.3s on the root content
+•	Dropdown popup: Already has PopupAnimation="Fade" — increase to include slight slide-down via TranslateTransform
+•	Page transitions: Fade + slight slide on ContentControl content change
+---
+Phase 6: Execution Order
+
+
+gantt
+    title UI Redesign Execution Plan
+    dateFormat  YYYY-MM-DD
+    axisFormat  %b %d
+
+    section Phase 1 - Design Tokens
+    Replace DarkTheme.xaml colors           :p1a, 2026-04-01, 1d
+    Replace LightTheme.xaml colors          :p1b, after p1a, 1d
+    Add new token keys to both themes       :p1c, after p1b, 1d
+
+    section Phase 2 - Control Styles
+    ScrollBar + ScrollViewer                :p2a, after p1c, 1d
+    ComboBox + TextBox + CheckBox           :p2b, after p2a, 2d
+    ToolTip + ContextMenu                   :p2c, after p2b, 1d
+
+    section Phase 3 - Layout
+    MainWindow responsive sizing            :p3a, after p1c, 1d
+    Nav bar margins + spacing               :p3b, after p3a, 1d
+    HomeView WrapPanel cards                :p3c, after p3b, 1d
+    Tool views scroll + max-width           :p3d, after p3c, 2d
+
+    section Phase 4 - Icons
+    Create Icons.xaml geometry dict          :p4a, after p2c, 2d
+    Replace emoji in all views              :p4b, after p4a, 1d
+
+    section Phase 5 - Animations
+    Button + card hover transitions         :p5a, after p3d, 1d
+    Page transition animations              :p5b, after p5a, 1d
+    Theme switch animation                  :p5c, after p5b, ---
+Summary of Files to Touch
+File	Change
+DarkTheme.xaml	Complete rewrite — Fluent dark palette
+LightTheme.xaml	Complete rewrite — Fluent light palette
+Styles.xaml	Update existing + add ComboBox/TextBox/CheckBox styles
+New Resources/ScrollBarStyles.xaml	Thin modern scrollbar
+New Resources/InputStyles.xaml	ComboBox, TextBox, CheckBox
+New Resources/Icons.xaml	Vector icon geometries
+App.xaml.cs	Merge new resource dictionaries
+MainWindow.xaml	Responsive sizing, nav margins, layout rounding
+HomeView.xaml	WrapPanel, icon swap, card spacing
+CategoryMenuButton.xaml	Active state indicator, transparent default background
+Every tool view (6 files)	Scrolling layout, icon swap, input styling
+This is a substantial but very structured rework. Want me to start implementing Phase 1 (the theme files) and Phase 2 (scrollbar + input styles), or would you prefer to tackle a specific piece first?
+
+
+Good questions. Let me address both before we start:
+Ask mode is fine
+Since this is a large-scale visual rework touching many files, "Ask" mode gives you control to review each change before it lands. You can always switch to "Agent" later for smaller follow-up tasks.
+Theme toggle + Settings menu — my recommendation
+Keep the theme toggle in the header. It's a 1-click action users reach for constantly — burying it behind a settings menu adds friction. Windows 11 itself keeps the theme toggle at the top level in Quick Settings, not buried in the Settings app.
+But yes, add a Settings popup window. Here's what belongs there:
+Setting	Why
+Default theme preference (+ "System" option)	Persist choice, auto-follow Windows theme
+Startup page (Home vs. last-used tool)	Power user convenience
+Window behavior (remember size/position)	Fixes your DPI/scaling complaint — user picks what works
+Reset all tools to defaults	Housekeeping
+About / version info	Standard
+The header would then have two buttons in the top-right: the theme toggle (☀/🌙) and a ⚙ gear icon that opens the settings Window.
+A popup Window (not a Page navigation) is the right call — it won't interfere with tool state, and ShowDialog() keeps it modal so there's no confusion about which window is active.
+I'll build the settings window as part of Phase 1 alongside the theme rework since they're coupled (persisting theme choice, system theme detection).
+Want me to start with Phase 1 now? That would be:
+1.	Replace both theme dictionaries with the Fluent palettes
+2.	Add the new brush tokens to Styles.xaml
+3.	Build the Settings popup window with theme persistence
+4.	Add a "Follow system theme" option
+5.	Fix the nav bar spacing and header layout

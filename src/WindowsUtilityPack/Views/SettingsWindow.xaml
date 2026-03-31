@@ -1,0 +1,99 @@
+    <Window x:Class="WindowsUtilityPack.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:svc="clr-namespace:WindowsUtilityPack.Services"
+        Title="Settings"
+        Width="480" Height="440"
+        MinWidth="400" MinHeight="380"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        UseLayoutRounding="True"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+    <Grid Margin="28,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Settings"
+                   FontSize="22" FontWeight="SemiBold"
+                   Foreground="{DynamicResource PrimaryTextBrush}"
+                   Margin="0,0,0,24"/>
+
+        <!-- Settings Body -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- ── Theme ── -->
+                <TextBlock Text="Appearance"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource PrimaryTextBrush}"
+                           Margin="0,0,0,12"/>
+
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="Theme" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,10"/>
+                        <RadioButton Content="Dark"
+                                     IsChecked="{Binding SelectedTheme, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static svc:AppTheme.Dark}}"
+                                     Margin="0,0,0,8"/>
+                        <RadioButton Content="Light"
+                                     IsChecked="{Binding SelectedTheme, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static svc:AppTheme.Light}}"
+                                     Margin="0,0,0,8"/>
+                        <RadioButton Content="Use system setting"
+                                     IsChecked="{Binding SelectedTheme, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static svc:AppTheme.System}}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ── Behaviour ── -->
+                <TextBlock Text="Behaviour"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource PrimaryTextBrush}"
+                           Margin="0,16,0,12"/>
+
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,8">
+                    <StackPanel>
+                        <CheckBox Content="Remember window position and size"
+                                  IsChecked="{Binding RememberWindowPosition}"
+                                  Margin="0,0,0,4"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ── About ── -->
+                <TextBlock Text="About"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource PrimaryTextBrush}"
+                           Margin="0,16,0,12"/>
+
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="16">
+                    <StackPanel>
+                        <TextBlock FontSize="13" Foreground="{DynamicResource PrimaryTextBrush}">
+                            <Run Text="Windows Utility Pack" FontWeight="SemiBold"/>
+                            <Run Text=" v1.0.0"/>
+                        </TextBlock>
+                        <TextBlock Text="A modular collection of Windows desktop utility tools."
+                                   FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Close" Style="{StaticResource SecondaryActionButtonStyle}"
+                    Width="90" Click="OnCloseClick"/>
+        </StackPanel>
+    </Grid>
+</Window>           

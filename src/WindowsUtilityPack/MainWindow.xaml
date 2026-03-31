@@ -9,18 +9,19 @@
         Width="1100" Height="700"
         MinWidth="900" MinHeight="550"
         WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
         Closing="OnWindowClosing">
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="60"/>
+            <RowDefinition Height="56"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="30"/>
+            <RowDefinition Height="28"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
+        <!-- ── Header ── -->
         <Border Grid.Row="0"
                 Background="{DynamicResource HeaderBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -30,16 +31,18 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Logo + Title (clickable → home) -->
+                <!-- Logo + Title → home -->
                 <Button Grid.Column="0" Style="{StaticResource TransparentButtonStyle}"
                         Command="{Binding NavigateHomeCommand}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="⚙" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets"
+                                   FontSize="22" VerticalAlignment="Center" Margin="0,0,10,0"
                                    Foreground="{DynamicResource AccentBrush}"/>
                         <TextBlock Text="Windows Utility Pack"
-                                   FontSize="20" FontWeight="SemiBold"
+                                   FontSize="18" FontWeight="SemiBold"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource PrimaryTextBrush}"/>
                     </StackPanel>
@@ -49,22 +52,32 @@
                 <Button Grid.Column="2"
                         Style="{StaticResource ThemeToggleButtonStyle}"
                         Command="{Binding ToggleThemeCommand}"
+                        FontFamily="Segoe MDL2 Assets"
                         Content="{Binding ThemeToggleIcon}"
                         VerticalAlignment="Center"
-                        ToolTip="Toggle Dark/Light Mode"/>
+                        ToolTip="Toggle Dark / Light Mode"
+                        Margin="0,0,6,0"/>
+
+                <!-- Settings Gear -->
+                <Button Grid.Column="3"
+                        Style="{StaticResource IconButtonStyle}"
+                        Command="{Binding OpenSettingsCommand}"
+                        Content="&#xE713;"
+                        VerticalAlignment="Center"
+                        ToolTip="Settings"/>
             </Grid>
         </Border>
 
-        <!-- Category Navigation Bar -->
+        <!-- ── Category Navigation Bar ── -->
         <Border Grid.Row="1"
                 Background="{DynamicResource NavBarBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="12,10">
+                Padding="12,8">
             <UniformGrid Rows="1" Columns="5" HorizontalAlignment="Stretch">
                 <controls:CategoryMenuButton
                     Label="System Utilities"
-                    Icon="🖥"
+                    Icon="&#xE770;"
                     NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
@@ -76,7 +89,7 @@
 
                 <controls:CategoryMenuButton
                     Label="File &amp; Data Tools"
-                    Icon="📁"
+                    Icon="&#xE8B7;"
                     NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
@@ -88,7 +101,7 @@
 
                 <controls:CategoryMenuButton
                     Label="Security &amp; Privacy"
-                    Icon="🔒"
+                    Icon="&#xE72E;"
                     NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
@@ -100,7 +113,7 @@
 
                 <controls:CategoryMenuButton
                     Label="Network &amp; Internet"
-                    Icon="🌐"
+                    Icon="&#xE774;"
                     NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
@@ -112,7 +125,7 @@
 
                 <controls:CategoryMenuButton
                     Label="Developer &amp; Productivity"
-                    Icon="💻"
+                    Icon="&#xE943;"
                     NavigateCommand="{Binding NavigateCommand}"
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
@@ -125,20 +138,20 @@
             </UniformGrid>
         </Border>
 
-        <!-- Main Content Area — DataTemplates resolve the correct View automatically -->
+        <!-- ── Main Content Area ── -->
         <ContentControl Grid.Row="2"
                         Content="{Binding CurrentView}"
-                        Margin="20"/>
+                        Margin="24,16"/>
 
-        <!-- Status Bar -->
+        <!-- ── Status Bar ── -->
         <Border Grid.Row="3"
                 Background="{DynamicResource HeaderBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0"
-                Padding="12,0">
+                Padding="16,0">
             <TextBlock Text="{Binding StatusMessage}"
                        Foreground="{DynamicResource SecondaryTextBrush}"
-                       FontSize="12"
+                       FontSize="11"
                        VerticalAlignment="Center"/>
         </Border>
     </Grid>

@@ -1,0 +1,29 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Segoe MDL2 Assets glyph strings used by views and ViewModels.
+         Reference: https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font -->
+
+    <!-- Navigation / categories -->
+    <sys:String x:Key="IconHome">&#xE80F;</sys:String>          <!-- Home -->
+    <sys:String x:Key="IconSystem">&#xE770;</sys:String>        <!-- PC / Monitor -->
+    <sys:String x:Key="IconFiles">&#xE8B7;</sys:String>         <!-- FolderOpen -->
+    <sys:String x:Key="IconSecurity">&#xE72E;</sys:String>      <!-- Lock -->
+    <sys:String x:Key="IconNetwork">&#xE774;</sys:String>       <!-- Globe / World -->
+    <sys:String x:Key="IconDeveloper">&#xE943;</sys:String>     <!-- Code / Developer -->
+
+    <!-- Tool-level icons -->
+    <sys:String x:Key="IconStorage">&#xEDA2;</sys:String>       <!-- HardDrive -->
+    <sys:String x:Key="IconRename">&#xE8AC;</sys:String>        <!-- Rename -->
+    <sys:String x:Key="IconPassword">&#xE8D7;</sys:String>      <!-- PasswordField -->
+    <sys:String x:Key="IconPing">&#xE968;</sys:String>          <!-- NetworkTower -->
+    <sys:String x:Key="IconRegex">&#xE8FD;</sys:String>         <!-- Code / BranchFork2 -->
+    <sys:String x:Key="IconTextConvert">&#xE8C1;</sys:String>   <!-- Switch -->
+
+    <!-- Actions -->
+    <sys:String x:Key="IconSettings">&#xE713;</sys:String>      <!-- Settings gear -->
+    <sys:String x:Key="IconSun">&#xE706;</sys:String>           <!-- Brightness -->
+    <sys:String x:Key="IconMoon">&#xE793;</sys:String>          <!-- ClearNight -->
+
+</ResourceDictionary>
