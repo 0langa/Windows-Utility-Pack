@@ -21,11 +21,9 @@ public interface INotificationService
 }
 
 /// <summary>Carries the message text and severity for a notification.</summary>
-public class NotificationEventArgs : EventArgs
+public class NotificationEventArgs(string message, NotificationType type) : EventArgs
 {
-    public string Message { get; }
-    public NotificationType Type { get; }
-    public NotificationEventArgs(string message, NotificationType type) { Message = message; Type = type; }
+    public string Message { get; } = message; public NotificationType Type { get; } = type;
 }
 
 /// <summary>Severity level of a notification.</summary>

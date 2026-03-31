@@ -6,5 +6,25 @@ namespace WindowsUtilityPack.Services;
 internal sealed class ClipboardService : IClipboardService
 {
     /// <inheritdoc/>
+    public bool TryGetText(out string text)
+    {
+        try
+        {
+            if (Clipboard.ContainsText())
+            {
+                text = Clipboard.GetText();
+                return !string.IsNullOrWhiteSpace(text);
+            }
+        }
+        catch
+        {
+            // Clipboard access can fail when another process owns it temporarily.
+        }
+
+        text = string.Empty;
+        return false;
+    }
+
+    /// <inheritdoc/>
     public void SetText(string text) => Clipboard.SetText(text);
 }

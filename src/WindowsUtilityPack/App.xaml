@@ -7,6 +7,7 @@
              xmlns:passwordGen="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator"
              xmlns:pingTool="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.PingTool"
              xmlns:regexTester="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester"
+             xmlns:textFormatConverter="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter"
              xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels"
              xmlns:views="clr-namespace:WindowsUtilityPack.Views"
              StartupUri="MainWindow.xaml">
@@ -41,6 +42,9 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type regexTester:RegexTesterViewModel}">
                 <regexTester:RegexTesterView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type textFormatConverter:TextFormatConverterViewModel}">
+                <textFormatConverter:TextFormatConverterView/>
             </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>

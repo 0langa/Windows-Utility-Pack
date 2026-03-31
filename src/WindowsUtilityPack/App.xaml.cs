@@ -7,6 +7,8 @@ using WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer;
 using WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
 using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
 using WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester;
+using WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter;
+using WindowsUtilityPack.Services.TextConversion;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack;
@@ -66,6 +68,11 @@ public partial class App : Application
         FolderPickerService = new FolderPickerService();
         UserDialogService   = new UserDialogService();
         ClipboardService    = new ClipboardService();
+        FileDialogService   = new FileDialogService();
+        TextFormatConversionService = new TextFormatConversionService();
+        TextPreviewDocumentBuilder = new TextPreviewDocumentBuilder();
+        TextResultExportService = new TextResultExportService(FileDialogService);
+        TextPreviewWindowService = new TextPreviewWindowService();
 
         // Initialise Storage Master services
         ScanEngine                   = new ScanEngine();
