@@ -38,6 +38,19 @@ public partial class App : Application
     public static IUserDialogService   UserDialogService   { get; private set; } = null!;
     public static IClipboardService    ClipboardService    { get; private set; } = null!;
 
+    // Text Format Converter services
+
+    /// <summary>Presents file open/save dialogs for text conversion workflows.</summary>
+    public static IFileDialogService FileDialogService { get; private set; } = null!;
+    /// <summary>Provides the core text conversion and formatting pipeline.</summary>
+    public static ITextFormatConversionService TextFormatConversionService { get; private set; } = null!;
+    /// <summary>Builds rich preview documents for converted output.</summary>
+    public static ITextPreviewDocumentBuilder TextPreviewDocumentBuilder { get; private set; } = null!;
+    /// <summary>Handles saving conversion results to disk.</summary>
+    public static ITextResultExportService TextResultExportService { get; private set; } = null!;
+    /// <summary>Manages the modeless conversion preview window.</summary>
+    public static ITextPreviewWindowService TextPreviewWindowService { get; private set; } = null!;
+
     // Storage Master services
 
     /// <summary>Core storage scan engine for Storage Master.</summary>
@@ -176,6 +189,23 @@ public partial class App : Application
             Icon        = "\U0001F4BB",
             Description = "Test regular expressions against input text",
             Factory     = () => new RegexTesterViewModel(),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key         = "text-format-converter",
+            Name        = "Text Format Converter & Formatter",
+            Category    = "Developer & Productivity",
+            Icon        = "\U0001F9FE",
+            Description = "Convert, format, and preview HTML, XML, Markdown, RTF, PDF, DOCX, and JSON.",
+            Factory     = () => new TextFormatConverterViewModel(
+                ClipboardService,
+                FileDialogService,
+                TextFormatConversionService,
+                TextPreviewDocumentBuilder,
+                TextPreviewWindowService,
+                TextResultExportService,
+                UserDialogService),
         });
 
         ToolRegistry.RegisterAll(NavigationService);
