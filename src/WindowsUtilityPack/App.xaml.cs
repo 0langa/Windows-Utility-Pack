@@ -75,7 +75,7 @@ public partial class App : Application
         // Initialise core services
         LoggingService      = new LoggingService();
         SettingsService     = new SettingsService();
-        NavigationService   = new NavigationService(serviceProvider);
+       NavigationService   = new NavigationService();
         ThemeService        = new ThemeService();
         NotificationService = new NotificationService();
         FolderPickerService = new FolderPickerService();

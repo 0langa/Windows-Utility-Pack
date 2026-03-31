@@ -28,6 +28,7 @@ public class NavigationServiceTests
     public void NavigateTo_Generic_SetsCurrentView()
     {
         var svc = new NavigationService();
+        svc.Register<TestVm>(() => new TestVm());
         svc.NavigateTo<TestVm>();
         Assert.IsType<TestVm>(svc.CurrentView);
     }
@@ -37,10 +38,10 @@ public class NavigationServiceTests
     {
         var svc = new NavigationService();
         svc.Register("test", () => new TestVm());
-        ViewModelBase? raised = null;
-        svc.Navigated += (_, vm) => raised = vm;
+        Type? raised = null;
+        svc.Navigated += (_, vmType) => raised = vmType;
         svc.NavigateTo("test");
-        Assert.IsType<TestVm>(raised);
+        Assert.Equal(typeof(TestVm), raised);
     }
 
     [Fact]

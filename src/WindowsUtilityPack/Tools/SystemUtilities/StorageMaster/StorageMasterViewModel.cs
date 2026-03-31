@@ -495,8 +495,8 @@ public class StorageMasterViewModel : ViewModelBase
         ScanStatusText = "Scanning for duplicate files...";
         try
         {
-            var progress = new Progress<string>(msg => ScanStatusText = msg);
-            var groups   = await _duplicateService.FindDuplicatesAsync(_scanRoot, progress, CancellationToken.None);
+           var progress = new Progress<int>(pct => ScanStatusText = $"Scanning for duplicates... {pct}%");
+           var groups   = await _duplicateService.FindDuplicatesAsync(_scanRoot!.FullPath, progress, CancellationToken.None);
             foreach (var g in groups) DuplicateGroups.Add(new DuplicateGroupViewModel(g));
             ScanStatusText   = $"Duplicate scan complete - {groups.Count} groups, {StorageItem.FormatBytes(groups.Sum(g => g.WastedBytes))} wasted";
             NotifyScanMetrics();

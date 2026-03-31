@@ -24,6 +24,15 @@ namespace WindowsUtilityPack.Services.Storage;
 /// </summary>
 public class DriveAnalysisService : IDriveAnalysisService
 {
+   /// <inheritdoc/>
+   public IReadOnlyList<DriveInfoExtended> GetAllDrives()
+   {
+       return DriveInfo.GetDrives()
+           .Where(d => d.IsReady)
+           .Select(d => BuildExtended(d))
+           .ToList();
+   }
+
     /// <inheritdoc/>
     public Task<IReadOnlyList<DriveInfoExtended>> GetAllDrivesAsync(
         CancellationToken cancellationToken = default)

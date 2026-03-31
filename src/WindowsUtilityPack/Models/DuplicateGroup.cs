@@ -40,6 +40,9 @@ public class DuplicateGroup
     /// <summary>Human-friendly count of duplicate copies.</summary>
     public int DuplicateCount => Files.Count;
 
+   /// <summary>Parameterless constructor for object-initializer usage.</summary>
+   public DuplicateGroup() { }
+
     public DuplicateGroup(string groupKey, List<StorageItem> files)
     {
         if (string.IsNullOrWhiteSpace(groupKey))

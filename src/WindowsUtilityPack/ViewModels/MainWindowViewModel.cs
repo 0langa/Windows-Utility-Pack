@@ -52,7 +52,7 @@ public class MainWindowViewModel : ViewModelBase
     /// The currently displayed ViewModel.  The ContentControl in MainWindow.xaml is bound
     /// to this property; WPF DataTemplates in App.xaml resolve the appropriate View.
     /// </summary>
-    public ViewModelBase? CurrentView => _navigation.CurrentView;
+   public ViewModelBase? CurrentView => _navigation.CurrentView as ViewModelBase;
 
     // ── Commands ──────────────────────────────────────────────────────────────
 

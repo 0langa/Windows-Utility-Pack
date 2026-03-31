@@ -83,8 +83,15 @@ namespace WindowsUtilityPack.Services.Storage
                 {
                     results.Add(new DuplicateGroup(
                         kvp.Key,
-                        kvp.Value.Select(fi => fi.FullName).ToList(),
-                        kvp.Value[0].Length));
+                       kvp.Value.Select(fi => new StorageItem
+                       {
+                           FullPath     = fi.FullName,
+                           Name         = fi.Name,
+                           SizeBytes    = fi.Length,
+                           LastModified = fi.LastWriteTime,
+                           CreatedAt    = fi.CreationTime,
+                           Attributes   = fi.Attributes,
+                       }).ToList()));
                 }
             }
 

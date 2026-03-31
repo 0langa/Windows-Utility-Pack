@@ -11,6 +11,11 @@ namespace WindowsUtilityPack.Services.Storage;
 /// </summary>
 public interface IDriveAnalysisService
 {
+   /// <summary>
+   /// Synchronously retrieves extended drive information for all ready drives.
+   /// </summary>
+   IReadOnlyList<DriveInfoExtended> GetAllDrives();
+
     Task<IReadOnlyList<DriveInfoExtended>> GetAllDrivesAsync(
         CancellationToken cancellationToken = default);
 

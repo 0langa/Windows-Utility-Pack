@@ -48,6 +48,11 @@ public interface INavigationService
     /// </summary>
     void Register<TViewModel>(Func<TViewModel> factory) where TViewModel : ViewModelBase;
 
+   /// <summary>
+   /// Registers a factory for a view model identified by a string key.
+   /// </summary>
+   void Register(string key, Func<ViewModelBase> factory);
+
     /// <summary>
     /// Occurs when navigation completes.
     /// </summary>

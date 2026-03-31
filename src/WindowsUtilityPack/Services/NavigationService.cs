@@ -18,10 +18,11 @@ namespace WindowsUtilityPack.Services
     /// </summary>
     public sealed class NavigationService : INavigationService
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceProvider? _serviceProvider;
         private ContentControl? _contentHost;
         private readonly Stack<object> _backStack = new();
         private readonly Dictionary<Type, Func<ViewModelBase>> _factories = new();
+        private readonly Dictionary<string, Func<ViewModelBase>> _keyFactories = new();
         private ViewModelBase _currentViewModel = null!;
 
         // current view-model exposed as a property (used by MainWindowViewModel)
@@ -32,16 +33,20 @@ namespace WindowsUtilityPack.Services
             {
                 _currentViewModel = value;
                 CurrentViewModelChanged?.Invoke(this, EventArgs.Empty);
+                CurrentViewChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
+        public object? CurrentView => CurrentViewModel;
+
         public event EventHandler? CurrentViewModelChanged;
+        public event EventHandler? CurrentViewChanged;
         public event EventHandler<Type>? Navigated;
         public bool CanGoBack => _backStack.Count > 0;
 
-        public NavigationService(IServiceProvider serviceProvider)
+        public NavigationService(IServiceProvider? serviceProvider = null)
         {
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            _serviceProvider = serviceProvider;
         }
 
         public void SetContentHost(ContentControl host)
@@ -58,9 +63,14 @@ namespace WindowsUtilityPack.Services
             {
                 viewModel = factory();
             }
-            else
+            else if (_serviceProvider is not null)
             {
                 viewModel = (ViewModelBase)_serviceProvider.GetService(type)!;
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"No factory registered for {type.Name} and no service provider is available.");
             }
 
             CurrentViewModel = viewModel;
@@ -71,10 +81,20 @@ namespace WindowsUtilityPack.Services
         {
             ArgumentNullException.ThrowIfNull(viewModel);
 
+            // If a string key is passed, resolve from registered key-based factories
+            if (viewModel is string key)
+            {
+                if (_keyFactories.TryGetValue(key, out var keyFactory))
+                    viewModel = keyFactory();
+                else
+                    return; // Unknown key — silently ignore
+            }
+
             if (CurrentViewModel is not null)
                 _backStack.Push(CurrentViewModel);
 
             CurrentViewModel = (ViewModelBase)viewModel;
+            Navigated?.Invoke(this, viewModel.GetType());
 
             if (_contentHost is not null)
                 _contentHost.Content = viewModel;
@@ -95,9 +115,17 @@ namespace WindowsUtilityPack.Services
             _backStack.Clear();
         }
 
+        public void NavigateTo<TViewModel>() where TViewModel : ViewModelBase
+            => Navigate<TViewModel>();
+
         public void Register<TViewModel>(Func<TViewModel> factory) where TViewModel : ViewModelBase
         {
             _factories[typeof(TViewModel)] = factory;
+        }
+
+        public void Register(string key, Func<ViewModelBase> factory)
+        {
+            _keyFactories[key] = factory ?? throw new ArgumentNullException(nameof(factory));
         }
     }
 }
