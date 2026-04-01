@@ -328,4 +328,62 @@
         <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
     </Style>
 
+    <!-- ══════════════════════════════════════════════════════════════════
+         TOGGLE SWITCH (CheckBox variant for settings)
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <Style x:Key="ToggleSwitchStyle" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid SnapsToDevicePixels="True">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ContentPresenter VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"/>
+                        <Border x:Name="SwitchTrack"
+                                Grid.Column="1"
+                                Width="44" Height="22"
+                                Background="{DynamicResource ToggleOffBackgroundBrush}"
+                                CornerRadius="11"
+                                Margin="12,0,0,0"
+                                VerticalAlignment="Center">
+                            <Ellipse x:Name="SwitchThumb"
+                                     Width="16" Height="16"
+                                     Fill="{DynamicResource ToggleThumbBrush}"
+                                     HorizontalAlignment="Left"
+                                     Margin="3,0,0,0"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="SwitchTrack" Property="Background"
+                                    Value="{DynamicResource ToggleOnBackgroundBrush}"/>
+                            <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                            <Setter TargetName="SwitchThumb" Property="Margin" Value="0,0,3,0"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="SwitchTrack" Property="Opacity" Value="0.85"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         TABLE SECTION HEADER (replaces NavBarBackgroundBrush misuse)
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <Style x:Key="TableHeaderBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource TableHeaderBackgroundBrush}"/>
+        <Setter Property="CornerRadius" Value="8,8,0,0"/>
+        <Setter Property="Padding" Value="12,8"/>
+    </Style>
+
 </ResourceDictionary>

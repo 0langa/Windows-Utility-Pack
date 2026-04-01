@@ -9,13 +9,16 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="📁 Bulk File Renamer" FontSize="20" FontWeight="SemiBold"
-                   Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,16"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="{StaticResource IconRename}" FontFamily="Segoe MDL2 Assets"
+                       FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0"
+                       Foreground="{DynamicResource AccentBrush}"/>
+            <TextBlock Text="Bulk File Renamer" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}"/>
+        </StackPanel>
 
         <!-- Controls -->
-        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundBrush}"
-                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                CornerRadius="8" Padding="16" Margin="0,0,0,12">
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -29,45 +32,26 @@
 
                 <TextBlock Text="Folder:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding SelectedFolder, UpdateSourceTrigger=PropertyChanged}"
-                         IsReadOnly="True" Margin="60,0,100,8"
-                         Background="{DynamicResource CardBackgroundBrush}"
-                         Foreground="{DynamicResource PrimaryTextBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}" Padding="8,6"/>
+                         IsReadOnly="True" Margin="60,0,100,8"/>
                 <Button Grid.Row="0" Grid.Column="1" Content="Browse…"
                         Command="{Binding BrowseFolderCommand}"
                         IsEnabled="{Binding IsBusy, Converter={StaticResource BoolNegationConverter}}"
                         HorizontalAlignment="Right"
-                        Padding="12,6" Margin="0,0,0,8"
-                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0" Cursor="Hand">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                        Style="{StaticResource PrimaryActionButtonStyle}"
+                        Margin="0,0,0,8"/>
 
                 <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Prefix:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Width="60"/>
-                    <TextBox Text="{Binding Prefix, UpdateSourceTrigger=PropertyChanged}" Width="120"
-                             Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}" Padding="8,6" Margin="0,0,20,0"/>
+                    <TextBox Text="{Binding Prefix, UpdateSourceTrigger=PropertyChanged}" Width="120" Margin="0,0,20,0"/>
                     <TextBlock Text="Suffix:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Width="60"/>
-                    <TextBox Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="120"
-                             Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}" Padding="8,6"/>
+                    <TextBox Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
                 </StackPanel>
 
                 <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal">
                     <TextBlock Text="Find:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Width="60"/>
-                    <TextBox Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" Width="120"
-                             Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}" Padding="8,6" Margin="0,0,20,0"/>
+                    <TextBox Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" Width="120" Margin="0,0,20,0"/>
                     <TextBlock Text="Replace:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Width="60"/>
-                    <TextBox Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}" Width="120"
-                             Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}" Padding="8,6"/>
+                    <TextBox Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -80,7 +64,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Border Background="{DynamicResource NavBarBackgroundBrush}" CornerRadius="8,8,0,0" Padding="12,8">
+                <Border Style="{StaticResource TableHeaderBorderStyle}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -106,7 +90,7 @@
                                                 <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding HasConflict}" Value="True">
-                                                        <Setter Property="Foreground" Value="#E94560"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -122,18 +106,9 @@
 
         <!-- Apply button and busy indicator -->
         <Grid Grid.Row="3" Margin="0,12,0,0">
-            <Button Content="✔ Apply Rename" Command="{Binding ApplyRenameCommand}"
+            <Button Content="Apply Rename" Command="{Binding ApplyRenameCommand}"
                     HorizontalAlignment="Right"
-                    Padding="16,8" Background="{DynamicResource AccentBrush}" Foreground="White"
-                    BorderThickness="0" Cursor="Hand" FontSize="13">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Button.Template>
-            </Button>
+                    Style="{StaticResource PrimaryActionButtonStyle}"/>
             <TextBlock Text="Renaming…" Foreground="{DynamicResource SecondaryTextBrush}"
                        VerticalAlignment="Center" HorizontalAlignment="Left"
                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>

@@ -5,35 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
     <UserControl.Resources>
-        <Style x:Key="CardBorder" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="16"/>
-        </Style>
-        <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="14,7"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="5" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
-            <Setter Property="Background" Value="{DynamicResource NavBarBackgroundBrush}"/>
-        </Style>
+        <Style x:Key="CardBorder" TargetType="Border" BasedOn="{StaticResource ToolPanelBorderStyle}"/>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -53,7 +25,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="&#x1F4BD;" FontSize="26" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="{StaticResource IconStorage}" FontFamily="Segoe MDL2 Assets" FontSize="26" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource AccentBrush}"/>
                     <StackPanel>
                         <TextBlock Text="Storage Master" FontSize="20" FontWeight="Bold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"/>
@@ -62,15 +34,15 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Refresh Drives" Style="{StaticResource SecondaryButton}"
+                    <Button Content="Refresh Drives" Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding RefreshDrivesCommand}" Margin="0,0,6,0"/>
-                    <Button Content="Scan Duplicates" Style="{StaticResource SecondaryButton}"
+                    <Button Content="Scan Duplicates" Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding ScanDuplicatesCommand}" Margin="0,0,6,0"
                             Visibility="{Binding HasScanResult, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    <Button Content="Analyse Cleanup" Style="{StaticResource SecondaryButton}"
+                    <Button Content="Analyse Cleanup" Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding AnalyseCleanupCommand}" Margin="0,0,6,0"
                             Visibility="{Binding HasScanResult, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    <Button Content="Save Snapshot" Style="{StaticResource SecondaryButton}"
+                    <Button Content="Save Snapshot" Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding SaveSnapshotCommand}"
                             Visibility="{Binding HasScanResult, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
@@ -78,16 +50,16 @@
         </Border>
         <!-- Elevation banner (shown when NOT elevated) -->
         <Border Grid.Row="1" Margin="0,0,0,6" CornerRadius="6" Padding="12,7"
-                Background="#261A00"
+                Background="{DynamicResource WarningSurfaceBrush}"
                 Visibility="{Binding IsElevated, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding ElevationStatusText}" Foreground="#FF9800"
+                <TextBlock Text="{Binding ElevationStatusText}" Foreground="{DynamicResource WarningBrush}"
                            VerticalAlignment="Center" FontSize="12"/>
-                <Button Grid.Column="1" Content="Run as Administrator" Style="{StaticResource SecondaryButton}"
+                <Button Grid.Column="1" Content="Run as Administrator" Style="{StaticResource SecondaryActionButtonStyle}"
                         Command="{Binding ElevateCommand}" Padding="10,4" FontSize="11"/>
             </Grid>
         </Border>
@@ -131,10 +103,10 @@
                          Background="{DynamicResource CardBackgroundBrush}"
                          Foreground="{DynamicResource PrimaryTextBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"/>
-                <Button Grid.Column="3" Content="Browse..." Style="{StaticResource SecondaryButton}"
+                <Button Grid.Column="3" Content="Browse..." Style="{StaticResource SecondaryActionButtonStyle}"
                         Command="{Binding BrowseFolderCommand}" Margin="0,0,6,0" Padding="10,5"/>
-                <Button Grid.Column="4" Content="Scan" Style="{StaticResource ActionButton}"
-                        Command="{Binding ScanCommand}" Padding="18,7" FontWeight="SemiBold"/>
+                <Button Grid.Column="4" Content="Scan" Style="{StaticResource PrimaryActionButtonStyle}"
+                        Command="{Binding ScanCommand}" Padding="18,7"/>
             </Grid>
         </Border>
         <!-- Progress bar (shown during scan) -->
@@ -147,7 +119,7 @@
             <ProgressBar Value="{Binding ScanProgressValue, Mode=OneWay}" Maximum="100" Height="6"
                          Background="{DynamicResource BorderBrush}" Foreground="{DynamicResource AccentBrush}"
                          BorderThickness="0"/>
-            <Button Grid.Column="1" Content="Cancel" Style="{StaticResource SecondaryButton}"
+            <Button Grid.Column="1" Content="Cancel" Style="{StaticResource SecondaryActionButtonStyle}"
                     Command="{Binding CancelScanCommand}" Padding="10,4" Margin="8,0,0,0" FontSize="11"/>
         </Grid>
         <!-- Main content TabControl -->
@@ -413,9 +385,9 @@
                     </Grid.RowDefinitions>
                     <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,6" Padding="10,8">
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="Scan for Duplicates" Style="{StaticResource ActionButton}"
+                            <Button Content="Scan for Duplicates" Style="{StaticResource PrimaryActionButtonStyle}"
                                     Command="{Binding ScanDuplicatesCommand}" Margin="0,0,8,0"/>
-                            <Button Content="Export CSV" Style="{StaticResource SecondaryButton}"
+                            <Button Content="Export CSV" Style="{StaticResource SecondaryActionButtonStyle}"
                                     Command="{Binding ExportDuplicateCsvCommand}" Margin="0,0,8,0"/>
                             <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="8,0,0,0">
                                 <TextBlock.Text>
@@ -482,11 +454,11 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal">
-                                <Button Content="Analyse" Style="{StaticResource ActionButton}"
+                                <Button Content="Analyse" Style="{StaticResource PrimaryActionButtonStyle}"
                                         Command="{Binding AnalyseCleanupCommand}" Margin="0,0,8,0"/>
-                                <Button Content="Select All" Style="{StaticResource SecondaryButton}"
+                                <Button Content="Select All" Style="{StaticResource SecondaryActionButtonStyle}"
                                         Command="{Binding SelectAllCleanupCommand}" Margin="0,0,4,0"/>
-                                <Button Content="Select None" Style="{StaticResource SecondaryButton}"
+                                <Button Content="Select None" Style="{StaticResource SecondaryActionButtonStyle}"
                                         Command="{Binding DeselectAllCleanupCommand}" Margin="0,0,12,0"/>
                                 <TextBlock VerticalAlignment="Center"
                                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12">
@@ -499,9 +471,9 @@
                                 </TextBlock>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <Button Content="Send to Recycle Bin" Style="{StaticResource SecondaryButton}"
+                                <Button Content="Send to Recycle Bin" Style="{StaticResource SecondaryActionButtonStyle}"
                                         Command="{Binding RecycleSelectedCleanupCommand}" Margin="0,0,6,0"/>
-                                <Button Content="Delete Permanently" Style="{StaticResource ActionButton}"
+                                <Button Content="Delete Permanently" Style="{StaticResource PrimaryActionButtonStyle}"
                                         Command="{Binding DeleteSelectedCleanupCommand}"
                                         ToolTip="WARNING: Permanently deletes selected items"/>
                             </StackPanel>
@@ -548,11 +520,11 @@
                     </Grid.RowDefinitions>
                     <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,6" Padding="10,8">
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="Export Files CSV" Style="{StaticResource SecondaryButton}"
+                            <Button Content="Export Files CSV" Style="{StaticResource SecondaryActionButtonStyle}"
                                     Command="{Binding ExportFileCsvCommand}" Margin="0,0,8,0"/>
-                            <Button Content="Export Duplicates CSV" Style="{StaticResource SecondaryButton}"
+                            <Button Content="Export Duplicates CSV" Style="{StaticResource SecondaryActionButtonStyle}"
                                     Command="{Binding ExportDuplicateCsvCommand}" Margin="0,0,8,0"/>
-                            <Button Content="Save Summary Report" Style="{StaticResource SecondaryButton}"
+                            <Button Content="Save Summary Report" Style="{StaticResource SecondaryActionButtonStyle}"
                                     Command="{Binding ExportSummaryCommand}"/>
                         </StackPanel>
                     </Border>
@@ -595,7 +567,7 @@
                                          Foreground="{DynamicResource PrimaryTextBrush}"
                                          BorderBrush="{DynamicResource BorderBrush}"
                                          ToolTip="Optional snapshot label"/>
-                                <Button Grid.Column="1" Content="Save" Style="{StaticResource ActionButton}"
+                                <Button Grid.Column="1" Content="Save" Style="{StaticResource PrimaryActionButtonStyle}"
                                         Command="{Binding SaveSnapshotCommand}" Padding="10,4" Margin="6,0,0,0"/>
                             </Grid>
                             <ListBox Grid.Row="2" ItemsSource="{Binding Snapshots}"
@@ -620,7 +592,7 @@
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
-                            <Button Grid.Row="3" Content="Delete Selected" Style="{StaticResource SecondaryButton}"
+                            <Button Grid.Row="3" Content="Delete Selected" Style="{StaticResource SecondaryActionButtonStyle}"
                                     Command="{Binding DeleteSnapshotCommand}" Margin="0,8,0,0"
                                     HorizontalAlignment="Stretch"/>
                         </Grid>
@@ -659,7 +631,7 @@
                                           Foreground="{DynamicResource PrimaryTextBrush}"
                                           BorderBrush="{DynamicResource BorderBrush}"
                                           ToolTip="Current/comparison snapshot"/>
-                                <Button Grid.Column="3" Content="Compare" Style="{StaticResource ActionButton}"
+                                <Button Grid.Column="3" Content="Compare" Style="{StaticResource PrimaryActionButtonStyle}"
                                         Command="{Binding CompareSnapshotsCommand}" Padding="12,5" Margin="8,0,0,0"/>
                             </Grid>
                             <TextBox Grid.Row="2" Text="{Binding ScanSummary, Mode=OneWay}"

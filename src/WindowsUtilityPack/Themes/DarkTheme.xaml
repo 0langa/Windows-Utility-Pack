@@ -45,6 +45,29 @@
     <SolidColorBrush x:Key="InputFocusBorderBrush"      Color="#60CDFF"/>
     <SolidColorBrush x:Key="InputPlaceholderBrush"      Color="#777777"/>
 
+    <!-- ── Table / Section Headers ── -->
+    <SolidColorBrush x:Key="TableHeaderBackgroundBrush"  Color="#383838"/>
+
+    <!-- ── Tabs ── -->
+    <SolidColorBrush x:Key="TabItemHoverBrush"           Color="#383838"/>
+    <SolidColorBrush x:Key="TabItemSelectedBrush"        Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="TabBorderBrush"              Color="#3D3D3D"/>
+
+    <!-- ── List / Grid ── -->
+    <SolidColorBrush x:Key="ListItemHoverBrush"          Color="#383838"/>
+    <SolidColorBrush x:Key="ListItemSelectedBrush"       Color="#1A3350"/>
+
+    <!-- ── Slider ── -->
+    <SolidColorBrush x:Key="SliderTrackBrush"            Color="#555555"/>
+    <SolidColorBrush x:Key="SliderTrackFillBrush"        Color="#60CDFF"/>
+    <SolidColorBrush x:Key="SliderThumbBrush"            Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="SliderThumbHoverBrush"       Color="#E0E0E0"/>
+
+    <!-- ── Toggle Switch ── -->
+    <SolidColorBrush x:Key="ToggleOffBackgroundBrush"    Color="#555555"/>
+    <SolidColorBrush x:Key="ToggleOnBackgroundBrush"     Color="#60CDFF"/>
+    <SolidColorBrush x:Key="ToggleThumbBrush"            Color="#FFFFFF"/>
+
     <!-- ── Scrollbar ── -->
     <SolidColorBrush x:Key="ScrollBarThumbBrush"        Color="#555555"/>
     <SolidColorBrush x:Key="ScrollBarThumbHoverBrush"   Color="#777777"/>
