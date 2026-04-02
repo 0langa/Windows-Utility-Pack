@@ -620,21 +620,8 @@ public class StorageMasterViewModel : ViewModelBase
         {
             try
             {
-                var itemPath = item.Recommendation.Item.FullPath;
-                if (item.Recommendation.Item.IsDirectory)
-                {
-                    if (permanent) Directory.Delete(itemPath, recursive: true);
-                    else Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(
-                        itemPath, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
-                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
-                }
-                else
-                {
-                    if (permanent) File.Delete(itemPath);
-                    else Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(
-                        itemPath, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
-                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
-                }
+                ShellFileOperations.Delete(
+                    item.Recommendation.Item.FullPath, recycle: !permanent);
                 CleanupItems.Remove(item);
                 success++;
             }

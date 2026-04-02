@@ -22,4 +22,7 @@
     <PackageReference Include="PDFsharp" Version="6.2.4" />
     <PackageReference Include="ReverseMarkdown" Version="5.2.0" />
   </ItemGroup>
+  <ItemGroup>
+    <PublishProfile Include="folderProfile" />
+  </ItemGroup>
 </Project>
