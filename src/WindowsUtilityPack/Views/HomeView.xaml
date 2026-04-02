@@ -75,6 +75,17 @@
                         </StackPanel>
                     </Button>
 
+                    <Button Command="{Binding NavigateCommand}" CommandParameter="downloader"
+                            Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
+                        <StackPanel>
+                            <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
+                            <TextBlock Text="Downloader" Style="{StaticResource CardTitleStyle}"/>
+                            <TextBlock Text="Download files from the web with progress tracking."
+                                       Style="{StaticResource CardDescriptionStyle}"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Command="{Binding NavigateCommand}" CommandParameter="regex-tester"
                             Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
                         <StackPanel>

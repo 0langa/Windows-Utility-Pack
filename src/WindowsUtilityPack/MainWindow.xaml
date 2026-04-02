@@ -82,8 +82,6 @@
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
                         <controls:MenuEntry Label="Storage Master" ToolKey="storage-master"/>
-                        <controls:MenuEntry Label="Task Manager Plus" ToolKey=""/>
-                        <controls:MenuEntry Label="Startup App Control" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
 
@@ -94,8 +92,6 @@
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
                         <controls:MenuEntry Label="Bulk File Renamer" ToolKey="bulk-renamer"/>
-                        <controls:MenuEntry Label="Duplicate Finder" ToolKey=""/>
-                        <controls:MenuEntry Label="CSV / JSON Tools" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
 
@@ -106,8 +102,6 @@
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
                         <controls:MenuEntry Label="Password Generator" ToolKey="password-generator"/>
-                        <controls:MenuEntry Label="Privacy Dashboard" ToolKey=""/>
-                        <controls:MenuEntry Label="Secure File Shredder" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
 
@@ -118,8 +112,7 @@
                     Margin="4,0">
                     <controls:CategoryMenuButton.MenuItems>
                         <controls:MenuEntry Label="Ping Tool" ToolKey="ping-tool"/>
-                        <controls:MenuEntry Label="Network Scanner" ToolKey=""/>
-                        <controls:MenuEntry Label="DNS Utility" ToolKey=""/>
+                        <controls:MenuEntry Label="Downloader" ToolKey="downloader"/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
 
@@ -131,8 +124,6 @@
                     <controls:CategoryMenuButton.MenuItems>
                         <controls:MenuEntry Label="Text Format Converter" ToolKey="text-format-converter"/>
                         <controls:MenuEntry Label="Regex Tester" ToolKey="regex-tester"/>
-                        <controls:MenuEntry Label="Text Diff Tool" ToolKey=""/>
-                        <controls:MenuEntry Label="Clipboard Manager" ToolKey=""/>
                     </controls:CategoryMenuButton.MenuItems>
                 </controls:CategoryMenuButton>
             </UniformGrid>

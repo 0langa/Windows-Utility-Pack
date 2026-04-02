@@ -6,6 +6,7 @@
              xmlns:bulkRenamer="clr-namespace:WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer"
              xmlns:passwordGen="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator"
              xmlns:pingTool="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.PingTool"
+             xmlns:downloader="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.Downloader"
              xmlns:regexTester="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester"
              xmlns:textFormatConverter="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter"
              xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels"
@@ -43,6 +44,9 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type pingTool:PingToolViewModel}">
                 <pingTool:PingToolView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type downloader:DownloaderViewModel}">
+                <downloader:DownloaderView/>
             </DataTemplate>
             <DataTemplate DataType="{x:Type regexTester:RegexTesterViewModel}">
                 <regexTester:RegexTesterView/>

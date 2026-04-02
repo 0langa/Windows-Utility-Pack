@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
@@ -20,6 +20,7 @@
     <sys:String x:Key="IconPing">&#xE968;</sys:String>          <!-- NetworkTower -->
     <sys:String x:Key="IconRegex">&#xE8FD;</sys:String>         <!-- Code / BranchFork2 -->
     <sys:String x:Key="IconTextConvert">&#xE8C1;</sys:String>   <!-- Switch -->
+    <sys:String x:Key="IconDownload">&#xE896;</sys:String>      <!-- Download -->
 
     <!-- Actions -->
     <sys:String x:Key="IconSettings">&#xE713;</sys:String>      <!-- Settings gear -->

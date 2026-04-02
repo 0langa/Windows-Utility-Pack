@@ -6,6 +6,7 @@ using WindowsUtilityPack.Tools.SystemUtilities.StorageMaster;
 using WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer;
 using WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
 using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
+using WindowsUtilityPack.Tools.NetworkInternet.Downloader;
 using WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester;
 using WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter;
 using WindowsUtilityPack.Services.TextConversion;
@@ -189,6 +190,16 @@ public partial class App : Application
             Icon        = "\U0001F4BB",
             Description = "Test regular expressions against input text",
             Factory     = () => new RegexTesterViewModel(),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key         = "downloader",
+            Name        = "Downloader",
+            Category    = "Network & Internet",
+            Icon        = "\U0001F4E5",
+            Description = "Download files from the web with progress tracking",
+            Factory     = () => new DownloaderViewModel(FolderPickerService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
