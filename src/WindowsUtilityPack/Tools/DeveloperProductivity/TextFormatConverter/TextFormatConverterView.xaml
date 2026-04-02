@@ -52,11 +52,16 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="🧾 Text Format Converter &amp; Formatter"
-                   FontSize="22"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource PrimaryTextBrush}"
-                   Margin="0,0,0,14"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+            <TextBlock Text="{StaticResource IconTextConvert}"
+                       FontFamily="Segoe MDL2 Assets" FontSize="22"
+                       Foreground="{DynamicResource AccentBrush}"
+                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="Text Format Converter &amp; Formatter"
+                       FontSize="22" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
 
         <Border Grid.Row="1"
                 Style="{StaticResource ToolPanelBorderStyle}"

@@ -10,8 +10,15 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="💻 Regex Tester" FontSize="20" FontWeight="SemiBold"
-                   Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,16"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="{StaticResource IconRegex}"
+                       FontFamily="Segoe MDL2 Assets" FontSize="20"
+                       Foreground="{DynamicResource AccentBrush}"
+                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="Regex Tester" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
 
         <!-- Pattern input and options -->
         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundBrush}"
@@ -27,8 +34,8 @@
                                VerticalAlignment="Center" Width="70"/>
                     <TextBox Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged}"
                              Width="350" FontFamily="Consolas" FontSize="13"
-                             Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource AccentBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}" Padding="8,6"/>
+                             Foreground="{DynamicResource AccentBrush}"
+                             Padding="8,6"/>
                     <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center" Margin="16,0,0,0" FontStyle="Italic"/>
                 </StackPanel>
@@ -36,11 +43,11 @@
                     <TextBlock Text="Options:" Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center" Width="70"/>
                     <CheckBox Content="Ignore Case" IsChecked="{Binding IgnoreCase}"
-                              Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                              Margin="0,0,16,0" VerticalAlignment="Center"/>
                     <CheckBox Content="Multiline" IsChecked="{Binding Multiline}"
-                              Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                              Margin="0,0,16,0" VerticalAlignment="Center"/>
                     <CheckBox Content="Single Line" IsChecked="{Binding SingleLine}"
-                              Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -54,14 +61,13 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Border Background="{DynamicResource NavBarBackgroundBrush}" CornerRadius="8,8,0,0" Padding="12,8">
+                <Border Style="{StaticResource TableHeaderBorderStyle}">
                     <TextBlock Text="Input Text" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                 </Border>
                 <TextBox Grid.Row="1" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
                          AcceptsReturn="True" TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
                          FontFamily="Consolas" FontSize="12"
-                         Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
                          BorderThickness="0" Padding="12"/>
             </Grid>
         </Border>
@@ -80,7 +86,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Border Background="{DynamicResource NavBarBackgroundBrush}" CornerRadius="8,8,0,0" Padding="12,8">
+                <Border Style="{StaticResource TableHeaderBorderStyle}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="80"/>
