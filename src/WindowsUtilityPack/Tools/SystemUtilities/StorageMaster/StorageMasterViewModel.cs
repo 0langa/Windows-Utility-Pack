@@ -184,6 +184,14 @@ public class StorageMasterViewModel : ViewModelBase
     private bool             _sortDescending  = true;
     private StorageSortField _sortField       = StorageSortField.Size;
 
+    private string _cleanupSortColumn    = "Savings";
+    private bool   _cleanupSortDescending = true;
+
+    // Live-update interim counters (updated from progress callback during scan)
+    private long _interimBytes;
+    private int  _interimFiles;
+    private int  _interimDirs;
+
     private int _selectedTabIndex = 0;
 
     private StorageSnapshot? _selectedSnapshot;
@@ -306,10 +314,12 @@ public class StorageMasterViewModel : ViewModelBase
         get => _snapshotLabel;
         set => SetProperty(ref _snapshotLabel, value);
     }
-    public string TotalScanSize                => _scanRoot != null ? _scanRoot.DisplaySize : "-";
-    public long   TotalScanSizeBytes           => _scanRoot?.TotalSizeBytes ?? 0;
-    public int    TotalFileCount               => _scanRoot?.FileCount      ?? 0;
-    public int    TotalDirCount                => _scanRoot?.DirectoryCount ?? 0;
+    public string TotalScanSize      => _scanRoot != null
+        ? _scanRoot.DisplaySize
+        : (_isScanning && _interimBytes > 0 ? StorageItem.FormatBytes(_interimBytes) : "-");
+    public long   TotalScanSizeBytes => _scanRoot?.TotalSizeBytes ?? _interimBytes;
+    public int    TotalFileCount     => _scanRoot?.FileCount      ?? _interimFiles;
+    public int    TotalDirCount      => _scanRoot?.DirectoryCount ?? _interimDirs;
     public long   TotalDuplicateWasted         => DuplicateGroups.Sum(g => g.Group.WastedBytes);
     public long   TotalCleanupSavings          => CleanupItems.Where(i => i.IsSelected).Sum(i => i.Recommendation.PotentialSavingsBytes);
     public string TotalDuplicateWastedFormatted => StorageItem.FormatBytes(TotalDuplicateWasted);
@@ -403,6 +413,12 @@ public class StorageMasterViewModel : ViewModelBase
             ScanStatusText    = $"Found {p.FilesFound:N0} files, {p.DirsFound:N0} folders - {p.BytesFormatted}";
             ScanCurrentPath   = TruncatePath(p.CurrentPath, 60);
             ScanProgressValue = (ScanProgressValue + 2) % 98 + 1;
+
+            // Update interim counters so Overview stat cards reflect live progress
+            _interimBytes = p.BytesCounted;
+            _interimFiles = p.FilesFound;
+            _interimDirs  = p.DirsFound;
+            NotifyScanMetrics();
         });
         try
         {
@@ -440,6 +456,9 @@ public class StorageMasterViewModel : ViewModelBase
         ExtensionSummary.Clear();
         ScanSummary     = string.Empty;
         ScanCurrentPath = string.Empty;
+        _interimBytes   = 0;
+        _interimFiles   = 0;
+        _interimDirs    = 0;
         NotifyScanMetrics();
     }
 
@@ -486,6 +505,37 @@ public class StorageMasterViewModel : ViewModelBase
         };
         foreach (var item in source.Take(2000)) FilteredFiles.Add(item);
     }
+
+    /// <summary>
+    /// Sorts the cleanup list by the given column header text.
+    /// Clicking the same column again toggles ascending/descending.
+    /// </summary>
+    internal void SortCleanupByColumn(string columnHeader)
+    {
+        if (_cleanupSortColumn == columnHeader)
+            _cleanupSortDescending = !_cleanupSortDescending;
+        else
+        {
+            _cleanupSortColumn     = columnHeader;
+            _cleanupSortDescending = columnHeader == "Savings"; // default descending for size
+        }
+
+        var sorted = SortCleanupItems(CleanupItems, _cleanupSortColumn, _cleanupSortDescending).ToList();
+        CleanupItems.Clear();
+        foreach (var item in sorted) CleanupItems.Add(item);
+        NotifyScanMetrics();
+    }
+
+    private static IEnumerable<CleanupItemViewModel> SortCleanupItems(
+        IEnumerable<CleanupItemViewModel> source, string column, bool desc) => column switch
+    {
+        "Cat"     => desc ? source.OrderByDescending(i => i.CategoryIcon) : source.OrderBy(i => i.CategoryIcon),
+        "Name"    => desc ? source.OrderByDescending(i => i.Name)         : source.OrderBy(i => i.Name),
+        "Reason"  => desc ? source.OrderByDescending(i => i.Rationale)    : source.OrderBy(i => i.Rationale),
+        "Path"    => desc ? source.OrderByDescending(i => i.ItemPath)     : source.OrderBy(i => i.ItemPath),
+        _         => desc ? source.OrderByDescending(i => i.Recommendation.PotentialSavingsBytes)
+                          : source.OrderBy(i => i.Recommendation.PotentialSavingsBytes),
+    };
 
     private async Task ScanDuplicatesAsync()
     {
@@ -669,21 +719,33 @@ public class StorageMasterViewModel : ViewModelBase
 
     private void CopyPath(object? parameter)
     {
-        if (parameter is StorageItem item)
+        string? path = parameter switch
         {
-            _clipboardService.SetText(item.FullPath);
-            ScanStatusText = $"Copied: {item.FullPath}";
+            StorageItem item         => item.FullPath,
+            CleanupItemViewModel vm  => vm.ItemPath,
+            _                        => null
+        };
+        if (!string.IsNullOrEmpty(path))
+        {
+            _clipboardService.SetText(path);
+            ScanStatusText = $"Copied: {path}";
         }
     }
 
     private void OpenInExplorer(object? parameter)
     {
-        string? path = parameter is StorageItem item
-            ? (item.IsDirectory ? item.FullPath : Path.GetDirectoryName(item.FullPath))
-            : null;
-        if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
+        string? filePath = parameter switch
         {
-            try { System.Diagnostics.Process.Start("explorer.exe", path); }
+            StorageItem item         => item.FullPath,
+            CleanupItemViewModel vm  => vm.ItemPath,
+            _                        => null
+        };
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        string? folder = File.Exists(filePath) ? Path.GetDirectoryName(filePath) : (Directory.Exists(filePath) ? filePath : null);
+        if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
+        {
+            try { System.Diagnostics.Process.Start("explorer.exe", folder); }
             catch (Exception ex) { ScanStatusText = $"Could not open Explorer: {ex.Message}"; }
         }
     }

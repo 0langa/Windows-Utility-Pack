@@ -479,12 +479,14 @@
                             </StackPanel>
                         </Grid>
                     </Border>
-                    <ListView Grid.Row="1" ItemsSource="{Binding CleanupItems}"
+                    <ListView Grid.Row="1" x:Name="CleanupListView"
+                              ItemsSource="{Binding CleanupItems}"
                               Background="{DynamicResource AppBackgroundBrush}"
                               Foreground="{DynamicResource PrimaryTextBrush}"
                               BorderThickness="0"
                               VirtualizingPanel.IsVirtualizing="True"
-                              VirtualizingPanel.VirtualizationMode="Recycling">
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              GridViewColumnHeader.Click="CleanupColumnHeader_Click">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="" Width="30">
@@ -497,8 +499,24 @@
                                 <GridViewColumn Header="Cat" Width="60" DisplayMemberBinding="{Binding CategoryIcon}"/>
                                 <GridViewColumn Header="Name" Width="200" DisplayMemberBinding="{Binding Name}"/>
                                 <GridViewColumn Header="Savings" Width="90" DisplayMemberBinding="{Binding Size}"/>
-                                <GridViewColumn Header="Reason" Width="280" DisplayMemberBinding="{Binding Rationale}"/>
-                                <GridViewColumn Header="Path" Width="300" DisplayMemberBinding="{Binding ItemPath}"/>
+                                <GridViewColumn Header="Reason" Width="350">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Rationale}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding Rationale}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Path" Width="400">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding ItemPath}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding ItemPath}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                             </GridView>
                         </ListView.View>
                         <ListView.ItemContainerStyle>
@@ -508,6 +526,16 @@
                                 <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
                             </Style>
                         </ListView.ItemContainerStyle>
+                        <ListView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy Path"
+                                          Command="{Binding DataContext.CopyPathCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                          CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="Open Containing Folder"
+                                          Command="{Binding DataContext.OpenInExplorerCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                          CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                            </ContextMenu>
+                        </ListView.ContextMenu>
                     </ListView>
                 </Grid>
             </TabItem>

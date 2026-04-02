@@ -72,7 +72,55 @@ public sealed class DriveInfoExtended
     /// </summary>
     public string MediaType { get; init; } = "Unknown";
 
+    // ── Computed display properties (bound by Overview tab XAML) ──────────
+
+    /// <summary>Label shown next to drive icon, e.g. "C: [Windows]".</summary>
+    public string DisplayLabel
+        => string.IsNullOrWhiteSpace(VolumeLabel)
+            ? RootPath.TrimEnd('\\')
+            : $"{RootPath.TrimEnd('\\')} [{VolumeLabel}]";
+
+    /// <summary>MDL2 icon glyph for the drive type.</summary>
+    public string DriveTypeIcon => DriveType switch
+    {
+        DriveType.Fixed     => "\uEDA2",  // HardDrive
+        DriveType.Removable => "\uE88E",  // USB
+        DriveType.CDRom     => "\uE958",  // CD
+        DriveType.Network   => "\uE968",  // NetworkFolder
+        _                   => "\uE8B7",  // Page (generic)
+    };
+
+    /// <summary>Human-readable free space, e.g. "42.3 GB".</summary>
+    public string FreeFormatted  => FormatBytes(FreeBytes);
+
+    /// <summary>Human-readable total capacity, e.g. "256.0 GB".</summary>
+    public string TotalFormatted => FormatBytes(TotalBytes);
+
+    /// <summary>Cleaned-up media type for display, e.g. "SSD · NTFS".</summary>
+    public string MediaTypeDisplay
+        => string.IsNullOrWhiteSpace(FileSystem)
+            ? MediaType
+            : $"{MediaType} · {FileSystem}";
+
+    /// <summary>Quick optimisation hint based on usage percentage.</summary>
+    public string OptimizationAdvice => UsedPercent switch
+    {
+        >= 95 => "Critical — drive almost full!",
+        >= 85 => "Consider freeing space soon.",
+        >= 70 => "Usage is moderate.",
+        _     => string.Empty,
+    };
+
     public override string ToString()
         => $"{RootPath} [{VolumeLabel}] {FileSystem} | {MediaType} | "
          + $"Free {FreeBytes:N0} / {TotalBytes:N0} bytes";
+
+    private static string FormatBytes(long bytes) => bytes switch
+    {
+        >= 1L << 40 => $"{bytes / (double)(1L << 40):F1} TB",
+        >= 1L << 30 => $"{bytes / (double)(1L << 30):F1} GB",
+        >= 1L << 20 => $"{bytes / (double)(1L << 20):F1} MB",
+        >= 1L << 10 => $"{bytes / (double)(1L << 10):F1} KB",
+        _           => $"{bytes} B",
+    };
 }
