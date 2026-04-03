@@ -14,7 +14,7 @@ A modular collection of Windows desktop utility tools built with WPF, .NET 10, a
 
 ## Current Status
 
-The project is in an active, compilable, and runnable state. Eight tools are currently integrated.
+The project is in an active, compilable, and runnable state. Seven tools are currently integrated.
 
 | Tool | Category | Status |
 |------|----------|--------|

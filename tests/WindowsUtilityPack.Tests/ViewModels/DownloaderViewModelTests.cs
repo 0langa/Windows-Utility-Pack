@@ -148,10 +148,15 @@ public class DownloaderViewModelTests
 
     /// <summary>
     /// Verifies that a partial file written to disk is deleted when the download
-    /// is cancelled before completion.  This tests the corrected cleanup policy.
+    /// fails (HTTP connection refused / unreachable host), and that the download
+    /// item status is set to "Failed".
+    ///
+    /// Uses an immediately-refusing address (0.0.0.0) so that the HTTP client
+    /// throws without requiring a running server.  The <see cref="DownloadItem"/>
+    /// status and the absence of a partial file are both checked.
     /// </summary>
     [Fact]
-    public async Task Download_CancelledMidway_DeletesPartialFile()
+    public async Task Download_FailedConnection_DeletesPartialFile_AndSetsFailedStatus()
     {
         // Create a temporary save folder.
         var saveDir = Path.Combine(Path.GetTempPath(), "DownloaderTests_" + Guid.NewGuid().ToString("N")[..6]);
@@ -166,11 +171,20 @@ public class DownloaderViewModelTests
             // this exercises the catch path that must clean up any partial file.
             vm.Url = "https://0.0.0.0/nonexistent-file-that-will-fail.bin";
 
-            // Execute and wait briefly.
+            // Execute and wait for the download to fail (network failure is near-instant).
             vm.DownloadCommand.Execute(null);
-            await Task.Delay(1500); // allow the HTTP attempt to fail
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (vm.IsDownloading && DateTime.UtcNow < deadline)
+                await Task.Delay(50);
 
-            // No file should exist under the save directory.
+            // The download must have finished (failed).
+            Assert.False(vm.IsDownloading);
+
+            // Status should be Failed.
+            if (vm.Downloads.Count > 0)
+                Assert.Equal("Failed", vm.Downloads[0].Status);
+
+            // No partial file should remain under the save directory.
             var files = Directory.GetFiles(saveDir);
             Assert.Empty(files);
         }
