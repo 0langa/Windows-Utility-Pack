@@ -87,6 +87,48 @@ public class PasswordGeneratorViewModelTests
         Assert.False(vm.CopyCommand.CanExecute(null));
     }
 
+    [Fact]
+    public void GeneratedPassword_ContainsAllEnabledCharClasses()
+    {
+        // With all 4 classes enabled, every generated password should contain
+        // at least one character from each class (guaranteed coverage).
+        var vm = new PasswordGeneratorViewModel(new NullClipboardService())
+        {
+            UseUppercase = true,
+            UseLowercase = true,
+            UseDigits    = true,
+            UseSymbols   = true,
+            Length       = 16,
+        };
+
+        // Run multiple times to reduce statistical false-positive risk.
+        for (var i = 0; i < 20; i++)
+        {
+            vm.GenerateCommand.Execute(null);
+            var pw = vm.GeneratedPassword;
+
+            Assert.True(pw.Any(char.IsUpper),  $"Password '{pw}' missing uppercase");
+            Assert.True(pw.Any(char.IsLower),  $"Password '{pw}' missing lowercase");
+            Assert.True(pw.Any(char.IsDigit),  $"Password '{pw}' missing digit");
+            Assert.True(pw.Any(c => !char.IsLetterOrDigit(c)), $"Password '{pw}' missing symbol");
+        }
+    }
+
+    [Fact]
+    public void StrengthLabel_VeryStrong_WhenAllOptionsAndLongLength()
+    {
+        var vm = new PasswordGeneratorViewModel(new NullClipboardService())
+        {
+            UseUppercase = true,
+            UseLowercase = true,
+            UseDigits    = true,
+            UseSymbols   = true,
+            Length       = 24,
+        };
+
+        Assert.Equal("Very Strong", vm.StrengthLabel);
+    }
+
     // ── Test doubles ─────────────────────────────────────────────────────────
 
     private sealed class NullClipboardService : IClipboardService
