@@ -45,7 +45,8 @@
         <Button x:Name="MainButton"
                 Style="{StaticResource CategoryButtonStyle}"
                 HorizontalAlignment="Stretch"
-                Focusable="False">
+                Focusable="True"
+                AutomationProperties.Name="{Binding Label, ElementName=Root}">
             <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="4,0">
                 <TextBlock Text="{Binding Icon, ElementName=Root}"
                            FontFamily="Segoe MDL2 Assets"

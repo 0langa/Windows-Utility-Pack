@@ -121,12 +121,21 @@ public partial class App : Application
     /// </summary>
     private static void RegisterTools()
     {
+        // ── Category icon registration (Segoe MDL2 Assets glyphs) ─────────
+        ToolRegistry.RegisterCategoryIcon("System Utilities",       "\uE770");
+        ToolRegistry.RegisterCategoryIcon("File & Data Tools",      "\uE8B7");
+        ToolRegistry.RegisterCategoryIcon("Security & Privacy",     "\uE72E");
+        ToolRegistry.RegisterCategoryIcon("Network & Internet",     "\uE774");
+        ToolRegistry.RegisterCategoryIcon("Developer & Productivity", "\uE943");
+
+        // ── Tool registration ─────────────────────────────────────────────
         ToolRegistry.Register(new Models.ToolDefinition
         {
             Key         = "home",
             Name        = "Home",
             Category    = "General",
             Icon        = "\U0001F3E0",
+            IconGlyph   = "\uE80F",
             Description = "Application dashboard",
             Factory     = () => new HomeViewModel(),
         });
@@ -138,6 +147,7 @@ public partial class App : Application
             Name        = "Storage Master",
             Category    = "System Utilities",
             Icon        = "\U0001F4BD",
+            IconGlyph   = "\uEDA2",
             Description = "Advanced storage analysis, cleanup, and optimization",
             Factory     = () => new StorageMasterViewModel(
                 ScanEngine,
@@ -158,7 +168,8 @@ public partial class App : Application
             Name        = "Bulk File Renamer",
             Category    = "File & Data Tools",
             Icon        = "\U0001F4C1",
-            Description = "Rename multiple files with prefix/suffix/find-replace",
+            IconGlyph   = "\uE8AC",
+            Description = "Rename multiple files with prefix, suffix, or find-replace rules",
             Factory     = () => new BulkFileRenamerViewModel(FolderPickerService, UserDialogService),
         });
 
@@ -168,7 +179,8 @@ public partial class App : Application
             Name        = "Password Generator",
             Category    = "Security & Privacy",
             Icon        = "\U0001F512",
-            Description = "Generate secure random passwords",
+            IconGlyph   = "\uE8D7",
+            Description = "Generate secure random passwords instantly",
             Factory     = () => new PasswordGeneratorViewModel(ClipboardService),
         });
 
@@ -178,7 +190,8 @@ public partial class App : Application
             Name        = "Ping Tool",
             Category    = "Network & Internet",
             Icon        = "\U0001F310",
-            Description = "Ping hosts and measure network latency",
+            IconGlyph   = "\uE968",
+            Description = "Test network connectivity and measure latency",
             Factory     = () => new PingToolViewModel(),
         });
 
@@ -188,7 +201,8 @@ public partial class App : Application
             Name        = "Regex Tester",
             Category    = "Developer & Productivity",
             Icon        = "\U0001F4BB",
-            Description = "Test regular expressions against input text",
+            IconGlyph   = "\uE8FD",
+            Description = "Test and debug regular expressions interactively",
             Factory     = () => new RegexTesterViewModel(),
         });
 
@@ -198,6 +212,7 @@ public partial class App : Application
             Name        = "Downloader",
             Category    = "Network & Internet",
             Icon        = "\U0001F4E5",
+            IconGlyph   = "\uE896",
             Description = "Download files from the web with progress tracking",
             Factory     = () => new DownloaderViewModel(FolderPickerService),
         });
@@ -205,10 +220,11 @@ public partial class App : Application
         ToolRegistry.Register(new Models.ToolDefinition
         {
             Key         = "text-format-converter",
-            Name        = "Text Format Converter & Formatter",
+            Name        = "Text Format Converter",
             Category    = "Developer & Productivity",
             Icon        = "\U0001F9FE",
-            Description = "Convert, format, and preview HTML, XML, Markdown, RTF, PDF, DOCX, and JSON.",
+            IconGlyph   = "\uE8C1",
+            Description = "Convert, format, and preview text across multiple formats",
             Factory     = () => new TextFormatConverterViewModel(
                 ClipboardService,
                 FileDialogService,

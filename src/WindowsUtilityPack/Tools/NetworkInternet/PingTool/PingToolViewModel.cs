@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Net.NetworkInformation;
+using System.Threading;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.ViewModels;
 
@@ -28,10 +29,14 @@ public class PingResultItem
 ///   <item>Uses <see cref="AsyncRelayCommand"/> so the Ping button is disabled during execution.</item>
 ///   <item>A 500 ms gap between attempts mimics the behaviour of the system ping command.</item>
 ///   <item>Each attempt is individually try/catched so one failure does not abort the sequence.</item>
+///   <item>The <see cref="StopCommand"/> cancels the running sequence via <see cref="CancellationTokenSource"/>.</item>
+///   <item>Summary includes min/max/avg latency and packet loss percentage.</item>
 /// </list>
 /// </summary>
 public class PingToolViewModel : ViewModelBase
 {
+    private CancellationTokenSource? _cts;
+
     private string _host        = "google.com";
     private int    _pingCount   = 4;
     private bool   _isPinging;
@@ -58,7 +63,7 @@ public class PingToolViewModel : ViewModelBase
         set => SetProperty(ref _isPinging, value);
     }
 
-    /// <summary>Summary line shown below the results table (e.g. "4/4 successful | Avg: 12 ms").</summary>
+    /// <summary>Summary line shown below the results table.</summary>
     public string Summary
     {
         get => _summary;
@@ -71,32 +76,47 @@ public class PingToolViewModel : ViewModelBase
     /// <summary>Starts pinging the target host.  Disabled while a ping sequence is running.</summary>
     public AsyncRelayCommand PingCommand { get; }
 
+    /// <summary>Cancels the current ping sequence.  Enabled only while pinging.</summary>
+    public RelayCommand StopCommand { get; }
+
     public PingToolViewModel()
     {
         PingCommand = new AsyncRelayCommand(_ => RunPingAsync(), _ => !IsPinging);
+        StopCommand = new RelayCommand(_ => _cts?.Cancel(), _ => IsPinging);
     }
 
     private async Task RunPingAsync()
     {
         if (string.IsNullOrWhiteSpace(Host)) return;
 
+        _cts = new CancellationTokenSource();
         IsPinging = true;
         Results.Clear();
         Summary = string.Empty;
 
         try
         {
-            using var ping    = new Ping();
-            var successful    = 0;
-            long totalMs      = 0;
+            using var ping = new Ping();
+            var successful = 0;
+            long totalMs   = 0;
+            long minMs     = long.MaxValue;
+            long maxMs     = 0;
 
             for (var i = 1; i <= PingCount; i++)
             {
+                if (_cts?.Token.IsCancellationRequested == true) break;
+
                 try
                 {
                     var reply = await ping.SendPingAsync(Host, 3000);
                     var isOk  = reply.Status == IPStatus.Success;
-                    if (isOk) { successful++; totalMs += reply.RoundtripTime; }
+                    if (isOk)
+                    {
+                        successful++;
+                        totalMs += reply.RoundtripTime;
+                        if (reply.RoundtripTime < minMs) minMs = reply.RoundtripTime;
+                        if (reply.RoundtripTime > maxMs) maxMs = reply.RoundtripTime;
+                    }
 
                     Results.Add(new PingResultItem
                     {
@@ -117,15 +137,35 @@ public class PingToolViewModel : ViewModelBase
                 }
 
                 // Space out attempts to mimic standard ping behaviour.
-                if (i < PingCount) await Task.Delay(500);
+                if (i < PingCount && _cts?.Token.IsCancellationRequested != true)
+                {
+                    try { await Task.Delay(500, _cts!.Token); }
+                    catch (TaskCanceledException) { break; }
+                }
             }
 
-            var avgMs = successful > 0 ? totalMs / successful : 0;
-            Summary = $"{successful}/{PingCount} successful | Avg: {avgMs} ms";
+            var sent    = Results.Count;
+            var lossPercent = sent > 0 ? (int)((sent - successful) * 100.0 / sent) : 0;
+            var avgMs   = successful > 0 ? totalMs / successful : 0;
+
+            if (successful > 0)
+            {
+                Summary = $"{successful}/{sent} successful | " +
+                          $"Min: {minMs} ms | Max: {maxMs} ms | Avg: {avgMs} ms | " +
+                          $"Loss: {lossPercent}%";
+            }
+            else
+            {
+                Summary = $"0/{sent} successful | Loss: {lossPercent}%";
+            }
+
+            if (_cts?.Token.IsCancellationRequested == true)
+                Summary += " (cancelled)";
         }
         finally
         {
             IsPinging = false;
+            _cts = null;
         }
     }
 }

@@ -6,8 +6,8 @@ namespace WindowsUtilityPack.Services;
 /// <summary>
 /// Reads and writes <see cref="AppSettings"/> as indented JSON.
 /// The settings file is created automatically on first save.
-/// All errors are silently swallowed so the application never crashes
-/// due to a missing or corrupt settings file.
+/// Load/Save failures are logged via <see cref="ILoggingService"/> (when available)
+/// rather than silently swallowed, but never crash the application.
 /// </summary>
 public class SettingsService : ISettingsService
 {
@@ -29,7 +29,11 @@ public class SettingsService : ISettingsService
                 return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
             }
         }
-        catch { /* fall through to defaults */ }
+        catch (Exception ex)
+        {
+            // Log through the static accessor if the logging service is already initialised.
+            try { App.LoggingService?.LogError("Failed to load settings", ex); } catch { }
+        }
         return new AppSettings();
     }
 
@@ -42,6 +46,9 @@ public class SettingsService : ISettingsService
             Directory.CreateDirectory(dir);
             File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, JsonOptions));
         }
-        catch { /* swallow save errors */ }
+        catch (Exception ex)
+        {
+            try { App.LoggingService?.LogError("Failed to save settings", ex); } catch { }
+        }
     }
 }

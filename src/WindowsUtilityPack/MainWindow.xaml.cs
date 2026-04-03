@@ -21,7 +21,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        var vm = new MainWindowViewModel(App.NavigationService, App.ThemeService);
+        var vm = new MainWindowViewModel(App.NavigationService, App.ThemeService, App.NotificationService);
         DataContext = vm;
 
         var settings = App.SettingsService.Load();

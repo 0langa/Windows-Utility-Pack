@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using WindowsUtilityPack.Models;
 
 namespace WindowsUtilityPack.Controls;
 
@@ -40,17 +41,16 @@ public class MenuEntry : DependencyObject
 
 /// <summary>
 /// A navigation bar button that displays a category icon + label and shows a
-/// hover dropdown containing <see cref="MenuEntry"/> items.
+/// hover/keyboard dropdown containing tool items.
 ///
-/// How it works:
+/// Supports two modes of populating the dropdown:
 /// <list type="bullet">
-///   <item>The control is a <see cref="UserControl"/> with a <see cref="Popup"/> child.</item>
-///   <item>Hovering over the control opens the popup (<see cref="OnMouseEnter"/>).</item>
-///   <item>Moving the mouse outside the control bounds closes it (<see cref="OnMouseLeave"/>).</item>
-///   <item>Clicking a menu item closes the popup and fires <see cref="NavigateCommand"/>
-///         with the item's <see cref="MenuEntry.ToolKey"/> as the parameter.</item>
-///   <item>Items with an empty <c>ToolKey</c> are silently ignored (placeholder entries).</item>
+///   <item><see cref="ToolDefinitions"/>: data-driven from <see cref="ToolDefinition"/> list (preferred).</item>
+///   <item><see cref="MenuItems"/>: legacy XAML-declared <see cref="MenuEntry"/> items.</item>
 /// </list>
+///
+/// The dropdown opens on hover or keyboard (Enter/Space), and closes when
+/// focus and pointer leave the control.
 /// </summary>
 public partial class CategoryMenuButton : UserControl
 {
@@ -72,6 +72,10 @@ public partial class CategoryMenuButton : UserControl
         DependencyProperty.Register(nameof(NavigateCommand), typeof(ICommand),
             typeof(CategoryMenuButton), new PropertyMetadata(null));
 
+    public static readonly DependencyProperty ToolDefinitionsProperty =
+        DependencyProperty.Register(nameof(ToolDefinitions), typeof(IReadOnlyList<ToolDefinition>),
+            typeof(CategoryMenuButton), new PropertyMetadata(null, OnToolDefinitionsChanged));
+
     // ── CLR wrappers ──────────────────────────────────────────────────────────
 
     /// <summary>Category label displayed below the icon.</summary>
@@ -81,14 +85,14 @@ public partial class CategoryMenuButton : UserControl
         set => SetValue(LabelProperty, value);
     }
 
-    /// <summary>Emoji or icon character displayed above the label.</summary>
+    /// <summary>Segoe MDL2 Assets glyph character displayed above the label.</summary>
     public string Icon
     {
         get => (string)GetValue(IconProperty);
         set => SetValue(IconProperty, value);
     }
 
-    /// <summary>The dropdown items shown when hovering over this button.</summary>
+    /// <summary>Legacy dropdown items (used when declared in XAML directly).</summary>
     public ObservableCollection<MenuEntry> MenuItems
     {
         get => (ObservableCollection<MenuEntry>)GetValue(MenuItemsProperty);
@@ -96,13 +100,23 @@ public partial class CategoryMenuButton : UserControl
     }
 
     /// <summary>
-    /// Command invoked with the clicked item's <see cref="MenuEntry.ToolKey"/> as parameter.
+    /// Command invoked with the clicked item's tool key as parameter.
     /// Typically bound to <c>MainWindowViewModel.NavigateCommand</c>.
     /// </summary>
     public ICommand? NavigateCommand
     {
         get => (ICommand?)GetValue(NavigateCommandProperty);
         set => SetValue(NavigateCommandProperty, value);
+    }
+
+    /// <summary>
+    /// Data-driven tool definitions from <see cref="ToolRegistry"/>.
+    /// When set, automatically populates <see cref="MenuItems"/>.
+    /// </summary>
+    public IReadOnlyList<ToolDefinition>? ToolDefinitions
+    {
+        get => (IReadOnlyList<ToolDefinition>?)GetValue(ToolDefinitionsProperty);
+        set => SetValue(ToolDefinitionsProperty, value);
     }
 
     // ── Constructor ───────────────────────────────────────────────────────────
@@ -112,6 +126,26 @@ public partial class CategoryMenuButton : UserControl
         // Initialise the collection before InitializeComponent so XAML can bind to it.
         MenuItems = [];
         InitializeComponent();
+
+        // Enable keyboard focus for accessibility.
+        Focusable = true;
+        KeyDown += OnKeyDown;
+    }
+
+    // ── Callback for data-driven tool definitions ─────────────────────────────
+
+    private static void OnToolDefinitionsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not CategoryMenuButton self) return;
+
+        self.MenuItems.Clear();
+        if (e.NewValue is IReadOnlyList<ToolDefinition> tools)
+        {
+            foreach (var tool in tools)
+            {
+                self.MenuItems.Add(new MenuEntry { Label = tool.Name, ToolKey = tool.Key });
+            }
+        }
     }
 
     // ── Event handlers ────────────────────────────────────────────────────────
@@ -122,15 +156,37 @@ public partial class CategoryMenuButton : UserControl
     }
 
     private void OnMouseLeave(object sender, MouseEventArgs e)
-        => Dispatcher.BeginInvoke(CloseIfMouseGone, System.Windows.Threading.DispatcherPriority.Input);
+        => Dispatcher.BeginInvoke(CloseIfNotActive, System.Windows.Threading.DispatcherPriority.Input);
 
     // Called when the mouse leaves the popup's content border.
     private void OnPopupMouseLeave(object sender, MouseEventArgs e)
-        => Dispatcher.BeginInvoke(CloseIfMouseGone, System.Windows.Threading.DispatcherPriority.Input);
+        => Dispatcher.BeginInvoke(CloseIfNotActive, System.Windows.Threading.DispatcherPriority.Input);
 
-    // Closes the popup only when the cursor is genuinely outside both the control and the popup.
-    // Runs on the Input dispatcher priority so IsMouseOver is already up-to-date.
-    private void CloseIfMouseGone()
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.Enter or Key.Space or Key.Down)
+        {
+            DropdownPopup.IsOpen = true;
+            e.Handled = true;
+
+            // Move focus to first dropdown item for keyboard navigation.
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (DropdownPopup.Child is FrameworkElement popupContent)
+                    popupContent.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
+            }, System.Windows.Threading.DispatcherPriority.Input);
+        }
+        else if (e.Key == Key.Escape && DropdownPopup.IsOpen)
+        {
+            DropdownPopup.IsOpen = false;
+            Focus();
+            e.Handled = true;
+        }
+    }
+
+    // Closes the popup only when the cursor is genuinely outside both the control and the popup,
+    // and the control does not have keyboard focus inside.
+    private void CloseIfNotActive()
     {
         if (!DropdownPopup.IsOpen)
             return;
@@ -139,6 +195,10 @@ public partial class CategoryMenuButton : UserControl
             return;
 
         if (DropdownPopup.Child is UIElement popupContent && popupContent.IsMouseOver)
+            return;
+
+        // Keep open if keyboard focus is inside the popup.
+        if (DropdownPopup.Child is UIElement popup && popup.IsKeyboardFocusWithin)
             return;
 
         DropdownPopup.IsOpen = false;

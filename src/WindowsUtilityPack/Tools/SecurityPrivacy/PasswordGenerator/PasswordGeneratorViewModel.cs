@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
@@ -110,22 +109,46 @@ public class PasswordGeneratorViewModel : ViewModelBase
     /// <summary>
     /// Builds the character pool from the active options and draws <see cref="Length"/>
     /// characters using <see cref="RandomNumberGenerator.GetInt32"/> for cryptographic randomness.
+    ///
+    /// To guarantee that every enabled character class appears at least once in the output,
+    /// one random character from each active pool is placed at a random position first,
+    /// then the remaining positions are filled from the combined pool, and the entire
+    /// array is shuffled (Fisher-Yates) to avoid a predictable prefix.
+    ///
     /// Sets <see cref="GeneratedPassword"/> to empty string if no character sets are selected.
     /// </summary>
     private void Generate()
     {
-        var pool = new StringBuilder();
-        if (UseUppercase) pool.Append(Uppercase);
-        if (UseLowercase) pool.Append(Lowercase);
-        if (UseDigits)    pool.Append(Digits);
-        if (UseSymbols)   pool.Append(Symbols);
+        // Collect the active pools.
+        var pools = new List<string>();
+        if (UseUppercase) pools.Add(Uppercase);
+        if (UseLowercase) pools.Add(Lowercase);
+        if (UseDigits)    pools.Add(Digits);
+        if (UseSymbols)   pools.Add(Symbols);
 
-        if (pool.Length == 0) { GeneratedPassword = string.Empty; return; }
+        if (pools.Count == 0) { GeneratedPassword = string.Empty; return; }
 
-        var chars  = pool.ToString();
+        var combinedPool = string.Concat(pools);
         var result = new char[Length];
-        for (var i = 0; i < Length; i++)
-            result[i] = chars[RandomNumberGenerator.GetInt32(chars.Length)];
+
+        // Step 1: guarantee at least one character from each active pool.
+        var guaranteedCount = Math.Min(pools.Count, Length);
+        for (var i = 0; i < guaranteedCount; i++)
+        {
+            var pool = pools[i];
+            result[i] = pool[RandomNumberGenerator.GetInt32(pool.Length)];
+        }
+
+        // Step 2: fill remaining positions from the combined pool.
+        for (var i = guaranteedCount; i < Length; i++)
+            result[i] = combinedPool[RandomNumberGenerator.GetInt32(combinedPool.Length)];
+
+        // Step 3: Fisher-Yates shuffle to remove positional bias.
+        for (var i = result.Length - 1; i > 0; i--)
+        {
+            var j = RandomNumberGenerator.GetInt32(i + 1);
+            (result[i], result[j]) = (result[j], result[i]);
+        }
 
         GeneratedPassword = new string(result);
     }
