@@ -104,7 +104,7 @@ public class PingToolViewModel : ViewModelBase
 
             for (var i = 1; i <= PingCount; i++)
             {
-                if (_cts.Token.IsCancellationRequested) break;
+                if (_cts?.Token.IsCancellationRequested == true) break;
 
                 try
                 {
@@ -137,9 +137,9 @@ public class PingToolViewModel : ViewModelBase
                 }
 
                 // Space out attempts to mimic standard ping behaviour.
-                if (i < PingCount && !_cts.Token.IsCancellationRequested)
+                if (i < PingCount && _cts?.Token.IsCancellationRequested != true)
                 {
-                    try { await Task.Delay(500, _cts.Token); }
+                    try { await Task.Delay(500, _cts!.Token); }
                     catch (TaskCanceledException) { break; }
                 }
             }
@@ -159,7 +159,7 @@ public class PingToolViewModel : ViewModelBase
                 Summary = $"0/{sent} successful | Loss: {lossPercent}%";
             }
 
-            if (_cts.Token.IsCancellationRequested)
+            if (_cts?.Token.IsCancellationRequested == true)
                 Summary += " (cancelled)";
         }
         finally

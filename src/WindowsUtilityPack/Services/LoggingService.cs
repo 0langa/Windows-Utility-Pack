@@ -43,7 +43,7 @@ public class LoggingService : ILoggingService
 
                 var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
                 if (ex != null)
-                    line += $"\n  Exception: {ex.GetType().Name}: {ex.Message}\n  {ex.StackTrace}";
+                    line += $"\n  Exception: {ex.GetType().Name}: {ex.Message}\n  {ex.StackTrace ?? "(no stack trace)"}";
 
                 File.AppendAllText(LogPath, line + Environment.NewLine);
             }

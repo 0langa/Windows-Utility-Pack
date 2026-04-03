@@ -123,9 +123,13 @@ public class RegexTesterViewModel : ViewModelBase
             await Task.Delay(DebounceMs, cts.Token);
             RunRegex();
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             // Another property change arrived before the debounce expired — expected.
+        }
+        catch (Exception)
+        {
+            // Swallow unexpected exceptions to prevent async void crash.
         }
     }
 
