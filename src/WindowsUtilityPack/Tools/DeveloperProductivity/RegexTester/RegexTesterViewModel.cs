@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using System.Threading;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.ViewModels;
 
@@ -18,12 +19,11 @@ public class MatchItem
 
 /// <summary>
 /// ViewModel for the Regex Tester tool.
-/// Runs the regex pattern against the input text on every property change
-/// (pattern, input, or option flags) for a live/interactive experience.
 ///
-/// <see cref="RunRegex"/> is called synchronously because regex evaluation is
-/// fast for typical inputs.  A debounce or background task can be added later
-/// if very large inputs become a concern.
+/// Property changes (pattern, input, or option flags) schedule a debounced regex
+/// evaluation via <see cref="ScheduleRunRegex"/> so that rapid typing does not
+/// trigger an evaluation on every keystroke.  The debounce window is
+/// <see cref="DebounceMs"/> milliseconds.
 ///
 /// A per-evaluation timeout of <see cref="RegexMatchTimeout"/> guards against
 /// catastrophic backtracking (ReDoS) caused by pathological patterns.
@@ -31,9 +31,13 @@ public class MatchItem
 public class RegexTesterViewModel : ViewModelBase
 {
     // Maximum time allowed for a single regex evaluation.
-    // 2 seconds is generous for interactive use while still protecting the UI thread
-    // from catastrophic backtracking (ReDoS) caused by pathological patterns.
     private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromSeconds(2);
+
+    // How long to wait after the last property change before running the regex.
+    private const int DebounceMs = 250;
+
+    private CancellationTokenSource? _debounceCts;
+
     private string _inputText     = "Hello World! This is a test string with numbers like 123 and 456.";
     private string _pattern       = @"\d+";
     private string _statusMessage = string.Empty;
@@ -42,39 +46,39 @@ public class RegexTesterViewModel : ViewModelBase
     private bool   _singleLine;
     private int    _matchCount;
 
-    /// <summary>The text to search within.  Changing this re-runs the regex.</summary>
+    /// <summary>The text to search within.  Changing this schedules a debounced regex run.</summary>
     public string InputText
     {
         get => _inputText;
-        set { if (SetProperty(ref _inputText, value)) RunRegex(); }
+        set { if (SetProperty(ref _inputText, value)) ScheduleRunRegex(); }
     }
 
-    /// <summary>The regex pattern string.  Changing this re-runs the regex.</summary>
+    /// <summary>The regex pattern string.  Changing this schedules a debounced regex run.</summary>
     public string Pattern
     {
         get => _pattern;
-        set { if (SetProperty(ref _pattern, value)) RunRegex(); }
+        set { if (SetProperty(ref _pattern, value)) ScheduleRunRegex(); }
     }
 
-    /// <summary>Enables <see cref="RegexOptions.IgnoreCase"/>.  Changing this re-runs the regex.</summary>
+    /// <summary>Enables <see cref="RegexOptions.IgnoreCase"/>.</summary>
     public bool IgnoreCase
     {
         get => _ignoreCase;
-        set { if (SetProperty(ref _ignoreCase, value)) RunRegex(); }
+        set { if (SetProperty(ref _ignoreCase, value)) ScheduleRunRegex(); }
     }
 
-    /// <summary>Enables <see cref="RegexOptions.Multiline"/>.  Changing this re-runs the regex.</summary>
+    /// <summary>Enables <see cref="RegexOptions.Multiline"/>.</summary>
     public bool Multiline
     {
         get => _multiline;
-        set { if (SetProperty(ref _multiline, value)) RunRegex(); }
+        set { if (SetProperty(ref _multiline, value)) ScheduleRunRegex(); }
     }
 
-    /// <summary>Enables <see cref="RegexOptions.Singleline"/> (dot matches newline).  Changing this re-runs the regex.</summary>
+    /// <summary>Enables <see cref="RegexOptions.Singleline"/> (dot matches newline).</summary>
     public bool SingleLine
     {
         get => _singleLine;
-        set { if (SetProperty(ref _singleLine, value)) RunRegex(); }
+        set { if (SetProperty(ref _singleLine, value)) ScheduleRunRegex(); }
     }
 
     /// <summary>Status message shown below the results — either a match count or an error message.</summary>
@@ -105,11 +109,32 @@ public class RegexTesterViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Cancels any pending debounced evaluation and schedules a new one.
+    /// The actual <see cref="RunRegex"/> fires after <see cref="DebounceMs"/> ms of inactivity.
+    /// </summary>
+    private async void ScheduleRunRegex()
+    {
+        _debounceCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _debounceCts = cts;
+
+        try
+        {
+            await Task.Delay(DebounceMs, cts.Token);
+            RunRegex();
+        }
+        catch (TaskCanceledException)
+        {
+            // Another property change arrived before the debounce expired — expected.
+        }
+    }
+
+    /// <summary>
     /// Evaluates <see cref="Pattern"/> against <see cref="InputText"/> using the current
     /// option flags and populates <see cref="Matches"/> and <see cref="StatusMessage"/>.
     /// Invalid patterns set a descriptive error in <see cref="StatusMessage"/> instead of throwing.
     /// </summary>
-    private void RunRegex()
+    internal void RunRegex()
     {
         Matches.Clear();
         StatusMessage = string.Empty;

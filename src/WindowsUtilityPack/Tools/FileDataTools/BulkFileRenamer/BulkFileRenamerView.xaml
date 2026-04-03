@@ -108,7 +108,8 @@
         <Grid Grid.Row="3" Margin="0,12,0,0">
             <Button Content="Apply Rename" Command="{Binding ApplyRenameCommand}"
                     HorizontalAlignment="Right"
-                    Style="{StaticResource PrimaryActionButtonStyle}"/>
+                    Style="{StaticResource PrimaryActionButtonStyle}"
+                    AutomationProperties.Name="Apply file rename"/>
             <TextBlock Text="Renaming…" Foreground="{DynamicResource SecondaryTextBrush}"
                        VerticalAlignment="Center" HorizontalAlignment="Left"
                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>
