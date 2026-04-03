@@ -21,94 +21,30 @@
             </StackPanel>
         </Border>
 
-        <!-- Feature Cards — responsive WrapPanel -->
+        <!-- Feature Cards — data-driven from ToolRegistry -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <ItemsControl>
+            <ItemsControl ItemsSource="{Binding DisplayTools}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
-                <ItemsControl.Items>
-
-                    <Button Command="{Binding NavigateCommand}" CommandParameter="storage-master"
-                            Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
-                        <StackPanel>
-                            <TextBlock Text="&#xEDA2;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="Storage Master" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Analyse storage, find duplicates, and clean up space."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Command="{Binding NavigateCommand}" CommandParameter="bulk-renamer"
-                            Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
-                        <StackPanel>
-                            <TextBlock Text="&#xE8AC;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="Bulk File Renamer" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Rename files with prefix, suffix, or find-replace."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Command="{Binding NavigateCommand}" CommandParameter="password-generator"
-                            Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
-                        <StackPanel>
-                            <TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="Password Generator" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Generate strong, random passwords instantly."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Command="{Binding NavigateCommand}" CommandParameter="ping-tool"
-                            Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
-                        <StackPanel>
-                            <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="Ping Tool" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Test network connectivity and measure latency."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Command="{Binding NavigateCommand}" CommandParameter="downloader"
-                            Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
-                        <StackPanel>
-                            <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="Downloader" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Download files from the web with progress tracking."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Command="{Binding NavigateCommand}" CommandParameter="regex-tester"
-                            Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
-                        <StackPanel>
-                            <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="Regex Tester" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Test and debug regular expressions interactively."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Command="{Binding NavigateCommand}" CommandParameter="text-format-converter"
-                            Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10">
-                        <StackPanel>
-                            <TextBlock Text="&#xE8C1;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="Text Format Converter" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Text="Convert, format, preview, and export text across seven supported formats."
-                                       Style="{StaticResource CardDescriptionStyle}"/>
-                        </StackPanel>
-                    </Button>
-
-                </ItemsControl.Items>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding Key}"
+                                Style="{StaticResource CardButtonStyle}" Width="280" Margin="0,0,10,10"
+                                AutomationProperties.Name="{Binding Name}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="28" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitleStyle}"/>
+                                <TextBlock Text="{Binding Description}"
+                                           Style="{StaticResource CardDescriptionStyle}"/>
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
     </Grid>

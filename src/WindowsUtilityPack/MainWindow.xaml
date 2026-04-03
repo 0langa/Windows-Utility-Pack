@@ -74,65 +74,53 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 Padding="12,8">
-            <UniformGrid Rows="1" Columns="5" HorizontalAlignment="Stretch">
-                <controls:CategoryMenuButton
-                    Label="System Utilities"
-                    Icon="&#xE770;"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Storage Master" ToolKey="storage-master"/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-
-                <controls:CategoryMenuButton
-                    Label="File &amp; Data Tools"
-                    Icon="&#xE8B7;"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Bulk File Renamer" ToolKey="bulk-renamer"/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-
-                <controls:CategoryMenuButton
-                    Label="Security &amp; Privacy"
-                    Icon="&#xE72E;"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Password Generator" ToolKey="password-generator"/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-
-                <controls:CategoryMenuButton
-                    Label="Network &amp; Internet"
-                    Icon="&#xE774;"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Ping Tool" ToolKey="ping-tool"/>
-                        <controls:MenuEntry Label="Downloader" ToolKey="downloader"/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-
-                <controls:CategoryMenuButton
-                    Label="Developer &amp; Productivity"
-                    Icon="&#xE943;"
-                    NavigateCommand="{Binding NavigateCommand}"
-                    Margin="4,0">
-                    <controls:CategoryMenuButton.MenuItems>
-                        <controls:MenuEntry Label="Text Format Converter" ToolKey="text-format-converter"/>
-                        <controls:MenuEntry Label="Regex Tester" ToolKey="regex-tester"/>
-                    </controls:CategoryMenuButton.MenuItems>
-                </controls:CategoryMenuButton>
-            </UniformGrid>
+            <ItemsControl ItemsSource="{Binding Categories}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1" HorizontalAlignment="Stretch"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:CategoryMenuButton
+                            Label="{Binding Label}"
+                            Icon="{Binding Icon}"
+                            NavigateCommand="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            ToolDefinitions="{Binding Tools}"
+                            Margin="4,0"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </Border>
 
         <!-- ── Main Content Area ── -->
-        <ContentControl Grid.Row="2"
-                        Content="{Binding CurrentView}"
-                        Margin="24,16"/>
+        <Grid Grid.Row="2">
+            <ContentControl Content="{Binding CurrentView}" Margin="24,16"/>
+
+            <!-- ── Notification Banner (overlaid at top) ── -->
+            <Border VerticalAlignment="Top" HorizontalAlignment="Stretch"
+                    Margin="24,0"
+                    Padding="16,10"
+                    CornerRadius="0,0,8,8"
+                    Visibility="{Binding IsNotificationVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <TextBlock Text="{Binding NotificationText}"
+                               Foreground="White" FontSize="13"
+                               VerticalAlignment="Center" TextWrapping="Wrap"
+                               Margin="0,0,30,0"/>
+                    <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Command="{Binding DismissNotificationCommand}"
+                            Foreground="White" Background="Transparent" BorderThickness="0"
+                            FontSize="14" Cursor="Hand" Padding="4,2"
+                            AutomationProperties.Name="Dismiss notification"/>
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- ── Status Bar ── -->
         <Border Grid.Row="3"

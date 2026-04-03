@@ -10,8 +10,7 @@ namespace WindowsUtilityPack.Models;
 public class ToolDefinition
 {
     /// <summary>
-    /// Unique identifier used for navigation (e.g. <c>"disk-info"</c>).
-    /// Must match the <c>ToolKey</c> used in <c>MenuEntry</c> elements in <c>MainWindow.xaml</c>.
+    /// Unique identifier used for navigation (e.g. <c>"storage-master"</c>).
     /// </summary>
     public required string Key { get; init; }
 
@@ -26,6 +25,12 @@ public class ToolDefinition
 
     /// <summary>Emoji or icon string used in the navigation UI.</summary>
     public string Icon { get; init; } = "🔧";
+
+    /// <summary>
+    /// Segoe MDL2 Assets glyph character used on home cards and menus
+    /// (e.g. <c>"\uEDA2"</c>).  Falls back to <see cref="Icon"/> when empty.
+    /// </summary>
+    public string IconGlyph { get; init; } = string.Empty;
 
     /// <summary>
     /// Factory that creates a fresh ViewModel instance every time the tool is navigated to.

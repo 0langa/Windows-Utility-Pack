@@ -1,11 +1,14 @@
 using WindowsUtilityPack.Commands;
+using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
+using WindowsUtilityPack.Tools;
 
 namespace WindowsUtilityPack.ViewModels;
 
 /// <summary>
 /// ViewModel for the application home/dashboard screen.
-/// Provides navigation commands used by the home page feature cards.
+/// Provides navigation commands and exposes tool definitions from
+/// <see cref="ToolRegistry"/> so home cards are generated dynamically.
 /// </summary>
 public class HomeViewModel : ViewModelBase
 {
@@ -13,9 +16,14 @@ public class HomeViewModel : ViewModelBase
 
     /// <summary>
     /// Command that accepts a tool key string and navigates to that tool.
-    /// Used by the feature cards on the home page (e.g., CommandParameter="disk-info").
     /// </summary>
     public RelayCommand NavigateCommand { get; }
+
+    /// <summary>
+    /// Tool definitions displayed as feature cards on the home page.
+    /// Excludes the "General" category (home itself).
+    /// </summary>
+    public IReadOnlyList<ToolDefinition> DisplayTools { get; }
 
     /// <summary>
     /// Initialises HomeViewModel with a navigation service.
@@ -27,5 +35,6 @@ public class HomeViewModel : ViewModelBase
         // Prefer injected service; fall back to static accessor (used when WPF creates the VM via DataTemplate).
         _navigation = navigation ?? App.NavigationService;
         NavigateCommand = new RelayCommand(key => _navigation.NavigateTo(key?.ToString() ?? "home"));
+        DisplayTools = ToolRegistry.GetDisplayTools();
     }
 }
