@@ -87,7 +87,12 @@ namespace WindowsUtilityPack.Services
                 if (_keyFactories.TryGetValue(key, out var keyFactory))
                     viewModel = keyFactory();
                 else
-                    return; // Unknown key — silently ignore
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[NavigationService] NavigateTo: unknown tool key '{key}'. " +
+                        "Ensure the tool is registered before navigation is attempted.");
+                    return;
+                }
             }
 
             if (CurrentViewModel is not null)

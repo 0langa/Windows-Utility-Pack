@@ -14,18 +14,19 @@ A modular collection of Windows desktop utility tools built with WPF, .NET 10, a
 
 ## Current Status
 
-The project is in an active, compilable, and runnable state. Six tools are currently integrated, including the new text conversion workflow for structured and document formats.
+The project is in an active, compilable, and runnable state. Seven tools are currently integrated.
 
 | Tool | Category | Status |
 |------|----------|--------|
-| Disk Info Viewer | System Utilities | ✅ Complete |
+| Storage Master | System Utilities | ✅ Complete |
 | Bulk File Renamer | File & Data Tools | ✅ Complete |
 | Password Generator | Security & Privacy | ✅ Complete |
 | Ping Tool | Network & Internet | ✅ Complete |
+| Downloader | Network & Internet | ✅ Complete |
 | Regex Tester | Developer & Productivity | ✅ Complete |
 | Text Format Converter & Formatter | Developer & Productivity | ✅ Complete |
 
-Nine additional tool slots are reserved as navigation placeholders (Task Manager Plus, Duplicate Finder, etc.) and can be implemented incrementally.
+Additional tool slots are reserved as navigation placeholders and can be implemented incrementally.
 
 ## How to Build & Run
 
@@ -33,7 +34,7 @@ Nine additional tool slots are reserved as navigation placeholders (Task Manager
 
 ```bash
 git clone https://github.com/0langa/Windows-Utility-Pack.git
-dotnet buildWindowsUtilityPack.sln
+dotnet build WindowsUtilityPack.sln
 dotnet run --project src/WindowsUtilityPack/WindowsUtilityPack.csproj
 
 # Tests (requires Windows — WPF Desktop runtime needed):
@@ -83,8 +84,9 @@ WindowsUtilityPack.sln
 │   ├── ViewModels/                MainWindowViewModel, HomeViewModel, ViewModelBase
 │   └── Views/                     HomeView.xaml
 └── tests/WindowsUtilityPack.Tests/
-    ├── Services/                  NavigationServiceTests (4 tests)
-    └── ViewModels/                ViewModelBaseTests, PasswordGeneratorTests, RegexTesterTests
+    ├── Services/                  NavigationServiceTests, TextFormatConversionServiceTests, ...
+    ├── StorageMaster/             ScanEngineTests, DuplicateDetectionServiceTests, ...
+    └── ViewModels/                PasswordGeneratorTests, RegexTesterTests, BulkFileRenamerTests, ...
 ```
 
 ## Theming
@@ -93,6 +95,9 @@ The theme toggle (☀/🌙 button) switches between dark and light colour scheme
 Theme preference is saved to settings and restored on next launch.
 
 All colours are defined as `DynamicResource` brushes in `Themes/DarkTheme.xaml` and `Themes/LightTheme.xaml`.
+
+When **System** theme mode is selected the app reads the Windows `AppsUseLightTheme` registry key and
+automatically follows subsequent OS-level theme changes via `SystemEvents.UserPreferenceChanged`.
 
 ## How to Add a New Tool
 
@@ -106,11 +111,14 @@ See **[docs/TEXT_FORMAT_CONVERTER.md](docs/TEXT_FORMAT_CONVERTER.md)** for the t
 ## Settings Persistence
 
 Settings are stored as JSON at `%LOCALAPPDATA%\WindowsUtilityPack\settings.json`.  
-Persisted values: theme (dark/light), window position and size.
+Persisted values: theme (dark/light/system), window position and size.
 
 ## Detailed Documentation
 
-For architecture details about the Text Format Converter & Formatter, supported conversion directions, preview/export flow, and extension guidance, see:
-
-📄 **[docs/TEXT_FORMAT_CONVERTER.md](docs/TEXT_FORMAT_CONVERTER.md)**
+| Document | Description |
+|----------|-------------|
+| [docs/TEXT_FORMAT_CONVERTER.md](docs/TEXT_FORMAT_CONVERTER.md) | Text Format Converter architecture, supported formats, preview/export flow, and extension guidance |
+| [docs/FULL_AUDIT_REPORT.md](docs/FULL_AUDIT_REPORT.md) | Full codebase audit report with findings, severity ratings, and recommendations |
+| [docs/IMPLEMENTATION_REFACTOR_PLAN.md](docs/IMPLEMENTATION_REFACTOR_PLAN.md) | Sequenced implementation and refactor plan derived from the audit |
+| [docs/EXTERNAL_AUDIT_SUMMARY.md](docs/EXTERNAL_AUDIT_SUMMARY.md) | Original external audit summary |
 

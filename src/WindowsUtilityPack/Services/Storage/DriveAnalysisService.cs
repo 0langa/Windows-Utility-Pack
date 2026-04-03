@@ -82,8 +82,17 @@ public class DriveAnalysisService : IDriveAnalysisService
             if (!Directory.Exists(path))
                 return 0L;
 
+            // Use IgnoreInaccessible so that access-denied/system paths do not throw
+            // before the per-file try/catch guards can run.
+            var enumOptions = new EnumerationOptions
+            {
+                IgnoreInaccessible = true,
+                RecurseSubdirectories = true,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            };
+
             return Directory
-                .EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                .EnumerateFiles(path, "*", enumOptions)
                 .Sum(f =>
                 {
                     try { return new FileInfo(f).Length; }
@@ -109,6 +118,15 @@ public class DriveAnalysisService : IDriveAnalysisService
             if (!Directory.Exists(rootPath))
                 return Array.Empty<(string, long)>();
 
+            // Use IgnoreInaccessible for the recursive file enumeration inside each
+            // top-level subdirectory so that inaccessible subtrees are skipped safely.
+            var fileEnumOptions = new EnumerationOptions
+            {
+                IgnoreInaccessible = true,
+                RecurseSubdirectories = true,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            };
+
             var results = Directory
                 .EnumerateDirectories(rootPath, "*", SearchOption.TopDirectoryOnly)
                 .Select(dir =>
@@ -117,7 +135,7 @@ public class DriveAnalysisService : IDriveAnalysisService
                     try
                     {
                         size = Directory
-                            .EnumerateFiles(dir, "*", SearchOption.AllDirectories)
+                            .EnumerateFiles(dir, "*", fileEnumOptions)
                             .Sum(f =>
                             {
                                 try { return new FileInfo(f).Length; }

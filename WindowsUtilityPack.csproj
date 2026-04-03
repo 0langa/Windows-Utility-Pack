@@ -1,5 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <!--
+    NOTE: This root-level project file is a build-tools / CI convenience shim.
+    It is NOT the real application project.
+
+    The authoritative WPF application project is:
+      src/WindowsUtilityPack/WindowsUtilityPack.csproj  (targets net10.0-windows)
+
+    This shim targets plain net10.0 so that tools like `dotnet restore` or
+    dependency-scanning can resolve NuGet packages in non-Windows CI environments
+    without requiring the Windows Desktop workload.  It should not be used to
+    build or run the application directly — always use WindowsUtilityPack.sln.
+  -->
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
