@@ -28,9 +28,17 @@ namespace WindowsUtilityPack.Services.Storage
             if (!Directory.Exists(rootPath))
                 throw new DirectoryNotFoundException($"Directory not found: {rootPath}");
 
-            // Step 1 — enumerate all files
+            // Step 1 — enumerate all files using IgnoreInaccessible so that access-denied
+            // paths (e.g. system/protected directories) do not throw before per-file guards run.
+            var enumOptions = new EnumerationOptions
+            {
+                IgnoreInaccessible = true,
+                RecurseSubdirectories = true,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            };
+
             var allFiles = await Task.Run(
-                () => Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories)
+                () => Directory.EnumerateFiles(rootPath, "*", enumOptions)
                                .ToList(),
                 cancellationToken);
 

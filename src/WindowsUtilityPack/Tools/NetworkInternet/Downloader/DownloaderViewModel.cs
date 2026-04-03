@@ -131,6 +131,7 @@ public class DownloaderViewModel : ViewModelBase
         IsDownloading = true;
         _cts = new CancellationTokenSource();
 
+        bool completed = false;
         try
         {
             using var response = await SharedClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, _cts.Token);
@@ -144,29 +145,34 @@ public class DownloaderViewModel : ViewModelBase
             await using var fileStream = new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
 
             var buffer = new byte[81920];
-            long totalRead = 0;
+            // Track cumulative bytes independently from the speed-sample window so
+            // that resetting the speed counter does not corrupt the progress percentage.
+            long totalBytesReadOverall = 0;
+            long bytesReadSinceLastSpeedSample = 0;
             var sw = System.Diagnostics.Stopwatch.StartNew();
             int bytesRead;
 
             while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), _cts.Token)) > 0)
             {
                 await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), _cts.Token);
-                totalRead += bytesRead;
+                totalBytesReadOverall += bytesRead;
+                bytesReadSinceLastSpeedSample += bytesRead;
 
                 if (totalBytes > 0)
-                    item.Progress = (double)totalRead / totalBytes.Value * 100;
+                    item.Progress = (double)totalBytesReadOverall / totalBytes.Value * 100;
 
                 if (sw.ElapsedMilliseconds > 500)
                 {
-                    item.Speed = FormatBytes((long)(totalRead / sw.Elapsed.TotalSeconds)) + "/s";
+                    item.Speed = FormatBytes((long)(bytesReadSinceLastSpeedSample / sw.Elapsed.TotalSeconds)) + "/s";
                     sw.Restart();
-                    totalRead = 0;
+                    bytesReadSinceLastSpeedSample = 0;
                 }
             }
 
             item.Progress = 100;
             item.Speed = string.Empty;
             item.Status = "Complete";
+            completed = true;
         }
         catch (OperationCanceledException)
         {
@@ -183,6 +189,14 @@ public class DownloaderViewModel : ViewModelBase
             IsDownloading = false;
             _cts?.Dispose();
             _cts = null;
+
+            // Remove partial file if the download did not complete successfully.
+            if (!completed && File.Exists(savePath))
+            {
+                try { File.Delete(savePath); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
         }
     }
 

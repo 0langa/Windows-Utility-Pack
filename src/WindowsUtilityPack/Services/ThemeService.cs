@@ -31,6 +31,14 @@ public class ThemeService : IThemeService
     public void SetTheme(AppTheme theme)
     {
         CurrentTheme = theme;
+
+        // Always update OS-event subscription before any early-exit so that switching
+        // to System mode while the effective theme already matches the OS theme still
+        // correctly follows future OS theme changes.
+        SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;
+        if (theme == AppTheme.System)
+            SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
+
         var resolved = Resolve(theme);
 
         if (EffectiveTheme == resolved)
@@ -39,11 +47,6 @@ public class ThemeService : IThemeService
         EffectiveTheme = resolved;
         ApplyTheme(resolved);
         ThemeChanged?.Invoke(this, resolved);
-
-        // Wire / unwire OS change listener.
-        SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;
-        if (theme == AppTheme.System)
-            SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
     }
 
     /// <summary>Resolves <see cref="AppTheme.System"/> to Dark or Light.</summary>
@@ -89,7 +92,11 @@ public class ThemeService : IThemeService
     }
 
     /// <summary>Swaps the theme ResourceDictionary at position 0.</summary>
-    private static void ApplyTheme(AppTheme theme)
+    /// <remarks>
+    /// Declared <c>protected virtual</c> so that test subclasses can override it
+    /// without requiring a live WPF Application instance.
+    /// </remarks>
+    protected virtual void ApplyTheme(AppTheme theme)
     {
         var mergedDicts = Application.Current.Resources.MergedDictionaries;
         var themeUri = theme == AppTheme.Dark ? DarkThemeUri : LightThemeUri;
