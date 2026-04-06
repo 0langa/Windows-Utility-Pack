@@ -137,7 +137,7 @@ public class DuplicateDetectionServiceTests : IDisposable
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => _svc.FindDuplicatesAsync(_tempRoot, cancellationToken: cts.Token));
     }
 

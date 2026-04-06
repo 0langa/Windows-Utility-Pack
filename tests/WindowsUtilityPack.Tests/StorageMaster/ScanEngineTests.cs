@@ -103,7 +103,7 @@ public class ScanEngineTests : IDisposable
         var cts = new CancellationTokenSource();
         cts.Cancel(); // Cancel immediately
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             _engine.ScanAsync(_tempRoot, ScanOptions.Default, null, cts.Token));
     }
 

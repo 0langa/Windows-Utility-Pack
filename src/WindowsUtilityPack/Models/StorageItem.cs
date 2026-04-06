@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 
 namespace WindowsUtilityPack.Models;
@@ -94,10 +95,10 @@ public class StorageItem
     /// <summary>Formats a byte count to a human-readable string.</summary>
     public static string FormatBytes(long bytes) => bytes switch
     {
-        >= 1_099_511_627_776L => $"{bytes / 1_099_511_627_776.0:F1} TB",
-        >= 1_073_741_824L     => $"{bytes / 1_073_741_824.0:F1} GB",
-        >= 1_048_576L         => $"{bytes / 1_048_576.0:F1} MB",
-        >= 1_024L             => $"{bytes / 1_024.0:F1} KB",
+        >= 1_099_511_627_776L => string.Format(CultureInfo.InvariantCulture, "{0:F1} TB", bytes / 1_099_511_627_776.0),
+        >= 1_073_741_824L     => string.Format(CultureInfo.InvariantCulture, "{0:F1} GB", bytes / 1_073_741_824.0),
+        >= 1_048_576L         => string.Format(CultureInfo.InvariantCulture, "{0:F1} MB", bytes / 1_048_576.0),
+        >= 1_024L             => string.Format(CultureInfo.InvariantCulture, "{0:F1} KB", bytes / 1_024.0),
         _                     => $"{bytes} B"
     };
 

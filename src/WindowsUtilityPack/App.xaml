@@ -28,6 +28,7 @@
             <converters:BoolNegationConverter x:Key="BoolNegationConverter"/>
             <converters:BytesToSizeConverter x:Key="BytesToSizeConverter"/>
             <converters:EnumToBooleanConverter x:Key="EnumToBoolConverter"/>
+            <converters:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter"/>
 
             <!-- DataTemplates: map ViewModels to Views -->
             <DataTemplate DataType="{x:Type vm:HomeViewModel}">

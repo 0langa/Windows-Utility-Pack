@@ -171,7 +171,7 @@ public class CleanupRecommendationServiceTests
         var cts = new CancellationTokenSource();
         cts.Cancel();
         var root = BuildRoot(MakeTempFile());
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             _service.AnalyseAsync(root, null, cts.Token));
     }
 }

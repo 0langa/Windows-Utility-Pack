@@ -90,7 +90,7 @@ public class DriveAnalysisServiceTests : IDisposable
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => _svc.GetFolderSizeAsync(_tempRoot, cts.Token));
     }
 

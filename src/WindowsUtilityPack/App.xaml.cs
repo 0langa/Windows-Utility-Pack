@@ -9,6 +9,7 @@ using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
 using WindowsUtilityPack.Tools.NetworkInternet.Downloader;
 using WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester;
 using WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter;
+using WindowsUtilityPack.Services.Downloader;
 using WindowsUtilityPack.Services.TextConversion;
 using WindowsUtilityPack.ViewModels;
 
@@ -69,6 +70,15 @@ public partial class App : Application
     /// <summary>Drive analysis and media type detection service.</summary>
     public static IDriveAnalysisService         DriveAnalysisService        { get; private set; } = null!;
 
+    // Downloader services
+
+    /// <summary>Manages external tool dependencies (yt-dlp, gallery-dl, ffmpeg).</summary>
+    public static IDependencyManagerService DependencyManagerService { get; private set; } = null!;
+    /// <summary>Scrapes web pages for downloadable assets.</summary>
+    public static IWebScraperService        WebScraperService        { get; private set; } = null!;
+    /// <summary>Orchestrates downloads using the best available engine.</summary>
+    public static IDownloadEngineService    DownloadEngineService    { get; private set; } = null!;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -96,6 +106,11 @@ public partial class App : Application
         ReportService                = new ReportService();
         ElevationService             = new ElevationService();
         DriveAnalysisService         = new DriveAnalysisService();
+
+        // Initialise Downloader services
+        DependencyManagerService = new DependencyManagerService();
+        WebScraperService        = new WebScraperService(DependencyManagerService);
+        DownloadEngineService    = new DownloadEngineService(DependencyManagerService, WebScraperService);
 
         var settings = SettingsService.Load();
         ThemeService.SetTheme(settings.Theme);
@@ -214,7 +229,11 @@ public partial class App : Application
             Icon        = "\U0001F4E5",
             IconGlyph   = "\uE896",
             Description = "Download files from the web with progress tracking",
-            Factory     = () => new DownloaderViewModel(FolderPickerService),
+            Factory     = () => new DownloaderViewModel(
+                FolderPickerService,
+                DependencyManagerService,
+                DownloadEngineService,
+                WebScraperService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
