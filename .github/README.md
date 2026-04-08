@@ -7,6 +7,7 @@ Included:
 - `instructions/` (project-scoped rules)
 - `skills/` (feature/test/review workflows)
 - `agents/` (one focused C# WPF feature agent)
+- `skills/prompt-optimizer` (automatic prompt enhancement workflow)
 
 Removed:
 - Large generic markdown payload not relevant to this project.

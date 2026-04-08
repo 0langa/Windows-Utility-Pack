@@ -12,6 +12,10 @@ Agent onboarding for this repository.
 - Skills: `.github/skills/*/SKILL.md`
 - Agent profile: `.github/agents/csharp-wpf-feature-builder.agent.md`
 
+## Prompt Handling Baseline
+- Apply prompt optimization first using `.github/skills/prompt-optimizer/SKILL.md`.
+- Optimize internally only; preserve user intent and requested scope.
+
 ## Mandatory Validation
 - `dotnet build WindowsUtilityPack.sln`
 - `dotnet test tests/WindowsUtilityPack.Tests/WindowsUtilityPack.Tests.csproj`

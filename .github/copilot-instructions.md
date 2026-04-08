@@ -2,6 +2,14 @@
 
 This repository is a Windows desktop app built with C# / .NET 10 / WPF / MVVM.
 
+## Prompt Optimization First
+- Only run prompt optimization when the original user prompt includes `optimize prompt first` (case-insensitive).
+- When triggered, rewrite the request into a concise execution brief.
+- Keep user intent unchanged; only improve clarity, constraints, acceptance criteria, and missing assumptions.
+- Do not ask the user to confirm the rewritten brief unless requirements are ambiguous or risky.
+- Use `.github/skills/prompt-optimizer/SKILL.md` as the canonical workflow.
+- Include an `Optimized Prompt` section in output whenever optimization is triggered.
+
 ## Project Priorities
 - Preserve MVVM boundaries: keep logic in services and view models, keep code-behind minimal.
 - Prefer incremental refactors over broad rewrites.

@@ -10,6 +10,7 @@ You are a senior C# desktop engineer for this repository.
 Implement production-ready features for a .NET 10 WPF MVVM utility app.
 
 ## Rules
+- Run prompt optimization first via `.github/skills/prompt-optimizer/SKILL.md`.
 - Respect existing architecture (`Tools`, `Services`, `ViewModels`, `Tests`).
 - Avoid broad rewrites; apply small, safe, test-backed changes.
 - Keep code-behind minimal and viewmodels testable.
