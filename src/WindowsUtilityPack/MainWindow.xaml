@@ -6,6 +6,7 @@
         xmlns:controls="clr-namespace:WindowsUtilityPack.Controls"
         mc:Ignorable="d"
         Title="Windows Utility Pack"
+        Icon="Assets/WindowsUtilityPackLogo.ico"
         Width="1100" Height="700"
         MinWidth="900" MinHeight="550"
         WindowStartupLocation="CenterScreen"
@@ -39,9 +40,10 @@
                         Command="{Binding NavigateHomeCommand}"
                         AutomationProperties.Name="Navigate to home">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets"
-                                   FontSize="22" VerticalAlignment="Center" Margin="0,0,10,0"
-                                   Foreground="{DynamicResource AccentBrush}"/>
+                        <Image Source="/Assets/WindowsUtilityPackLogo.png"
+                               Width="26" Height="26"
+                               VerticalAlignment="Center" Margin="0,0,10,0"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
                         <TextBlock Text="Windows Utility Pack"
                                    FontSize="18" FontWeight="SemiBold"
                                    VerticalAlignment="Center"

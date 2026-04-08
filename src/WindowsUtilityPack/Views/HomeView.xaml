@@ -13,6 +13,10 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="8" Padding="24,20" Margin="0,0,0,16">
             <StackPanel>
+                <Image Source="/Assets/WindowsUtilityPackLogo.png"
+                       Width="64" Height="64"
+                       HorizontalAlignment="Left" Margin="0,0,0,12"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
                 <TextBlock Text="Welcome to Windows Utility Pack"
                            FontSize="22" FontWeight="SemiBold"
                            Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,8"/>

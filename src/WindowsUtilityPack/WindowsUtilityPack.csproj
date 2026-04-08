@@ -13,6 +13,7 @@
     <Company>Windows Utility Pack</Company>
     <Product>Windows Utility Pack</Product>
     <Description>A modular collection of Windows desktop utility tools.</Description>
+    <ApplicationIcon>Assets\WindowsUtilityPackLogo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="WindowsUtilityPack.Tests" />
@@ -29,5 +30,9 @@
   </ItemGroup>
   <ItemGroup>
     <PublishProfile Include="folderProfile" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\WindowsUtilityPackLogo.ico" />
+    <Resource Include="Assets\WindowsUtilityPackLogo.png" />
   </ItemGroup>
 </Project>
