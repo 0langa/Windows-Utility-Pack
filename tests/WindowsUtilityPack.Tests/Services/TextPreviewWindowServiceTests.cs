@@ -114,6 +114,8 @@ public sealed class TextPreviewWindowServiceTests
         public void SetText(string text)
         {
         }
+
+        public bool TrySetImage(System.Windows.Media.Imaging.BitmapSource image) => true;
     }
 
     private sealed class StubExportService : ITextResultExportService

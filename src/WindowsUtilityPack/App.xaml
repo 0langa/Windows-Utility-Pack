@@ -9,6 +9,7 @@
              xmlns:downloader="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.Downloader"
              xmlns:regexTester="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester"
              xmlns:textFormatConverter="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter"
+             xmlns:qrCodeGenerator="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.QrCodeGenerator"
              xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels"
              xmlns:views="clr-namespace:WindowsUtilityPack.Views"
              StartupUri="MainWindow.xaml">
@@ -29,6 +30,7 @@
             <converters:BytesToSizeConverter x:Key="BytesToSizeConverter"/>
             <converters:EnumToBooleanConverter x:Key="EnumToBoolConverter"/>
             <converters:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter"/>
+            <converters:PercentageToScaleConverter x:Key="PercentageToScaleConverter"/>
 
             <!-- DataTemplates: map ViewModels to Views -->
             <DataTemplate DataType="{x:Type vm:HomeViewModel}">
@@ -54,6 +56,9 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type textFormatConverter:TextFormatConverterViewModel}">
                 <textFormatConverter:TextFormatConverterView/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type qrCodeGenerator:QrCodeGeneratorViewModel}">
+                <qrCodeGenerator:QrCodeGeneratorView/>
             </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>

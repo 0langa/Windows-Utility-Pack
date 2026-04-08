@@ -1,0 +1,193 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.DeveloperProductivity.QrCodeGenerator.QrCodeGeneratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="780" d:DesignWidth="1200">
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="430"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="{StaticResource IconQr}" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" />
+                        <TextBlock Text="QR Code Generator" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                    </StackPanel>
+
+                    <TextBlock Text="URL" Style="{StaticResource PanelHeaderTextStyle}"/>
+                    <TextBox Margin="0,4,0,0" Padding="8,6" Text="{Binding UrlInput, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Margin="0,6,0,0" Foreground="#DC2626" Text="{Binding ValidationMessage}" TextWrapping="Wrap"/>
+                    <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource SecondaryTextBrush}" Text="{Binding NormalizedUrl}" TextWrapping="Wrap"/>
+
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button Content="Generate" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding GenerateCommand}" Margin="0,0,8,8"/>
+                        <Button Content="Open URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenUrlCommand}" Margin="0,0,8,8"/>
+                        <Button Content="Copy URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyUrlCommand}" Margin="0,0,8,8"/>
+                        <Button Content="Clear" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearCommand}" Margin="0,0,8,8"/>
+                    </WrapPanel>
+
+                    <Separator Margin="0,6,0,10"/>
+
+                    <TextBlock Text="Style Preset" Style="{StaticResource PanelHeaderTextStyle}"/>
+                    <ComboBox Margin="0,4,0,0" SelectedItem="{Binding SelectedPreset}" ItemsSource="{Binding Presets}"/>
+
+                    <UniformGrid Columns="2" Margin="0,12,0,0">
+                        <StackPanel Margin="0,0,8,8">
+                            <TextBlock Text="Foreground" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding ForegroundHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Background" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding BackgroundHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,8,8">
+                            <TextBlock Text="Frame Color" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding FrameHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Caption Color" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding CaptionHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,8,8">
+                            <TextBlock Text="Size (px)" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding SizePixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Quiet Zone" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding QuietZoneModules, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,8,8">
+                            <TextBlock Text="Error Correction" Style="{StaticResource MetadataTextStyle}"/>
+                            <ComboBox ItemsSource="{Binding ErrorCorrectionLevels}" SelectedItem="{Binding SelectedErrorCorrection}" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Module Style" Style="{StaticResource MetadataTextStyle}"/>
+                            <ComboBox ItemsSource="{Binding ModuleShapes}" SelectedItem="{Binding SelectedModuleShape}" Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <CheckBox Content="Transparent Background" IsChecked="{Binding TransparentBackground}" Margin="0,4,0,0"/>
+                    <CheckBox Content="Auto Generate" IsChecked="{Binding AutoGenerate}" Margin="0,4,0,0"/>
+                    <CheckBox Content="Include Frame" IsChecked="{Binding IncludeFrame}" Margin="0,4,0,0"/>
+                    <TextBox Margin="20,2,0,0" Padding="6,4" Text="{Binding FrameThickness, UpdateSourceTrigger=PropertyChanged}" Width="90" ToolTip="Frame thickness"/>
+                    <CheckBox Content="Include Caption" IsChecked="{Binding IncludeCaption}" Margin="0,4,0,0"/>
+                    <TextBox Margin="20,2,0,0" Padding="6,4" Text="{Binding CaptionText, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Separator Margin="0,10,0,10"/>
+                    <TextBlock Text="Center Logo" Style="{StaticResource PanelHeaderTextStyle}"/>
+                    <TextBlock Margin="0,4,0,0" Text="{Binding LogoPath}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
+                    <WrapPanel Margin="0,8,0,0">
+                        <Button Content="Choose Logo" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding BrowseLogoCommand}" Margin="0,0,8,8"/>
+                        <Button Content="Remove Logo" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RemoveLogoCommand}" Margin="0,0,8,8"/>
+                    </WrapPanel>
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,8,8">
+                            <TextBlock Text="Logo Size %" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding LogoScalePercent, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Logo Padding" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding LogoPaddingPixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <Separator Margin="0,10,0,10"/>
+                    <TextBlock Text="Export" Style="{StaticResource PanelHeaderTextStyle}"/>
+                    <UniformGrid Columns="2" Margin="0,4,0,0">
+                        <StackPanel Margin="0,0,8,8">
+                            <TextBlock Text="Format" Style="{StaticResource MetadataTextStyle}"/>
+                            <ComboBox ItemsSource="{Binding ExportFormats}" SelectedItem="{Binding SelectedExportFormat}" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Export Size" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding ExportSizePixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,8,8">
+                            <TextBlock Text="Raster DPI" Style="{StaticResource MetadataTextStyle}"/>
+                            <TextBox Text="{Binding ExportDpi, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Include timestamp" Style="{StaticResource MetadataTextStyle}"/>
+                            <CheckBox IsChecked="{Binding IncludeTimestampInFileName}" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <WrapPanel Margin="0,6,0,0">
+                        <Button Content="Export" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveCommand}" Margin="0,0,8,8"/>
+                        <Button Content="Copy Image" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyImageCommand}" Margin="0,0,8,8"/>
+                        <Button Content="Reset Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,8"/>
+                    </WrapPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Column="2" Style="{StaticResource ToolPanelBorderStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Left" Text="Live Preview" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Text="Zoom" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <Slider Width="150" Minimum="50" Maximum="300" Value="{Binding PreviewZoomPercent}" />
+                        <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" Text="{Binding PreviewZoomPercent, StringFormat={}{0}%}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <Border Grid.Row="1" Margin="0,12,0,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Background="{DynamicResource PreviewBackgroundBrush}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <Grid MinHeight="380" MinWidth="380">
+                            <Image Source="{Binding PreviewImage}" Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Image.LayoutTransform>
+                                    <ScaleTransform ScaleX="{Binding PreviewZoomPercent, Converter={StaticResource PercentageToScaleConverter}}"
+                                                    ScaleY="{Binding PreviewZoomPercent, Converter={StaticResource PercentageToScaleConverter}}"/>
+                                </Image.LayoutTransform>
+                            </Image>
+                        </Grid>
+                    </ScrollViewer>
+                </Border>
+
+                <ItemsControl Grid.Row="2" Margin="0,10,0,0" ItemsSource="{Binding Warnings}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,6" Padding="10,6" CornerRadius="6" Background="#FFF7ED" BorderBrush="#FDBA74" BorderThickness="1">
+                                <TextBlock Text="{Binding}" Foreground="#9A3412" TextWrapping="Wrap"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid Grid.Row="3" Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="280"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+
+                    <Border Grid.Column="1" Style="{StaticResource ToolPanelBorderStyle}" Padding="10" Margin="12,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Recent URLs" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                            <ListBox x:Name="RecentList" Margin="0,8,0,0" Height="120" ItemsSource="{Binding RecentUrls}"/>
+                            <Button Margin="0,8,0,0" Content="Load Selected" Style="{StaticResource SecondaryActionButtonStyle}"
+                                    Command="{Binding UseRecentCommand}" CommandParameter="{Binding SelectedItem, ElementName=RecentList}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

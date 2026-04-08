@@ -10,7 +10,9 @@ using WindowsUtilityPack.Tools.NetworkInternet.Downloader;
 using WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester;
 using WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter;
 using WindowsUtilityPack.Services.Downloader;
+using WindowsUtilityPack.Services.QrCode;
 using WindowsUtilityPack.Services.TextConversion;
+using WindowsUtilityPack.Tools.DeveloperProductivity.QrCodeGenerator;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack;
@@ -79,6 +81,13 @@ public partial class App : Application
     /// <summary>Orchestrates downloads using the best available engine.</summary>
     public static IDownloadEngineService    DownloadEngineService    { get; private set; } = null!;
 
+    // QR Code Generator services
+
+    /// <summary>Core QR code generation and export service.</summary>
+    public static IQrCodeService QrCodeService { get; private set; } = null!;
+    /// <summary>Dialog service for QR logo/import/export file paths.</summary>
+    public static IQrCodeFileDialogService QrCodeFileDialogService { get; private set; } = null!;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -111,6 +120,10 @@ public partial class App : Application
         DependencyManagerService = new DependencyManagerService();
         WebScraperService        = new WebScraperService(DependencyManagerService);
         DownloadEngineService    = new DownloadEngineService(DependencyManagerService, WebScraperService);
+
+        // Initialise QR services
+        QrCodeService = new QrCodeService();
+        QrCodeFileDialogService = new QrCodeFileDialogService();
 
         var settings = SettingsService.Load();
         ThemeService.SetTheme(settings.Theme);
@@ -252,6 +265,22 @@ public partial class App : Application
                 TextPreviewWindowService,
                 TextResultExportService,
                 UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key         = "qr-code-generator",
+            Name        = "QR Code Generator",
+            Category    = "Developer & Productivity",
+            Icon        = "\U0001F4F1",
+            IconGlyph   = "\uED14",
+            Description = "Generate, style, and export QR codes for URLs",
+            Factory     = () => new QrCodeGeneratorViewModel(
+                QrCodeService,
+                QrCodeFileDialogService,
+                ClipboardService,
+                UserDialogService,
+                SettingsService),
         });
 
         ToolRegistry.RegisterAll(NavigationService);

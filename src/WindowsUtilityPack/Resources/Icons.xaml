@@ -21,6 +21,7 @@
     <sys:String x:Key="IconRegex">&#xE8FD;</sys:String>         <!-- Code / BranchFork2 -->
     <sys:String x:Key="IconTextConvert">&#xE8C1;</sys:String>   <!-- Switch -->
     <sys:String x:Key="IconDownload">&#xE896;</sys:String>      <!-- Download -->
+    <sys:String x:Key="IconQr">&#xED14;</sys:String>            <!-- QR code -->
 
     <!-- Actions -->
     <sys:String x:Key="IconSettings">&#xE713;</sys:String>      <!-- Settings gear -->

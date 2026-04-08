@@ -27,4 +27,18 @@ internal sealed class ClipboardService : IClipboardService
 
     /// <inheritdoc/>
     public void SetText(string text) => Clipboard.SetText(text);
+
+    /// <inheritdoc/>
+    public bool TrySetImage(System.Windows.Media.Imaging.BitmapSource image)
+    {
+        try
+        {
+            Clipboard.SetImage(image);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

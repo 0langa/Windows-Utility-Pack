@@ -14,4 +14,10 @@ public interface IClipboardService
 
     /// <summary>Places <paramref name="text"/> on the system clipboard.</summary>
     void SetText(string text);
+
+    /// <summary>
+    /// Attempts to place an image on the system clipboard.
+    /// Returns <see langword="false"/> when clipboard access fails.
+    /// </summary>
+    bool TrySetImage(System.Windows.Media.Imaging.BitmapSource image);
 }

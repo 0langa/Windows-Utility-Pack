@@ -140,6 +140,8 @@ public class PasswordGeneratorViewModelTests
         }
 
         public void SetText(string text) { }
+
+        public bool TrySetImage(System.Windows.Media.Imaging.BitmapSource image) => true;
     }
 
     private sealed class CapturingClipboardService : IClipboardService
@@ -153,5 +155,7 @@ public class PasswordGeneratorViewModelTests
         }
 
         public void SetText(string text) => LastText = text;
+
+        public bool TrySetImage(System.Windows.Media.Imaging.BitmapSource image) => true;
     }
 }

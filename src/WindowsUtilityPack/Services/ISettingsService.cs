@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace WindowsUtilityPack.Services;
 
 /// <summary>Persisted user preferences loaded and saved as JSON.</summary>
@@ -23,6 +25,15 @@ public class AppSettings
 
     /// <summary>Saved window height (default: 700).</summary>
     public double WindowHeight { get; set; } = 700;
+
+    /// <summary>Most recently generated QR URLs (newest first).</summary>
+    public List<string> QrCodeRecentUrls { get; set; } = [];
+
+    /// <summary>Last directory used by the QR code exporter.</summary>
+    public string QrCodeLastExportDirectory { get; set; } = string.Empty;
+
+    /// <summary>Whether QR exports append a timestamp to suggested filenames.</summary>
+    public bool QrCodeIncludeTimestampInFileName { get; set; } = true;
 }
 
 /// <summary>

@@ -235,6 +235,8 @@ public sealed class TextFormatConverterViewModelTests
         {
             LastText = text;
         }
+
+        public bool TrySetImage(System.Windows.Media.Imaging.BitmapSource image) => true;
     }
 
     private sealed class TestFileDialogService : IFileDialogService
