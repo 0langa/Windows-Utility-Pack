@@ -10,6 +10,7 @@ using WindowsUtilityPack.Tools.NetworkInternet.Downloader;
 using WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester;
 using WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter;
 using WindowsUtilityPack.Services.Downloader;
+using WindowsUtilityPack.Services.Downloader.Engines;
 using WindowsUtilityPack.Services.QrCode;
 using WindowsUtilityPack.Services.TextConversion;
 using WindowsUtilityPack.Tools.DeveloperProductivity.QrCodeGenerator;
@@ -76,10 +77,28 @@ public partial class App : Application
 
     /// <summary>Manages external tool dependencies (yt-dlp, gallery-dl, ffmpeg).</summary>
     public static IDependencyManagerService DependencyManagerService { get; private set; } = null!;
-    /// <summary>Scrapes web pages for downloadable assets.</summary>
-    public static IWebScraperService        WebScraperService        { get; private set; } = null!;
-    /// <summary>Orchestrates downloads using the best available engine.</summary>
-    public static IDownloadEngineService    DownloadEngineService    { get; private set; } = null!;
+    /// <summary>Scrapes and extracts assets from web pages and crawl scopes.</summary>
+    public static IWebScraperService WebScraperService { get; private set; } = null!;
+    /// <summary>Loads and persists downloader settings.</summary>
+    public static IDownloaderSettingsService DownloaderSettingsService { get; private set; } = null!;
+    /// <summary>Parses and normalizes URL inputs.</summary>
+    public static IDownloadInputParserService DownloadInputParserService { get; private set; } = null!;
+    /// <summary>Resolves categories and default routing rules.</summary>
+    public static IDownloadCategoryService DownloadCategoryService { get; private set; } = null!;
+    /// <summary>Writes downloader diagnostics and event logs.</summary>
+    public static IDownloadEventLogService DownloadEventLogService { get; private set; } = null!;
+    /// <summary>Persists completed/failed downloader history.</summary>
+    public static IDownloadHistoryService DownloadHistoryService { get; private set; } = null!;
+    /// <summary>Schedules one-time queue start/pause actions.</summary>
+    public static IDownloadSchedulerService DownloadSchedulerService { get; private set; } = null!;
+    /// <summary>Discovers downloadable assets from pages and crawl scopes.</summary>
+    public static IAssetDiscoveryService AssetDiscoveryService { get; private set; } = null!;
+    /// <summary>Selects the best download engine per job.</summary>
+    public static IDownloadEngineResolver DownloadEngineResolver { get; private set; } = null!;
+    /// <summary>Coordinates queue lifecycle and job execution.</summary>
+    public static IDownloadCoordinatorService DownloadCoordinatorService { get; private set; } = null!;
+    /// <summary>Open/save dialogs for downloader workflows.</summary>
+    public static IDownloaderFileDialogService DownloaderFileDialogService { get; private set; } = null!;
 
     // QR Code Generator services
 
@@ -118,8 +137,37 @@ public partial class App : Application
 
         // Initialise Downloader services
         DependencyManagerService = new DependencyManagerService();
-        WebScraperService        = new WebScraperService(DependencyManagerService);
-        DownloadEngineService    = new DownloadEngineService(DependencyManagerService, WebScraperService);
+        WebScraperService = new WebScraperService(DependencyManagerService);
+        DownloaderSettingsService = new DownloaderSettingsService(SettingsService);
+        DownloadInputParserService = new DownloadInputParserService();
+        DownloadCategoryService = new DownloadCategoryService();
+        DownloadSchedulerService = new DownloadSchedulerService();
+        DownloadHistoryService = new DownloadHistoryService();
+        DownloadEventLogService = new DownloadEventLogService(() => DownloaderSettingsService.Load());
+        DownloaderFileDialogService = new DownloaderFileDialogService();
+
+        var directHttpEngine = new DirectHttpDownloadEngine();
+        var mediaEngine = new MediaDownloadEngine(DependencyManagerService);
+        var galleryEngine = new GalleryDownloadEngine(DependencyManagerService);
+        var fallbackEngine = new FallbackDownloadEngine(directHttpEngine);
+
+        DownloadEngineResolver = new DownloadEngineResolverService(
+        [
+            mediaEngine,
+            galleryEngine,
+            directHttpEngine,
+            fallbackEngine,
+        ]);
+
+        AssetDiscoveryService = new AssetDiscoveryService(WebScraperService);
+        DownloadCoordinatorService = new DownloadCoordinatorService(
+            DownloadInputParserService,
+            DownloadEngineResolver,
+            DownloadCategoryService,
+            DownloaderSettingsService,
+            DownloadHistoryService,
+            DownloadEventLogService,
+            DownloadSchedulerService);
 
         // Initialise QR services
         QrCodeService = new QrCodeService();
@@ -237,16 +285,21 @@ public partial class App : Application
         ToolRegistry.Register(new Models.ToolDefinition
         {
             Key         = "downloader",
-            Name        = "Downloader",
+            Name        = "Downloader Studio",
             Category    = "Network & Internet",
             Icon        = "\U0001F4E5",
             IconGlyph   = "\uE896",
-            Description = "Download files from the web with progress tracking",
+            Description = "Premium queue manager, media downloader, and asset extraction workspace",
             Factory     = () => new DownloaderViewModel(
-                FolderPickerService,
+                DownloadCoordinatorService,
+                AssetDiscoveryService,
+                DownloaderSettingsService,
                 DependencyManagerService,
-                DownloadEngineService,
-                WebScraperService),
+                DownloadEventLogService,
+                DownloadSchedulerService,
+                DownloaderFileDialogService,
+                ClipboardService,
+                UserDialogService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition

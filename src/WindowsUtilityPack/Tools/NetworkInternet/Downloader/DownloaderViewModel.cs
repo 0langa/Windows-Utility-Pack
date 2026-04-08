@@ -1,757 +1,463 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
 using System.Windows.Data;
+using System.Windows.Threading;
 using WindowsUtilityPack.Commands;
-using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.Services.Downloader;
+using WindowsUtilityPack.Tools.NetworkInternet.Downloader.Models;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.NetworkInternet.Downloader;
 
-/// <summary>Represents one download entry in the downloads list.</summary>
-public class DownloadItem : ViewModelBase
+/// <summary>Downloader workspace ViewModel for queue management and asset discovery.</summary>
+public sealed class DownloaderViewModel : ViewModelBase
 {
-    private double _progress;
-    private string _status = "Queued";
-    private string _speed = string.Empty;
-    private string _engine = string.Empty;
-    private string _title = string.Empty;
-    private string _selectedFormat = "Best (auto)";
-    private string _eta = string.Empty;
+    private readonly IDownloadCoordinatorService _coordinator;
+    private readonly IAssetDiscoveryService _assetDiscovery;
+    private readonly IDownloaderSettingsService _settingsService;
+    private readonly IDependencyManagerService _dependencyManager;
+    private readonly IDownloadEventLogService _eventLog;
+    private readonly IDownloadSchedulerService _scheduler;
+    private readonly IDownloaderFileDialogService _fileDialog;
+    private readonly IClipboardService _clipboard;
+    private readonly IUserDialogService _dialogs;
+    private readonly DispatcherTimer _clipboardTimer;
 
-    /// <summary>Display file name.</summary>
-    public string FileName { get; init; } = string.Empty;
-
-    /// <summary>Source URL.</summary>
-    public string Url { get; init; } = string.Empty;
-
-    /// <summary>Target save directory or file path.</summary>
-    public string SavePath { get; init; } = string.Empty;
-
-    /// <summary>Formatted total size string.</summary>
-    public string TotalSize { get; set; } = "—";
-
-    /// <summary>Download progress 0–100.</summary>
-    public double Progress
-    {
-        get => _progress;
-        set => SetProperty(ref _progress, value);
-    }
-
-    /// <summary>Current status text (Queued, Downloading, Complete, Failed, Cancelled, etc.).</summary>
-    public string Status
-    {
-        get => _status;
-        set => SetProperty(ref _status, value);
-    }
-
-    /// <summary>Formatted download speed (e.g. "2.4 MB/s").</summary>
-    public string Speed
-    {
-        get => _speed;
-        set => SetProperty(ref _speed, value);
-    }
-
-    /// <summary>Detected download engine: "yt-dlp", "gallery-dl", or "Scraper".</summary>
-    public string Engine
-    {
-        get => _engine;
-        set => SetProperty(ref _engine, value);
-    }
-
-    /// <summary>Title resolved from the URL (e.g. video title or hostname).</summary>
-    public string Title
-    {
-        get => _title;
-        set => SetProperty(ref _title, value);
-    }
-
-    /// <summary>Selected format label for yt-dlp downloads.</summary>
-    public string SelectedFormat
-    {
-        get => _selectedFormat;
-        set => SetProperty(ref _selectedFormat, value);
-    }
-
-    /// <summary>Estimated time remaining.</summary>
-    public string Eta
-    {
-        get => _eta;
-        set => SetProperty(ref _eta, value);
-    }
-
-    /// <summary>Cancellation source for this individual download.</summary>
-    public CancellationTokenSource Cts { get; } = new();
-}
-
-/// <summary>
-/// ViewModel for the Downloader tool.
-/// Provides URL-based file downloading with progress tracking,
-/// engine detection (yt-dlp, gallery-dl, scraper), and asset selection.
-/// </summary>
-public class DownloaderViewModel : ViewModelBase
-{
-    private static readonly HttpClient SharedClient = new();
-
-    private readonly IFolderPickerService _folderPicker;
-    private readonly IDependencyManagerService _depManager;
-    private readonly IDownloadEngineService _engine;
-    private readonly IWebScraperService _scraper;
-
-    private string _url = string.Empty;
-    private string _saveFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads";
-    private bool _isDownloading;
-    private CancellationTokenSource? _cts;
-
-    // Settings
-    private bool _crawlSubdirectories;
-    private int _maxDepth = 2;
-    private int _maxPages = 50;
-    private int _maxConcurrentDownloads = 2;
-    private bool _autoStartOnAdd;
-    private string _selectedFormat = "Best (auto)";
-    private bool _showSettings;
-
-    // Dependency status
-    private bool _dependenciesReady;
-    private string _statusMessage = string.Empty;
-
-    // Scraper panel
-    private bool _showScraperPanel;
-    private string _filterText = string.Empty;
-    private string _selectedTypeFilter = "All";
-    private DownloadItem? _pendingScrapeItem;
+    private string _quickInput = string.Empty;
+    private string _scanUrl = string.Empty;
+    private string _statusMessage = "Ready";
+    private string _scanStatus = string.Empty;
+    private string _assetSearchText = string.Empty;
+    private AssetFilterType _selectedAssetFilter = AssetFilterType.All;
+    private DownloaderMode _selectedMode = DownloaderMode.QuickDownload;
+    private DownloadJob? _selectedJob;
     private bool _isScanning;
-    private string _scanStatusMessage = string.Empty;
+    private bool _isInstallingTools;
+    private DateTime _scheduledStartDate = DateTime.Today;
+    private DateTime _scheduledPauseDate = DateTime.Today;
+    private string _scheduledStartTimeText = "23:00";
+    private string _scheduledPauseTimeText = "23:30";
+    private string _schedulerStatus = "No active schedule";
+    private string _lastClipboardText = string.Empty;
 
-    /// <summary>URL(s) to download (supports multi-line).</summary>
-    public string Url
+    public DownloaderSettings Settings { get; }
+
+    public ObservableCollection<DownloadJob> Jobs => _coordinator.Jobs;
+
+    public ObservableCollection<DownloadPackage> Packages => _coordinator.Packages;
+
+    public ObservableCollection<DownloadHistoryEntry> History => _coordinator.History;
+
+    public ObservableCollection<DownloadAssetCandidate> DiscoveredAssets { get; } = [];
+
+    public ICollectionView DiscoveredAssetsView { get; }
+
+    public ObservableCollection<DownloadEventRecord> RecentEvents { get; } = [];
+
+    public ObservableCollection<DownloadJob> SelectedJobs { get; } = [];
+
+    public IReadOnlyList<DownloaderMode> Modes { get; } =
+    [
+        DownloaderMode.QuickDownload,
+        DownloaderMode.MediaDownload,
+        DownloaderMode.AssetGrabber,
+        DownloaderMode.SiteCrawl,
+    ];
+
+    public IReadOnlyList<AssetFilterType> AssetFilters { get; } =
+    [
+        AssetFilterType.All,
+        AssetFilterType.Images,
+        AssetFilterType.Video,
+        AssetFilterType.Audio,
+        AssetFilterType.Archives,
+        AssetFilterType.Documents,
+        AssetFilterType.Executables,
+        AssetFilterType.CodeTextData,
+        AssetFilterType.Fonts,
+    ];
+
+    public string QuickInput
     {
-        get => _url;
-        set => SetProperty(ref _url, value);
+        get => _quickInput;
+        set => SetProperty(ref _quickInput, value);
     }
 
-    /// <summary>Folder where downloads are saved.</summary>
-    public string SaveFolder
+    public string ScanUrl
     {
-        get => _saveFolder;
-        set => SetProperty(ref _saveFolder, value);
+        get => _scanUrl;
+        set => SetProperty(ref _scanUrl, value);
     }
 
-    /// <summary>True while any download is in progress.</summary>
-    public bool IsDownloading
-    {
-        get => _isDownloading;
-        set => SetProperty(ref _isDownloading, value);
-    }
-
-    /// <summary>Whether to crawl sub-pages on the same host.</summary>
-    public bool CrawlSubdirectories
-    {
-        get => _crawlSubdirectories;
-        set => SetProperty(ref _crawlSubdirectories, value);
-    }
-
-    /// <summary>Maximum crawl depth (1–10).</summary>
-    public int MaxDepth
-    {
-        get => _maxDepth;
-        set => SetProperty(ref _maxDepth, Math.Clamp(value, 1, 10));
-    }
-
-    /// <summary>Maximum pages to crawl (1–500).</summary>
-    public int MaxPages
-    {
-        get => _maxPages;
-        set => SetProperty(ref _maxPages, Math.Clamp(value, 1, 500));
-    }
-
-    /// <summary>Maximum concurrent downloads (1–8).</summary>
-    public int MaxConcurrentDownloads
-    {
-        get => _maxConcurrentDownloads;
-        set => SetProperty(ref _maxConcurrentDownloads, Math.Clamp(value, 1, 8));
-    }
-
-    /// <summary>Automatically start downloads when items are added.</summary>
-    public bool AutoStartOnAdd
-    {
-        get => _autoStartOnAdd;
-        set => SetProperty(ref _autoStartOnAdd, value);
-    }
-
-    /// <summary>Selected video format label.</summary>
-    public string SelectedFormat
-    {
-        get => _selectedFormat;
-        set => SetProperty(ref _selectedFormat, value);
-    }
-
-    /// <summary>Whether the settings panel is expanded.</summary>
-    public bool ShowSettings
-    {
-        get => _showSettings;
-        set => SetProperty(ref _showSettings, value);
-    }
-
-    /// <summary>Whether all external tool dependencies are installed.</summary>
-    public bool DependenciesReady
-    {
-        get => _dependenciesReady;
-        set => SetProperty(ref _dependenciesReady, value);
-    }
-
-    /// <summary>General status or log message displayed in the tools bar.</summary>
     public string StatusMessage
     {
         get => _statusMessage;
         set => SetProperty(ref _statusMessage, value);
     }
 
-    /// <summary>Whether the scraped-assets selection panel is visible.</summary>
-    public bool ShowScraperPanel
+    public string ScanStatus
     {
-        get => _showScraperPanel;
-        set => SetProperty(ref _showScraperPanel, value);
+        get => _scanStatus;
+        set => SetProperty(ref _scanStatus, value);
     }
 
-    /// <summary>Whether a page scan is currently in progress.</summary>
+    public string AssetSearchText
+    {
+        get => _assetSearchText;
+        set
+        {
+            if (SetProperty(ref _assetSearchText, value))
+            {
+                DiscoveredAssetsView.Refresh();
+            }
+        }
+    }
+
+    public AssetFilterType SelectedAssetFilter
+    {
+        get => _selectedAssetFilter;
+        set
+        {
+            if (SetProperty(ref _selectedAssetFilter, value))
+            {
+                DiscoveredAssetsView.Refresh();
+            }
+        }
+    }
+
+    public DownloaderMode SelectedMode
+    {
+        get => _selectedMode;
+        set => SetProperty(ref _selectedMode, value);
+    }
+
+    public DownloadJob? SelectedJob
+    {
+        get => _selectedJob;
+        set
+        {
+            if (SetProperty(ref _selectedJob, value))
+            {
+                RelayCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
     public bool IsScanning
     {
         get => _isScanning;
         set => SetProperty(ref _isScanning, value);
     }
 
-    /// <summary>Status message shown during scanning (e.g. "Scanning... 3 pages, 42 assets").</summary>
-    public string ScanStatusMessage
+    public bool IsInstallingTools
     {
-        get => _scanStatusMessage;
-        set => SetProperty(ref _scanStatusMessage, value);
+        get => _isInstallingTools;
+        set => SetProperty(ref _isInstallingTools, value);
     }
 
-    /// <summary>Filter text applied to the scraped assets list.</summary>
-    public string FilterText
+    public DateTime ScheduledStartDate
     {
-        get => _filterText;
-        set
-        {
-            if (SetProperty(ref _filterText, value))
-            {
-                ScrapedAssetsView.Refresh();
-            }
-        }
+        get => _scheduledStartDate;
+        set => SetProperty(ref _scheduledStartDate, value);
     }
 
-    /// <summary>Type filter for scraped assets ("All" or an asset type name).</summary>
-    public string SelectedTypeFilter
+    public DateTime ScheduledPauseDate
     {
-        get => _selectedTypeFilter;
-        set
-        {
-            if (SetProperty(ref _selectedTypeFilter, value))
-            {
-                ScrapedAssetsView.Refresh();
-            }
-        }
+        get => _scheduledPauseDate;
+        set => SetProperty(ref _scheduledPauseDate, value);
     }
 
-    /// <summary>Available video format labels derived from the engine.</summary>
-    public IReadOnlyList<string> FormatLabels { get; }
+    public string ScheduledStartTimeText
+    {
+        get => _scheduledStartTimeText;
+        set => SetProperty(ref _scheduledStartTimeText, value);
+    }
 
-    /// <summary>List of all download items.</summary>
-    public ObservableCollection<DownloadItem> Downloads { get; } = [];
+    public string ScheduledPauseTimeText
+    {
+        get => _scheduledPauseTimeText;
+        set => SetProperty(ref _scheduledPauseTimeText, value);
+    }
 
-    /// <summary>Raw scraped assets from the scraper engine.</summary>
-    public ObservableCollection<ScrapedAsset> ScrapedAssets { get; } = [];
+    public string SchedulerStatus
+    {
+        get => _schedulerStatus;
+        set => SetProperty(ref _schedulerStatus, value);
+    }
 
-    /// <summary>Filtered view over <see cref="ScrapedAssets"/>.</summary>
-    public ICollectionView ScrapedAssetsView { get; }
+    public int QueuedCount => _coordinator.Statistics.Queued;
 
-    // Existing commands
-    /// <summary>Adds URL(s) to the queue and detects engines.</summary>
-    public AsyncRelayCommand DownloadCommand { get; }
+    public int ActiveCount => _coordinator.Statistics.Active;
 
-    /// <summary>Opens a folder picker to choose the save directory.</summary>
-    public RelayCommand BrowseFolderCommand { get; }
+    public int PausedCount => _coordinator.Statistics.Paused;
 
-    /// <summary>Cancels all active downloads.</summary>
-    public RelayCommand CancelCommand { get; }
+    public int CompletedCount => _coordinator.Statistics.Completed;
 
-    /// <summary>Removes completed, failed, and cancelled items from the list.</summary>
-    public RelayCommand ClearCompletedCommand { get; }
+    public int FailedCount => _coordinator.Statistics.Failed;
 
-    // New commands
-    /// <summary>Downloads and installs missing external tools.</summary>
+    public bool IsQueueRunning => _coordinator.IsQueueRunning;
+
+    public bool DependenciesReady => _dependencyManager.Check().AllOk;
+
+    public AsyncRelayCommand AddToQueueCommand { get; }
+
+    public AsyncRelayCommand DownloadNowCommand { get; }
+
+    public AsyncRelayCommand ImportLinksCommand { get; }
+
+    public AsyncRelayCommand PasteClipboardCommand { get; }
+
     public AsyncRelayCommand InstallToolsCommand { get; }
 
-    /// <summary>Updates yt-dlp to the latest version.</summary>
-    public AsyncRelayCommand UpdateYtDlpCommand { get; }
+    public AsyncRelayCommand UpdateToolsCommand { get; }
 
-    /// <summary>Starts all queued items with bounded concurrency.</summary>
-    public AsyncRelayCommand StartAllCommand { get; }
+    public AsyncRelayCommand StartQueueCommand { get; }
 
-    /// <summary>Re-queues a failed download item.</summary>
-    public RelayCommand RetryItemCommand { get; }
+    public AsyncRelayCommand PauseQueueCommand { get; }
 
-    /// <summary>Opens the save folder in Explorer.</summary>
-    public RelayCommand OpenFolderCommand { get; }
+    public AsyncRelayCommand StopQueueCommand { get; }
 
-    /// <summary>Opens a completed item's file location.</summary>
-    public RelayCommand OpenFileCommand { get; }
+    public RelayCommand RetryFailedCommand { get; }
 
-    /// <summary>Cancels a single download item.</summary>
-    public RelayCommand CancelItemCommand { get; }
+    public RelayCommand ClearCompletedCommand { get; }
 
-    /// <summary>Selects all scraped assets.</summary>
-    public RelayCommand SelectAllScrapedCommand { get; }
+    public RelayCommand ClearFailedCommand { get; }
 
-    /// <summary>Deselects all scraped assets.</summary>
-    public RelayCommand SelectNoneScrapedCommand { get; }
+    public RelayCommand PauseSelectedCommand { get; }
 
-    /// <summary>Downloads all selected scraped assets.</summary>
-    public AsyncRelayCommand DownloadScrapedCommand { get; }
+    public RelayCommand ResumeSelectedCommand { get; }
 
-    /// <summary>Scans the current URL for all downloadable assets without starting a download.</summary>
+    public RelayCommand CancelSelectedCommand { get; }
+
+    public RelayCommand RetrySelectedCommand { get; }
+
+    public RelayCommand RemoveSelectedCommand { get; }
+
+    public RelayCommand OpenSourceCommand { get; }
+
+    public RelayCommand OpenContainingFolderCommand { get; }
+
+    public RelayCommand CopySourceUrlCommand { get; }
+
     public AsyncRelayCommand ScanPageCommand { get; }
 
-    /// <summary>Closes the scraper panel.</summary>
-    public RelayCommand CloseScanPanelCommand { get; }
+    public AsyncRelayCommand CrawlSiteCommand { get; }
 
-    /// <summary>Toggles the settings panel visibility.</summary>
-    public RelayCommand ToggleSettingsCommand { get; }
+    public AsyncRelayCommand AddSelectedAssetsCommand { get; }
 
-    /// <summary>
-    /// Initialises a new <see cref="DownloaderViewModel"/>.
-    /// </summary>
-    /// <param name="folderPicker">Folder picker service for browse dialogs.</param>
-    /// <param name="depManager">Manages external tool dependencies.</param>
-    /// <param name="engine">Download engine orchestrator.</param>
-    /// <param name="scraper">Web scraper for discovering downloadable assets on pages.</param>
+    public RelayCommand SelectAllAssetsCommand { get; }
+
+    public RelayCommand SelectVisibleAssetsCommand { get; }
+
+    public RelayCommand DeselectAllAssetsCommand { get; }
+
+    public RelayCommand InvertAssetSelectionCommand { get; }
+
+    public RelayCommand SaveSettingsCommand { get; }
+
+    public RelayCommand PickCookieFileCommand { get; }
+
+    public RelayCommand ScheduleStartCommand { get; }
+
+    public RelayCommand SchedulePauseCommand { get; }
+
+    public RelayCommand ClearScheduleCommand { get; }
+
+    public AsyncRelayCommand ExportDiagnosticsCommand { get; }
+
+    public RelayCommand ClearHistoryCommand { get; }
+
+    public AsyncRelayCommand RedownloadHistoryItemCommand { get; }
+
     public DownloaderViewModel(
-        IFolderPickerService folderPicker,
-        IDependencyManagerService depManager,
-        IDownloadEngineService engine,
-        IWebScraperService scraper)
+        IDownloadCoordinatorService coordinator,
+        IAssetDiscoveryService assetDiscovery,
+        IDownloaderSettingsService settingsService,
+        IDependencyManagerService dependencyManager,
+        IDownloadEventLogService eventLog,
+        IDownloadSchedulerService scheduler,
+        IDownloaderFileDialogService fileDialog,
+        IClipboardService clipboard,
+        IUserDialogService dialogs)
     {
-        _folderPicker = folderPicker;
-        _depManager = depManager;
-        _engine = engine;
-        _scraper = scraper;
+        _coordinator = coordinator;
+        _assetDiscovery = assetDiscovery;
+        _settingsService = settingsService;
+        _dependencyManager = dependencyManager;
+        _eventLog = eventLog;
+        _scheduler = scheduler;
+        _fileDialog = fileDialog;
+        _clipboard = clipboard;
+        _dialogs = dialogs;
 
-        FormatLabels = engine.VideoFormats.Select(f => f.Label).ToList();
+        Settings = _settingsService.Load();
 
-        ScrapedAssetsView = CollectionViewSource.GetDefaultView(ScrapedAssets);
-        ScrapedAssetsView.Filter = FilterScrapedAsset;
+        DiscoveredAssetsView = CollectionViewSource.GetDefaultView(DiscoveredAssets);
+        DiscoveredAssetsView.Filter = FilterAsset;
 
-        DownloadCommand = new AsyncRelayCommand(_ => AddUrlsAsync(), _ => !string.IsNullOrWhiteSpace(Url));
-        BrowseFolderCommand = new RelayCommand(_ =>
-        {
-            var path = _folderPicker.PickFolder("Select download folder");
-            if (!string.IsNullOrEmpty(path))
-            {
-                SaveFolder = path;
-            }
-        });
-        CancelCommand = new RelayCommand(_ => _cts?.Cancel(), _ => IsDownloading);
-        ClearCompletedCommand = new RelayCommand(_ =>
-        {
-            for (var i = Downloads.Count - 1; i >= 0; i--)
-            {
-                if (Downloads[i].Status is "Complete" or "Failed" or "Cancelled")
-                {
-                    Downloads.RemoveAt(i);
-                }
-            }
-        });
+        _clipboardTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _clipboardTimer.Tick += async (_, _) => await MonitorClipboardAsync();
+        ApplyClipboardMonitoring();
 
+        _eventLog.EventRecorded += OnEventRecorded;
+        Jobs.CollectionChanged += OnJobsCollectionChanged;
+
+        AddToQueueCommand = new AsyncRelayCommand(_ => AddInputAsync(startNow: false));
+        DownloadNowCommand = new AsyncRelayCommand(_ => AddInputAsync(startNow: true));
+        ImportLinksCommand = new AsyncRelayCommand(_ => ImportLinksAsync());
+        PasteClipboardCommand = new AsyncRelayCommand(_ => PasteClipboardAsync());
         InstallToolsCommand = new AsyncRelayCommand(_ => InstallToolsAsync());
-        UpdateYtDlpCommand = new AsyncRelayCommand(_ => UpdateYtDlpAsync());
-        StartAllCommand = new AsyncRelayCommand(_ => StartAllAsync());
-        ToggleSettingsCommand = new RelayCommand(_ => ShowSettings = !ShowSettings);
+        UpdateToolsCommand = new AsyncRelayCommand(_ => UpdateYtDlpAsync());
+        StartQueueCommand = new AsyncRelayCommand(_ => StartQueueAsync());
+        PauseQueueCommand = new AsyncRelayCommand(_ => PauseQueueAsync());
+        StopQueueCommand = new AsyncRelayCommand(_ => StopQueueAsync());
+        RetryFailedCommand = new RelayCommand(_ => RetryFailed());
+        ClearCompletedCommand = new RelayCommand(_ => ClearCompleted());
+        ClearFailedCommand = new RelayCommand(_ => ClearFailed());
+        PauseSelectedCommand = new RelayCommand(_ => _coordinator.PauseJobs(GetSelection()));
+        ResumeSelectedCommand = new RelayCommand(_ => _coordinator.ResumeJobs(GetSelection()));
+        CancelSelectedCommand = new RelayCommand(_ => _coordinator.CancelJobs(GetSelection()));
+        RetrySelectedCommand = new RelayCommand(_ => _coordinator.RetryJobs(GetSelection()));
+        RemoveSelectedCommand = new RelayCommand(_ => _coordinator.RemoveJobs(GetSelection()));
+        OpenSourceCommand = new RelayCommand(_ => OpenSourceUrl(), _ => SelectedJob is not null);
+        OpenContainingFolderCommand = new RelayCommand(_ => OpenContainingFolder(), _ => SelectedJob is not null);
+        CopySourceUrlCommand = new RelayCommand(_ => CopySourceUrl(), _ => SelectedJob is not null);
+        ScanPageCommand = new AsyncRelayCommand(_ => DiscoverAssetsAsync(false));
+        CrawlSiteCommand = new AsyncRelayCommand(_ => DiscoverAssetsAsync(true));
+        AddSelectedAssetsCommand = new AsyncRelayCommand(_ => AddSelectedAssetsAsync());
+        SelectAllAssetsCommand = new RelayCommand(_ => SetAssetSelection(_ => true));
+        SelectVisibleAssetsCommand = new RelayCommand(_ => SetVisibleAssetSelection(true));
+        DeselectAllAssetsCommand = new RelayCommand(_ => SetAssetSelection(_ => false));
+        InvertAssetSelectionCommand = new RelayCommand(_ => SetAssetSelection(selected => !selected));
+        SaveSettingsCommand = new RelayCommand(_ => SaveSettings());
+        PickCookieFileCommand = new RelayCommand(_ => PickCookieFile());
+        ScheduleStartCommand = new RelayCommand(_ => ScheduleStart());
+        SchedulePauseCommand = new RelayCommand(_ => SchedulePause());
+        ClearScheduleCommand = new RelayCommand(_ => ClearSchedule());
+        ExportDiagnosticsCommand = new AsyncRelayCommand(_ => ExportDiagnosticsAsync());
+        ClearHistoryCommand = new RelayCommand(_ => _ = ClearHistoryAsync());
+        RedownloadHistoryItemCommand = new AsyncRelayCommand(item => RedownloadHistoryItemAsync(item as DownloadHistoryEntry));
 
-        RetryItemCommand = new RelayCommand(param =>
-        {
-            if (param is DownloadItem item && item.Status == "Failed")
-            {
-                item.Status = "Queued";
-                item.Progress = 0;
-                item.Speed = string.Empty;
-            }
-        });
-
-        OpenFolderCommand = new RelayCommand(_ =>
-        {
-            if (Directory.Exists(SaveFolder))
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = SaveFolder,
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                });
-            }
-        });
-
-        OpenFileCommand = new RelayCommand(param =>
-        {
-            if (param is DownloadItem item && item.Status == "Complete" && Directory.Exists(item.SavePath))
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = item.SavePath,
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                });
-            }
-        });
-
-        CancelItemCommand = new RelayCommand(param =>
-        {
-            if (param is DownloadItem item)
-            {
-                item.Cts.Cancel();
-                item.Status = "Cancelled";
-            }
-        });
-
-        SelectAllScrapedCommand = new RelayCommand(_ =>
-        {
-            foreach (var asset in ScrapedAssets)
-            {
-                asset.IsSelected = true;
-            }
-
-            ScrapedAssetsView.Refresh();
-        });
-
-        SelectNoneScrapedCommand = new RelayCommand(_ =>
-        {
-            foreach (var asset in ScrapedAssets)
-            {
-                asset.IsSelected = false;
-            }
-
-            ScrapedAssetsView.Refresh();
-        });
-
-        DownloadScrapedCommand = new AsyncRelayCommand(_ => DownloadScrapedAsync());
-
-        ScanPageCommand = new AsyncRelayCommand(_ => ScanPageAsync(), _ => !string.IsNullOrWhiteSpace(Url) && !IsScanning);
-        CloseScanPanelCommand = new RelayCommand(_ =>
-        {
-            ShowScraperPanel = false;
-            ScrapedAssets.Clear();
-            ScanStatusMessage = string.Empty;
-        });
-
-        _ = CheckDepsAsync();
+        _ = InitializeAsync();
     }
 
-    private async Task CheckDepsAsync()
+    private async Task InitializeAsync()
     {
-        try
+        await _coordinator.InitializeAsync();
+        RefreshStatistics();
+        UpdateSchedulerStatus();
+        StatusMessage = DependenciesReady ? "Downloader ready." : "Install downloader tools for media/gallery workflows.";
+    }
+
+    private async Task AddInputAsync(bool startNow)
+    {
+        if (string.IsNullOrWhiteSpace(QuickInput))
         {
-            var status = _depManager.Check();
-            DependenciesReady = status.AllOk;
-            StatusMessage = status.AllOk
-                ? "All tools ready."
-                : "Some tools are missing. Click Install Tools.";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Dependency check failed: {ex.Message}";
+            StatusMessage = "Enter one or more URLs first.";
+            return;
         }
 
-        await Task.CompletedTask;
+        SaveSettings();
+        var added = await _coordinator.AddFromInputAsync(QuickInput, SelectedMode, startNow);
+        RefreshStatistics();
+        if (added == 0)
+        {
+            StatusMessage = "No valid new URLs found in input.";
+            return;
+        }
+
+        QuickInput = string.Empty;
+        StatusMessage = startNow ? $"Added {added} item(s) and started queue." : $"Added {added} item(s) to queue.";
+    }
+
+    private async Task ImportLinksAsync()
+    {
+        var path = _fileDialog.PickImportListFile();
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return;
+        }
+
+        QuickInput = await File.ReadAllTextAsync(path);
+        StatusMessage = $"Imported links from {Path.GetFileName(path)}.";
+    }
+
+    private async Task PasteClipboardAsync()
+    {
+        if (!_clipboard.TryGetText(out var text) || string.IsNullOrWhiteSpace(text))
+        {
+            StatusMessage = "Clipboard does not contain URL text.";
+            return;
+        }
+
+        QuickInput = text;
+        await AddInputAsync(false);
     }
 
     private async Task InstallToolsAsync()
     {
-        StatusMessage = "Installing tools...";
+        IsInstallingTools = true;
         try
         {
-            await _depManager.EnsureAllAsync(msg =>
-            {
-                System.Windows.Application.Current.Dispatcher.InvokeAsync(() => StatusMessage = msg);
-            });
-
-            DependenciesReady = _depManager.Check().AllOk;
-            StatusMessage = "All tools installed.";
+            await _dependencyManager.EnsureAllAsync(msg => StatusMessage = msg);
+            StatusMessage = "All downloader tools are installed.";
+            OnPropertyChanged(nameof(DependenciesReady));
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Install failed: {ex.Message}";
+            _dialogs.ShowError("Tool install failed", ex.Message);
+        }
+        finally
+        {
+            IsInstallingTools = false;
         }
     }
 
     private async Task UpdateYtDlpAsync()
     {
-        StatusMessage = "Updating yt-dlp...";
-        try
-        {
-            var result = await _depManager.UpdateYtDlpAsync();
-            StatusMessage = result;
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Update failed: {ex.Message}";
-        }
+        var output = await _dependencyManager.UpdateYtDlpAsync();
+        StatusMessage = string.IsNullOrWhiteSpace(output) ? "yt-dlp updated." : output;
     }
 
-    private async Task AddUrlsAsync()
+    private async Task StartQueueAsync() { await _coordinator.StartQueueAsync(); RefreshStatistics(); }
+
+    private async Task PauseQueueAsync() { await _coordinator.PauseQueueAsync(); RefreshStatistics(); }
+
+    private async Task StopQueueAsync() { await _coordinator.StopQueueAsync(); RefreshStatistics(); }
+
+    private void RetryFailed() { _coordinator.RetryJobs(Jobs.Where(j => j.Status == DownloadJobStatus.Failed)); RefreshStatistics(); }
+
+    private void ClearCompleted() { _coordinator.ClearCompleted(); RefreshStatistics(); }
+
+    private void ClearFailed() { _coordinator.ClearFailed(); RefreshStatistics(); }
+
+    private async Task DiscoverAssetsAsync(bool deepCrawl)
     {
-        var rawText = Url;
-        var lines = rawText.Split(['\r', '\n', ' '], StringSplitOptions.RemoveEmptyEntries);
-        var existingUrls = new HashSet<string>(
-            Downloads.Select(d => d.Url), StringComparer.OrdinalIgnoreCase);
-
-        var newUrls = new List<string>();
-        foreach (var line in lines)
+        var source = string.IsNullOrWhiteSpace(ScanUrl) ? QuickInput : ScanUrl;
+        var url = source.Split(['\r', '\n', ' '], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
         {
-            var trimmed = line.Trim();
-            if (Uri.TryCreate(trimmed, UriKind.Absolute, out _) && existingUrls.Add(trimmed))
-            {
-                newUrls.Add(trimmed);
-            }
-        }
-
-        Url = string.Empty;
-
-        foreach (var url in newUrls)
-        {
-            var uri = new Uri(url);
-            var fileName = Path.GetFileName(uri.LocalPath);
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                fileName = "download";
-            }
-
-            var item = new DownloadItem
-            {
-                FileName = fileName,
-                Url = url,
-                SavePath = SaveFolder,
-                SelectedFormat = SelectedFormat,
-            };
-
-            Downloads.Insert(0, item);
-
-            try
-            {
-                await _engine.DetectEngineAsync(item, item.Cts.Token);
-            }
-            catch (Exception ex)
-            {
-                item.Status = "Failed";
-                item.Speed = ex.Message;
-            }
-        }
-
-        if (AutoStartOnAdd)
-        {
-            await StartAllAsync();
-        }
-    }
-
-    private async Task StartAllAsync()
-    {
-        IsDownloading = true;
-        _cts = new CancellationTokenSource();
-
-        var semaphore = new SemaphoreSlim(MaxConcurrentDownloads);
-        var tasks = new List<Task>();
-
-        foreach (var item in Downloads.Where(d => d.Status == "Queued").ToList())
-        {
-            await semaphore.WaitAsync(_cts.Token);
-
-            var task = Task.Run(async () =>
-            {
-                try
-                {
-                    var result = await _engine.DownloadAsync(item, item.Cts.Token);
-
-                    if (result is not null)
-                    {
-                        // Scraper returned assets — show selection panel on UI thread.
-                        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                        {
-                            ScrapedAssets.Clear();
-                            foreach (var asset in result)
-                            {
-                                ScrapedAssets.Add(asset);
-                            }
-
-                            _pendingScrapeItem = item;
-                            ShowScraperPanel = true;
-                        });
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    item.Status = "Cancelled";
-                }
-                catch (Exception ex)
-                {
-                    item.Status = "Failed";
-                    item.Speed = ex.Message;
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            }, _cts.Token);
-
-            tasks.Add(task);
-        }
-
-        await Task.WhenAll(tasks);
-        IsDownloading = false;
-        _cts.Dispose();
-        _cts = null;
-    }
-
-    private async Task DownloadScrapedAsync()
-    {
-        ShowScraperPanel = false;
-        var selected = ScrapedAssets.Where(a => a.IsSelected).ToList();
-
-        if (selected.Count == 0)
-        {
-            return;
-        }
-
-        if (_pendingScrapeItem is not null)
-        {
-            _pendingScrapeItem.Status = "Downloading";
-        }
-
-        try
-        {
-            await _engine.DownloadScrapedAssetsAsync(
-                selected,
-                SaveFolder,
-                CrawlSubdirectories,
-                MaxDepth,
-                MaxPages,
-                progress =>
-                {
-                    System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        if (_pendingScrapeItem is not null)
-                        {
-                            _pendingScrapeItem.Progress = progress;
-                        }
-                    });
-                });
-
-            if (_pendingScrapeItem is not null)
-            {
-                _pendingScrapeItem.Progress = 100;
-                _pendingScrapeItem.Status = "Complete";
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            if (_pendingScrapeItem is not null)
-            {
-                _pendingScrapeItem.Status = "Cancelled";
-            }
-        }
-        catch (Exception ex)
-        {
-            if (_pendingScrapeItem is not null)
-            {
-                _pendingScrapeItem.Status = "Failed";
-                _pendingScrapeItem.Speed = ex.Message;
-            }
-        }
-        finally
-        {
-            ScrapedAssets.Clear();
-            _pendingScrapeItem = null;
-        }
-    }
-
-    private bool FilterScrapedAsset(object obj)
-    {
-        if (obj is not ScrapedAsset asset)
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrEmpty(SelectedTypeFilter)
-            && SelectedTypeFilter != "All"
-            && !asset.TypeLabel.Equals(SelectedTypeFilter, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrEmpty(FilterText))
-        {
-            var filter = FilterText;
-            return asset.FileName.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                || asset.Url.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                || asset.ExtensionLabel.Contains(filter, StringComparison.OrdinalIgnoreCase);
-        }
-
-        return true;
-    }
-
-    private async Task ScanPageAsync()
-    {
-        var rawUrl = Url.Trim().Split(['\r', '\n', ' '], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(rawUrl) || !Uri.TryCreate(rawUrl, UriKind.Absolute, out _))
-        {
-            StatusMessage = "Enter a valid URL to scan.";
+            StatusMessage = "Enter a valid URL for scan/crawl.";
             return;
         }
 
         IsScanning = true;
-        ScanStatusMessage = "Scanning...";
-        ShowScraperPanel = true;
-        ScrapedAssets.Clear();
-
+        DiscoveredAssets.Clear();
         try
         {
-            var assets = await _scraper.ScrapeAsync(
-                rawUrl,
-                CrawlSubdirectories,
-                MaxDepth,
-                MaxPages,
-                progress =>
-                {
-                    System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        ScanStatusMessage = $"Scanning... {progress.pagesScraped} page(s), {progress.assetsFound} asset(s) found";
-                    });
-                });
-
-            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            var progress = new Progress<(int pages, int assets)>(p => ScanStatus = $"Pages: {p.pages}, assets: {p.assets}");
+            var assets = await _assetDiscovery.DiscoverAsync(url, deepCrawl, Settings, progress, CancellationToken.None);
+            foreach (var asset in assets)
             {
-                ScrapedAssets.Clear();
-                foreach (var asset in assets)
-                {
-                    ScrapedAssets.Add(asset);
-                }
+                DiscoveredAssets.Add(asset);
+            }
 
-                ScanStatusMessage = $"Scan complete — {assets.Count} asset(s) found";
-                ScrapedAssetsView.Refresh();
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            ScanStatusMessage = "Scan cancelled.";
-        }
-        catch (Exception ex)
-        {
-            ScanStatusMessage = $"Scan failed: {ex.Message}";
+            DiscoveredAssetsView.Refresh();
+            ScanStatus = $"Discovery complete: {assets.Count} asset(s).";
         }
         finally
         {
@@ -759,11 +465,309 @@ public class DownloaderViewModel : ViewModelBase
         }
     }
 
-    private static string FormatBytes(long bytes) => bytes switch
+    private async Task AddSelectedAssetsAsync()
     {
-        >= 1L << 30 => $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB",
-        >= 1L << 20 => $"{bytes / (1024.0 * 1024.0):F1} MB",
-        >= 1L << 10 => $"{bytes / 1024.0:F1} KB",
-        _ => $"{bytes} B",
-    };
+        var selected = DiscoveredAssets.Where(a => a.IsSelected).ToList();
+        var added = await _coordinator.AddAssetsAsync(selected, SelectedMode, Settings.General.AutoStartOnAdd);
+        RefreshStatistics();
+        StatusMessage = $"Added {added} discovered asset(s).";
+    }
+
+    private void SaveSettings()
+    {
+        _settingsService.Save(Settings);
+        _coordinator.ReloadSettings();
+        ApplyClipboardMonitoring();
+    }
+
+    private void PickCookieFile()
+    {
+        var path = _fileDialog.PickCookieFile();
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            Settings.Connections.CookieFilePath = path;
+            SaveSettings();
+        }
+    }
+
+    private void ScheduleStart()
+    {
+        if (TryBuildDateTimeOffset(ScheduledStartDate, ScheduledStartTimeText, out var when))
+        {
+            _scheduler.ScheduleStart(when);
+            UpdateSchedulerStatus();
+        }
+    }
+
+    private void SchedulePause()
+    {
+        if (TryBuildDateTimeOffset(ScheduledPauseDate, ScheduledPauseTimeText, out var when))
+        {
+            _scheduler.SchedulePause(when);
+            UpdateSchedulerStatus();
+        }
+    }
+
+    private void ClearSchedule()
+    {
+        _scheduler.Clear();
+        UpdateSchedulerStatus();
+    }
+
+    private async Task ExportDiagnosticsAsync()
+    {
+        var source = await _eventLog.ExportDiagnosticsAsync();
+        var target = _fileDialog.PickDiagnosticsExportPath();
+        if (!string.IsNullOrWhiteSpace(target))
+        {
+            File.Copy(source, target, overwrite: true);
+            StatusMessage = $"Diagnostics exported to {target}";
+        }
+    }
+
+    private async Task ClearHistoryAsync()
+    {
+        if (!_dialogs.Confirm("Clear history", "Delete downloader history entries?"))
+        {
+            return;
+        }
+
+        await _coordinator.StopQueueAsync();
+        await _coordinator.ClearHistoryAsync();
+        StatusMessage = "History cleared.";
+    }
+
+    private async Task RedownloadHistoryItemAsync(DownloadHistoryEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        QuickInput = entry.SourceUrl;
+        SelectedMode = entry.EngineType == DownloadEngineType.Media ? DownloaderMode.MediaDownload : DownloaderMode.QuickDownload;
+        await AddInputAsync(true);
+    }
+
+    private async Task MonitorClipboardAsync()
+    {
+        if (!Settings.General.ClipboardMonitoring)
+        {
+            return;
+        }
+
+        if (!_clipboard.TryGetText(out var text) || string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        if (string.Equals(text, _lastClipboardText, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastClipboardText = text;
+        var added = await _coordinator.AddFromInputAsync(text, DownloaderMode.QuickDownload, Settings.General.AutoStartOnAdd);
+        if (added > 0)
+        {
+            RefreshStatistics();
+            StatusMessage = $"Clipboard monitor added {added} link(s).";
+        }
+    }
+
+    private void ApplyClipboardMonitoring()
+    {
+        if (Settings.General.ClipboardMonitoring)
+        {
+            _clipboardTimer.Start();
+        }
+        else
+        {
+            _clipboardTimer.Stop();
+        }
+    }
+
+    private void OpenSourceUrl()
+    {
+        if (SelectedJob is null)
+        {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = SelectedJob.SourceUrl,
+            UseShellExecute = true,
+        });
+    }
+
+    private void OpenContainingFolder()
+    {
+        if (SelectedJob is null)
+        {
+            return;
+        }
+
+        var path = !string.IsNullOrWhiteSpace(SelectedJob.OutputFilePath)
+            ? SelectedJob.OutputFilePath
+            : SelectedJob.OutputDirectory;
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        if (File.Exists(path))
+        {
+            Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"/select,\"{path}\"", UseShellExecute = true });
+        }
+        else if (Directory.Exists(path))
+        {
+            Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{path}\"", UseShellExecute = true });
+        }
+    }
+
+    private void CopySourceUrl()
+    {
+        if (SelectedJob is not null)
+        {
+            _clipboard.SetText(SelectedJob.SourceUrl);
+            StatusMessage = "Source URL copied to clipboard.";
+        }
+    }
+
+    private void SetAssetSelection(Func<bool, bool> selector)
+    {
+        foreach (var asset in DiscoveredAssets)
+        {
+            asset.IsSelected = selector(asset.IsSelected);
+        }
+    }
+
+    private void SetVisibleAssetSelection(bool selected)
+    {
+        foreach (var item in DiscoveredAssetsView)
+        {
+            if (item is DownloadAssetCandidate asset)
+            {
+                asset.IsSelected = selected;
+            }
+        }
+    }
+
+    private bool FilterAsset(object obj)
+    {
+        if (obj is not DownloadAssetCandidate asset)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(AssetSearchText)
+            && !asset.Name.Contains(AssetSearchText, StringComparison.OrdinalIgnoreCase)
+            && !asset.Url.Contains(AssetSearchText, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return SelectedAssetFilter switch
+        {
+            AssetFilterType.Images => asset.TypeLabel.Equals("Image", StringComparison.OrdinalIgnoreCase),
+            AssetFilterType.Video => asset.TypeLabel.Equals("Video", StringComparison.OrdinalIgnoreCase),
+            AssetFilterType.Audio => asset.TypeLabel.Equals("Audio", StringComparison.OrdinalIgnoreCase),
+            AssetFilterType.Archives => asset.TypeLabel.Equals("Archive", StringComparison.OrdinalIgnoreCase),
+            AssetFilterType.Documents => asset.TypeLabel is "Document" or "Spreadsheet" or "Presentation",
+            AssetFilterType.Executables => asset.TypeLabel.Equals("Executable", StringComparison.OrdinalIgnoreCase),
+            AssetFilterType.CodeTextData => asset.TypeLabel is "Code" or "Text" or "Database",
+            AssetFilterType.Fonts => asset.TypeLabel.Equals("Font", StringComparison.OrdinalIgnoreCase),
+            _ => true,
+        };
+    }
+
+    private IEnumerable<DownloadJob> GetSelection() => SelectedJobs.Count > 0 ? SelectedJobs : SelectedJob is null ? [] : [SelectedJob];
+
+    private void OnJobsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (var item in e.OldItems)
+            {
+                if (item is DownloadJob oldJob)
+                {
+                    oldJob.PropertyChanged -= OnJobPropertyChanged;
+                }
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (var item in e.NewItems)
+            {
+                if (item is DownloadJob newJob)
+                {
+                    newJob.PropertyChanged += OnJobPropertyChanged;
+                }
+            }
+        }
+
+        RefreshStatistics();
+    }
+
+    private void OnJobPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DownloadJob.Status))
+        {
+            RefreshStatistics();
+        }
+    }
+
+    private void OnEventRecorded(object? sender, DownloadEventRecord eventRecord)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null)
+        {
+            return;
+        }
+
+        dispatcher.Invoke(() =>
+        {
+            RecentEvents.Insert(0, eventRecord);
+            while (RecentEvents.Count > 250)
+            {
+                RecentEvents.RemoveAt(RecentEvents.Count - 1);
+            }
+
+            StatusMessage = eventRecord.Message;
+        });
+    }
+
+    private void RefreshStatistics()
+    {
+        _coordinator.RecomputeStatistics();
+        OnPropertyChanged(nameof(QueuedCount));
+        OnPropertyChanged(nameof(ActiveCount));
+        OnPropertyChanged(nameof(PausedCount));
+        OnPropertyChanged(nameof(CompletedCount));
+        OnPropertyChanged(nameof(FailedCount));
+        OnPropertyChanged(nameof(IsQueueRunning));
+    }
+
+    private void UpdateSchedulerStatus()
+    {
+        var start = _scheduler.ScheduledStartAt?.ToLocalTime().ToString("g");
+        var pause = _scheduler.ScheduledPauseAt?.ToLocalTime().ToString("g");
+        SchedulerStatus = start is null && pause is null ? "No active schedule" : $"Start: {start ?? "-"} | Pause: {pause ?? "-"}";
+    }
+
+    private static bool TryBuildDateTimeOffset(DateTime date, string timeText, out DateTimeOffset value)
+    {
+        value = default;
+        if (!TimeSpan.TryParse(timeText, out var time))
+        {
+            return false;
+        }
+
+        var local = new DateTime(date.Year, date.Month, date.Day, time.Hours, time.Minutes, 0, DateTimeKind.Local);
+        value = new DateTimeOffset(local);
+        return true;
+    }
 }

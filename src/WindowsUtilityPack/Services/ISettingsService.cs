@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using WindowsUtilityPack.Services.Downloader;
 
 namespace WindowsUtilityPack.Services;
 
@@ -34,6 +35,9 @@ public class AppSettings
 
     /// <summary>Whether QR exports append a timestamp to suggested filenames.</summary>
     public bool QrCodeIncludeTimestampInFileName { get; set; } = true;
+
+    /// <summary>Persisted settings for the Downloader module.</summary>
+    public DownloaderSettings DownloaderSettings { get; set; } = new();
 }
 
 /// <summary>
