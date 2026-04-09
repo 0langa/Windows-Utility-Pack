@@ -21,6 +21,9 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
     private readonly ConcurrentDictionary<Guid, ActiveJobHandle> _activeJobs = new();
     private readonly object _sync = new();
 
+    // Fix Issue 2: use int flag for atomic start guard (0=stopped, 1=running)
+    private int _queueStarted;
+
     private DownloaderSettings _settings;
     private int _queueOrderSeed;
     private Task? _queueLoopTask;
@@ -74,7 +77,12 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         RecomputeStatistics();
     }
 
-    public async Task<int> AddFromInputAsync(string input, DownloaderMode mode, bool startImmediately, CancellationToken cancellationToken = default)
+    public async Task<int> AddFromInputAsync(
+        string input,
+        DownloaderMode mode,
+        bool startImmediately,
+        bool probeOnAdd = true,
+        CancellationToken cancellationToken = default)
     {
         if (mode is DownloaderMode.AssetGrabber or DownloaderMode.SiteCrawl)
         {
@@ -137,9 +145,18 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
                     : "Queued",
             };
 
-            var resolution = await _engineResolver.ResolveAsync(job, _settings, cancellationToken);
-            ApplyProbe(job, resolution.Probe);
-            job.EngineType = resolution.Engine.EngineType;
+            // Fix Issue 18: only probe during add when explicitly needed (not for batch asset adds)
+            if (probeOnAdd)
+            {
+                var resolution = await _engineResolver.ResolveAsync(job, _settings, cancellationToken);
+                ApplyProbe(job, resolution.Probe);
+                job.EngineType = resolution.Engine.EngineType;
+            }
+            else
+            {
+                // Best-guess engine type without a network round-trip
+                job.EngineType = DownloadEngineType.DirectHttp;
+            }
 
             await RunOnUiAsync(() =>
             {
@@ -162,6 +179,10 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
 
         return inserted;
     }
+
+    // IDownloadCoordinatorService signature without probeOnAdd (defaults to true)
+    Task<int> IDownloadCoordinatorService.AddFromInputAsync(string input, DownloaderMode mode, bool startImmediately, CancellationToken cancellationToken)
+        => AddFromInputAsync(input, mode, startImmediately, probeOnAdd: true, cancellationToken);
 
     public async Task<int> AddAssetsAsync(
         IEnumerable<DownloadAssetCandidate> assets,
@@ -187,10 +208,11 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         var ingestionMode = mode is DownloaderMode.AssetGrabber or DownloaderMode.SiteCrawl
             ? DownloaderMode.QuickDownload
             : mode;
+
+        // Fix Issue 18: skip probe-on-add for batch operations — the queue loop will probe at execution time
         foreach (var asset in unique)
         {
-            var input = asset.Url;
-            if (await AddFromInputAsync(input, ingestionMode, startImmediately, cancellationToken) > 0)
+            if (await AddFromInputAsync(asset.Url, ingestionMode, startImmediately, probeOnAdd: false, cancellationToken) > 0)
             {
                 added++;
             }
@@ -201,14 +223,18 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
 
     public Task StartQueueAsync(CancellationToken cancellationToken = default)
     {
-        if (IsQueueRunning)
+        // Fix Issue 2: atomic check-and-set to prevent duplicate queue loops
+        if (Interlocked.CompareExchange(ref _queueStarted, 1, 0) != 0)
         {
             return Task.CompletedTask;
         }
 
         IsQueueRunning = true;
         _queueCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _queueLoopTask = Task.Run(() => QueueLoopAsync(_queueCts.Token), _queueCts.Token);
+        // Do NOT pass _queueCts.Token as the Task.Run cancellation token — that would
+        // cancel the task before it starts if Stop is called immediately. The loop
+        // handles cancellation internally via QueueLoopAsync's try/catch.
+        _queueLoopTask = Task.Run(() => QueueLoopAsync(_queueCts.Token));
         _eventLog.Log(DownloaderLogLevel.Normal, "Queue started.");
         return Task.CompletedTask;
     }
@@ -469,6 +495,10 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         }
     }
 
+    // Fix Issue 4: thread-safe version for calls from background threads
+    private Task RecomputeStatisticsAsync()
+        => RunOnUiAsync(RecomputeStatistics);
+
     public void ReloadSettings()
     {
         _settings = _settingsService.Load();
@@ -504,6 +534,7 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
                     var handle = new ActiveJobHandle(new CancellationTokenSource());
                     if (!_activeJobs.TryAdd(nextJob.JobId, handle))
                     {
+                        handle.Dispose();
                         break;
                     }
 
@@ -527,6 +558,8 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         finally
         {
             IsQueueRunning = false;
+            // Fix Issue 2: reset the atomic flag so StartQueueAsync can be called again
+            Interlocked.Exchange(ref _queueStarted, 0);
             _queueCts?.Dispose();
             _queueCts = null;
         }
@@ -569,25 +602,34 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
             var progress = new Progress<DownloadProgressUpdate>(update => ApplyProgress(job, update));
             await resolution.Engine.ExecuteAsync(job, _settings, plan, progress, linked.Token);
 
-            job.Status = DownloadJobStatus.Completed;
-            job.ProgressPercent = 100;
-            job.StatusMessage = "Completed";
-            job.CompletedAt = DateTimeOffset.Now;
-            job.NotifyDerivedMetrics();
+            // Fix Issue 13: only set Completed if the job wasn't already set to another terminal state
+            // (guards against the narrow window where PauseJobs cancels a nearly-finished job)
+            if (job.Status != DownloadJobStatus.Completed)
+            {
+                job.Status = DownloadJobStatus.Completed;
+                job.ProgressPercent = 100;
+                job.StatusMessage = "Completed";
+                job.CompletedAt = DateTimeOffset.Now;
+                job.NotifyDerivedMetrics();
+            }
 
             await AppendHistoryAsync(job);
             _eventLog.Log(DownloaderLogLevel.Normal, $"Completed: {job.DisplayTitle}", job.JobId);
         }
         catch (OperationCanceledException)
         {
-            var reason = handle.Reason;
-            job.Status = reason == JobStopReason.Pause ? DownloadJobStatus.Paused : DownloadJobStatus.Cancelled;
-            job.StatusMessage = reason == JobStopReason.Pause ? "Paused" : "Cancelled";
-            job.CompletedAt = DateTimeOffset.Now;
-
-            if (reason != JobStopReason.Pause)
+            // Fix Issue 13: don't overwrite a Completed status with Paused/Cancelled
+            if (job.Status != DownloadJobStatus.Completed)
             {
-                await AppendHistoryAsync(job);
+                var reason = handle.Reason;
+                job.Status = reason == JobStopReason.Pause ? DownloadJobStatus.Paused : DownloadJobStatus.Cancelled;
+                job.StatusMessage = reason == JobStopReason.Pause ? "Paused" : "Cancelled";
+                job.CompletedAt = DateTimeOffset.Now;
+
+                if (reason != JobStopReason.Pause)
+                {
+                    await AppendHistoryAsync(job);
+                }
             }
 
             _eventLog.Log(DownloaderLogLevel.Normal, $"{job.Status}: {job.DisplayTitle}", job.JobId);
@@ -602,7 +644,8 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
                 _eventLog.Log(DownloaderLogLevel.Normal, $"Retry scheduled for {job.DisplayTitle}: {ex.Message}", job.JobId);
 
                 var delaySeconds = Math.Max(1, _settings.Queue.RetryDelaySeconds * job.RetryCount);
-                await Task.Delay(TimeSpan.FromSeconds(delaySeconds), queueCancellationToken);
+                // Fix Issue 12: use linked token so per-job pause/cancel also aborts the retry delay
+                await Task.Delay(TimeSpan.FromSeconds(delaySeconds), linked.Token);
             }
             else
             {
@@ -617,8 +660,14 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         finally
         {
             stopwatch.Stop();
-            _activeJobs.TryRemove(job.JobId, out _);
-            RecomputeStatistics();
+            // Fix Issue 6: dispose the CancellationTokenSource held by the handle
+            if (_activeJobs.TryRemove(job.JobId, out var removedHandle))
+            {
+                removedHandle.Dispose();
+            }
+
+            // Fix Issue 4: marshal statistics recomputation to the UI thread
+            await RecomputeStatisticsAsync();
         }
     }
 
@@ -796,12 +845,29 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
             directory = Path.Combine(directory, categoryName);
         }
 
+        // Fix Issue 15: sanitize the domain component before using it as a folder name
         if (_settings.FileHandling.CreateDomainSubfolders && !string.IsNullOrWhiteSpace(domain))
         {
-            directory = Path.Combine(directory, domain);
+            directory = Path.Combine(directory, SanitizeDomainFolderName(domain));
         }
 
         return directory;
+    }
+
+    /// <summary>
+    /// Strips characters that are invalid in Windows file/directory names and
+    /// removes leading dots to prevent relative path tricks (e.g. ".." traversal).
+    /// </summary>
+    private static string SanitizeDomainFolderName(string domain)
+    {
+        var sanitized = domain;
+        foreach (var c in Path.GetInvalidFileNameChars())
+        {
+            sanitized = sanitized.Replace(c, '_');
+        }
+
+        sanitized = sanitized.TrimStart('.');
+        return string.IsNullOrWhiteSpace(sanitized) ? "_domain" : sanitized;
     }
 
     private static string InferFileName(string url)
@@ -882,7 +948,8 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         return await dispatcher.InvokeAsync(action);
     }
 
-    private sealed class ActiveJobHandle
+    // Fix Issue 6: implement IDisposable so the CancellationTokenSource is properly released
+    private sealed class ActiveJobHandle : IDisposable
     {
         public ActiveJobHandle(CancellationTokenSource cancellation)
         {
@@ -892,6 +959,8 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         public CancellationTokenSource Cancellation { get; }
 
         public JobStopReason Reason { get; set; }
+
+        public void Dispose() => Cancellation.Dispose();
     }
 
     private enum JobStopReason

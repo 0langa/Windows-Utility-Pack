@@ -159,12 +159,37 @@ public class DependencyManagerService : IDependencyManagerService
 
     private async Task DownloadFfmpegAsync(CancellationToken ct)
     {
-        const string url = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
+        // Fix Issue 21: use the GitHub Releases API instead of a hardcoded artifact URL
+        // so the download stays valid across renamed build artefacts.
+        var json = await Http.GetStringAsync(
+            "https://api.github.com/repos/yt-dlp/FFmpeg-Builds/releases/latest", ct);
+
+        var release = JObject.Parse(json);
+        var assets = release["assets"] as JArray
+            ?? throw new InvalidOperationException("No assets found in FFmpeg-Builds release.");
+
+        string? downloadUrl = null;
+        foreach (var asset in assets)
+        {
+            var name = asset["name"]?.ToString() ?? string.Empty;
+            if (name.Contains("win64-gpl", StringComparison.OrdinalIgnoreCase)
+                && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                downloadUrl = asset["browser_download_url"]?.ToString();
+                break;
+            }
+        }
+
+        if (string.IsNullOrEmpty(downloadUrl))
+        {
+            throw new InvalidOperationException("win64-gpl.zip asset not found in FFmpeg-Builds release.");
+        }
+
         var tmpZip = Path.Combine(ToolDir, "ffmpeg.zip.tmp");
 
         try
         {
-            await DownloadToFileAsync(url, tmpZip, ct);
+            await DownloadToFileAsync(downloadUrl, tmpZip, ct);
 
             using var archive = ZipFile.OpenRead(tmpZip);
             foreach (var entry in archive.Entries)

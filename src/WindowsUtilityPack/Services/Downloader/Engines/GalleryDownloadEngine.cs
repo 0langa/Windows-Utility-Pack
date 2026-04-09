@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using WindowsUtilityPack.Services.Downloader;
 using WindowsUtilityPack.Tools.NetworkInternet.Downloader.Models;
 
 namespace WindowsUtilityPack.Services.Downloader.Engines;
@@ -23,13 +24,8 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
             return false;
         }
 
-        var host = uri.Host;
-        return host.Contains("imgur", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("reddit", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("flickr", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("deviantart", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("pixiv", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("tumblr", StringComparison.OrdinalIgnoreCase);
+        // Fix Issue 16: delegate to the centralised host list so engine and ViewModel stay in sync
+        return DownloaderKnownHosts.Matches(uri.Host, DownloaderKnownHosts.GalleryHosts);
     }
 
     public override Task<DownloadProbeResult> ProbeAsync(DownloadJob job, DownloaderSettings settings, CancellationToken cancellationToken)
@@ -113,10 +109,13 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
                 if (line.StartsWith("#", StringComparison.Ordinal))
                 {
                     downloadedFiles++;
+                    // Use soft progress (capped at 99) so the bar is never falsely full
+                    var softPercent = Math.Min(99, downloadedFiles * 5.0);
                     progress.Report(new DownloadProgressUpdate
                     {
                         Status = DownloadJobStatus.Downloading,
-                        StatusMessage = $"Gallery files downloaded: {downloadedFiles}",
+                        ProgressPercent = softPercent,
+                        StatusMessage = $"Downloading gallery file {downloadedFiles}…",
                     });
                 }
 
@@ -127,8 +126,16 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
             }
         }
 
-        await Task.WhenAll(ReadAsync(process.StandardOutput), ReadAsync(process.StandardError));
-        await process.WaitForExitAsync(cancellationToken);
+        try
+        {
+            await Task.WhenAll(ReadAsync(process.StandardOutput), ReadAsync(process.StandardError));
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            try { process.Kill(entireProcessTree: true); } catch { /* best-effort */ }
+            throw;
+        }
 
         if (process.ExitCode != 0)
         {
@@ -145,8 +152,4 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
         });
     }
 
-    private static string QuoteArg(string arg)
-    {
-        return $"\"{arg.Replace("\"", "\\\"")}\"";
-    }
 }
