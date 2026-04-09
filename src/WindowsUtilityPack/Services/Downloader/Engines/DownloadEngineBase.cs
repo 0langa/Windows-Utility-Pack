@@ -56,4 +56,11 @@ public abstract class DownloadEngineBase : IDownloadEngine
 
         return Path.Combine(directory, $"{baseName}-{Guid.NewGuid():N}{ext}");
     }
+
+    /// <summary>
+    /// Wraps an argument in double quotes and escapes any embedded double quotes.
+    /// Fix Issue 16: centralised here to avoid copy-paste across engine subclasses.
+    /// </summary>
+    protected static string QuoteArg(string arg) =>
+        $"\"{arg.Replace("\"", "\\\"")}\"";
 }

@@ -58,6 +58,8 @@ public sealed class DownloaderViewModel : ViewModelBase
     private string _helpContent = string.Empty;
     private bool _isScanning;
     private bool _isInstallingTools;
+    // Fix Issue 10: per-scan CTS so the user can abort a running scan/crawl
+    private CancellationTokenSource? _scanCts;
     private DateTime _scheduledStartDate = DateTime.Today;
     private DateTime _scheduledPauseDate = DateTime.Today;
     private string _scheduledStartTimeText = "23:00";
@@ -644,6 +646,9 @@ public sealed class DownloaderViewModel : ViewModelBase
 
     public AsyncRelayCommand ExportDiagnosticsCommand { get; }
 
+    // Fix Issue 10: lets the user abort an in-progress scan or crawl
+    public RelayCommand CancelScanCommand { get; }
+
     public RelayCommand ClearHistoryCommand { get; }
 
     public AsyncRelayCommand RedownloadHistoryItemCommand { get; }
@@ -794,6 +799,7 @@ public sealed class DownloaderViewModel : ViewModelBase
         SchedulePauseCommand = new RelayCommand(_ => SchedulePause());
         ClearScheduleCommand = new RelayCommand(_ => ClearSchedule());
         ExportDiagnosticsCommand = new AsyncRelayCommand(_ => ExportDiagnosticsAsync());
+        CancelScanCommand = new RelayCommand(_ => _scanCts?.Cancel(), _ => IsScanning);
         ClearHistoryCommand = new RelayCommand(_ => _ = ClearHistoryAsync());
         RedownloadHistoryItemCommand = new AsyncRelayCommand(item => RedownloadHistoryItemAsync(item as DownloadHistoryEntry ?? SelectedHistoryEntry));
         OpenHistoryFileCommand = new RelayCommand(_ => OpenHistoryFile(), _ => SelectedHistoryEntry is not null);
@@ -807,10 +813,19 @@ public sealed class DownloaderViewModel : ViewModelBase
 
     private async Task InitializeAsync()
     {
-        await _coordinator.InitializeAsync();
-        RefreshStatistics();
-        UpdateSchedulerStatus();
-        StatusMessage = DependenciesReady ? "Downloader ready." : "Install downloader tools for media/gallery workflows.";
+        // Fix Issue 19: surface init errors instead of silently swallowing them
+        try
+        {
+            await _coordinator.InitializeAsync();
+            RefreshStatistics();
+            UpdateSchedulerStatus();
+            StatusMessage = DependenciesReady ? "Downloader ready." : "Install downloader tools for media/gallery workflows.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Initialization error: {ex.Message}";
+            _eventLog.Log(DownloaderLogLevel.ErrorsOnly, $"Downloader init failed: {ex.Message}");
+        }
     }
 
     private async Task AddQuickInputAsync(bool startNow)
@@ -1112,11 +1127,16 @@ public sealed class DownloaderViewModel : ViewModelBase
             return;
         }
 
+        // Fix Issue 10: create a per-scan CTS so the user can abort via CancelScanCommand
+        _scanCts?.Dispose();
+        _scanCts = new CancellationTokenSource();
+
         IsScanning = true;
+        RelayCommand.RaiseCanExecuteChanged();
         try
         {
             var progress = new Progress<(int pages, int assets)>(p => ScanStatus = $"Pages: {p.pages}, assets: {p.assets}");
-            var assets = await _assetDiscovery.DiscoverAsync(url, deepCrawl, Settings, progress, CancellationToken.None);
+            var assets = await _assetDiscovery.DiscoverAsync(url, deepCrawl, Settings, progress, _scanCts.Token);
             var existing = DiscoveredAssets.Select(item => item.Url).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var added = 0;
 
@@ -1136,9 +1156,16 @@ public sealed class DownloaderViewModel : ViewModelBase
             OnPropertyChanged(nameof(DiscoveredAssetCount));
             OnPropertyChanged(nameof(SelectedAssetCount));
         }
+        catch (OperationCanceledException)
+        {
+            ScanStatus = deepCrawl ? "Crawl cancelled." : "Scan cancelled.";
+        }
         finally
         {
             IsScanning = false;
+            _scanCts?.Dispose();
+            _scanCts = null;
+            RelayCommand.RaiseCanExecuteChanged();
         }
     }
 
@@ -1228,20 +1255,42 @@ public sealed class DownloaderViewModel : ViewModelBase
 
     private void ScheduleStart()
     {
-        if (TryBuildDateTimeOffset(ScheduledStartDate, ScheduledStartTimeText, out var when))
+        // Fix Issue 17: give the user actionable feedback on bad/past input
+        if (!TryBuildDateTimeOffset(ScheduledStartDate, ScheduledStartTimeText, out var when))
         {
-            _scheduler.ScheduleStart(when);
-            UpdateSchedulerStatus();
+            StatusMessage = "Invalid time format. Use HH:mm (e.g. 23:00).";
+            return;
         }
+
+        if (when <= DateTimeOffset.Now)
+        {
+            StatusMessage = "Scheduled start time is in the past. Choose a future time.";
+            return;
+        }
+
+        _scheduler.ScheduleStart(when);
+        UpdateSchedulerStatus();
+        StatusMessage = $"Queue scheduled to start at {when.ToLocalTime():g}.";
     }
 
     private void SchedulePause()
     {
-        if (TryBuildDateTimeOffset(ScheduledPauseDate, ScheduledPauseTimeText, out var when))
+        // Fix Issue 17: give the user actionable feedback on bad/past input
+        if (!TryBuildDateTimeOffset(ScheduledPauseDate, ScheduledPauseTimeText, out var when))
         {
-            _scheduler.SchedulePause(when);
-            UpdateSchedulerStatus();
+            StatusMessage = "Invalid time format. Use HH:mm (e.g. 23:00).";
+            return;
         }
+
+        if (when <= DateTimeOffset.Now)
+        {
+            StatusMessage = "Scheduled pause time is in the past. Choose a future time.";
+            return;
+        }
+
+        _scheduler.SchedulePause(when);
+        UpdateSchedulerStatus();
+        StatusMessage = $"Queue scheduled to pause at {when.ToLocalTime():g}.";
     }
 
     private void ClearSchedule()
@@ -1268,7 +1317,7 @@ public sealed class DownloaderViewModel : ViewModelBase
             return;
         }
 
-        await _coordinator.StopQueueAsync();
+        // Fix Issue 9: history is independent of active downloads — no need to stop the queue
         await _coordinator.ClearHistoryAsync();
         StatusMessage = "History cleared.";
     }
@@ -1336,11 +1385,16 @@ public sealed class DownloaderViewModel : ViewModelBase
             return;
         }
 
-        Process.Start(new ProcessStartInfo
+        // Fix Issue 14: validate scheme before handing to the shell to prevent
+        // non-http URI handlers (e.g. ms-settings:, file:) being invoked.
+        if (!Uri.TryCreate(SelectedJob.SourceUrl, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            FileName = SelectedJob.SourceUrl,
-            UseShellExecute = true,
-        });
+            StatusMessage = "Cannot open: URL is not http/https.";
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true });
     }
 
     private void OpenContainingFolder()
@@ -1414,10 +1468,20 @@ public sealed class DownloaderViewModel : ViewModelBase
 
     private void OpenHistorySource()
     {
-        if (SelectedHistoryEntry is not null)
+        if (SelectedHistoryEntry is null)
         {
-            Process.Start(new ProcessStartInfo { FileName = SelectedHistoryEntry.SourceUrl, UseShellExecute = true });
+            return;
         }
+
+        // Fix Issue 14: same scheme guard as OpenSourceUrl
+        if (!Uri.TryCreate(SelectedHistoryEntry.SourceUrl, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            StatusMessage = "Cannot open: URL is not http/https.";
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true });
     }
 
     private void CopyHistorySource()
@@ -1537,7 +1601,12 @@ public sealed class DownloaderViewModel : ViewModelBase
         dispatcher.Invoke(() =>
         {
             RecentEvents.Insert(0, eventRecord);
-            while (RecentEvents.Count > 250)
+
+            // Fix Issue 20: remove all excess entries in one pass to avoid O(n²)
+            // behaviour from repeated RemoveAt calls on ObservableCollection.
+            const int MaxEvents = 250;
+            var excess = RecentEvents.Count - MaxEvents;
+            for (var i = 0; i < excess; i++)
             {
                 RecentEvents.RemoveAt(RecentEvents.Count - 1);
             }
@@ -1732,22 +1801,14 @@ public sealed class DownloaderViewModel : ViewModelBase
             return "Media extraction";
         }
 
+        // Fix Issue 16: use the centralised host lists so this stays in sync with the engines
         var host = uri.Host;
-        if (host.Contains("youtube", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("youtu.be", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("vimeo", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("twitch", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("soundcloud", StringComparison.OrdinalIgnoreCase))
+        if (DownloaderKnownHosts.Matches(host, DownloaderKnownHosts.MediaHosts))
         {
             return "Media extraction";
         }
 
-        if (host.Contains("imgur", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("reddit", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("flickr", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("deviantart", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("pixiv", StringComparison.OrdinalIgnoreCase)
-            || host.Contains("tumblr", StringComparison.OrdinalIgnoreCase))
+        if (DownloaderKnownHosts.Matches(host, DownloaderKnownHosts.GalleryHosts))
         {
             return "Gallery/collection";
         }

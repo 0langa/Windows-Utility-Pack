@@ -8,11 +8,29 @@ using WindowsUtilityPack.Tools.NetworkInternet.Downloader.Models;
 namespace WindowsUtilityPack.Services.Downloader.Engines;
 
 /// <summary>Direct HTTP/HTTPS engine with metadata probe, resume support, and segmented downloads.</summary>
-public sealed class DirectHttpDownloadEngine : DownloadEngineBase
+/// <remarks>
+/// Fix Issue 5: A single <see cref="HttpClient"/> is reused for the lifetime of the engine instance
+/// rather than being created per-request, preventing socket exhaustion under concurrent downloads.
+/// </remarks>
+public sealed class DirectHttpDownloadEngine : DownloadEngineBase, IDisposable
 {
     private const int DefaultBufferSize = 1024 * 64;
 
+    // Fix Issue 5: one long-lived client per engine instance; recreated only when settings change
+    private HttpClient? _httpClient;
+    private DownloaderSettings? _lastSettings;
+    private readonly object _clientLock = new();
+
     public override DownloadEngineType EngineType => DownloadEngineType.DirectHttp;
+
+    public void Dispose()
+    {
+        lock (_clientLock)
+        {
+            _httpClient?.Dispose();
+            _httpClient = null;
+        }
+    }
 
     public override bool CanHandle(DownloadJob job, DownloaderSettings settings)
     {
@@ -30,7 +48,7 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
             ResolvedUrl = job.SourceUrl,
         };
 
-        using var client = CreateHttpClient(settings);
+        var client = GetOrCreateClient(settings);
         using var request = new HttpRequestMessage(HttpMethod.Head, job.SourceUrl);
         string? contentType = null;
 
@@ -120,13 +138,15 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
                          && job.IsResumable
                          && !File.Exists(partPath);
 
+        var client = GetOrCreateClient(settings);
+
         if (canSegment)
         {
-            await DownloadSegmentedAsync(job.SourceUrl, partPath, job.TotalBytes!.Value, segmentCount, settings, progress, cancellationToken);
+            await DownloadSegmentedAsync(job.SourceUrl, partPath, job.TotalBytes!.Value, segmentCount, client, settings, progress, cancellationToken);
         }
         else
         {
-            await DownloadSingleAsync(job.SourceUrl, partPath, settings, progress, cancellationToken);
+            await DownloadSingleAsync(job.SourceUrl, partPath, client, settings, progress, cancellationToken);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -148,12 +168,11 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
     private static async Task DownloadSingleAsync(
         string url,
         string outputPath,
+        HttpClient client,
         DownloaderSettings settings,
         IProgress<DownloadProgressUpdate> progress,
         CancellationToken cancellationToken)
     {
-        using var client = CreateHttpClient(settings);
-
         long resumeBytes = 0;
         if (settings.FileHandling.ResumePartialFiles && File.Exists(outputPath))
         {
@@ -190,6 +209,11 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
 
         var buffer = new byte[DefaultBufferSize];
         long downloaded = resumeBytes;
+
+        // Fix Issue 3: track only session bytes for bandwidth throttle math,
+        // so a resume offset does not inflate the expected-elapsed calculation.
+        long sessionDownloaded = 0;
+
         var stopwatch = Stopwatch.StartNew();
         var sampleStopwatch = Stopwatch.StartNew();
         long sampleBytes = 0;
@@ -207,12 +231,15 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
             await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
 
             downloaded += read;
+            sessionDownloaded += read;
             sampleBytes += read;
 
             if (settings.Connections.BandwidthLimitKbps > 0)
             {
+                // Fix Issue 3: use sessionDownloaded (not total downloaded) so resumed
+                // downloads do not compute a massive initial throttle delay.
                 var targetBytesPerSecond = settings.Connections.BandwidthLimitKbps * 1024d / 8d;
-                var expectedElapsed = TimeSpan.FromSeconds(downloaded / targetBytesPerSecond);
+                var expectedElapsed = TimeSpan.FromSeconds(sessionDownloaded / targetBytesPerSecond);
                 var delay = expectedElapsed - stopwatch.Elapsed;
                 if (delay > TimeSpan.FromMilliseconds(25))
                 {
@@ -268,12 +295,11 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
         string outputPath,
         long totalBytes,
         int segmentCount,
+        HttpClient client,
         DownloaderSettings settings,
         IProgress<DownloadProgressUpdate> progress,
         CancellationToken cancellationToken)
     {
-        using var client = CreateHttpClient(settings);
-
         var segmentFiles = new List<string>(segmentCount);
         long downloadedTotal = 0;
         var stopwatch = Stopwatch.StartNew();
@@ -380,7 +406,28 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
         return ranges;
     }
 
-    private static HttpClient CreateHttpClient(DownloaderSettings settings)
+    /// <summary>
+    /// Returns the shared <see cref="HttpClient"/> for this engine instance, recreating it
+    /// only when the relevant connection settings have changed.
+    /// Fix Issue 5: prevents per-request HttpClient creation and socket exhaustion.
+    /// </summary>
+    private HttpClient GetOrCreateClient(DownloaderSettings settings)
+    {
+        lock (_clientLock)
+        {
+            if (_httpClient is not null && ReferenceEquals(_lastSettings, settings))
+            {
+                return _httpClient;
+            }
+
+            _httpClient?.Dispose();
+            _httpClient = BuildHttpClient(settings);
+            _lastSettings = settings;
+            return _httpClient;
+        }
+    }
+
+    private static HttpClient BuildHttpClient(DownloaderSettings settings)
     {
         var handler = new SocketsHttpHandler
         {

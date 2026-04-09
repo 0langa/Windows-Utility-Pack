@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
+using WindowsUtilityPack.Services.Downloader;
 using WindowsUtilityPack.Tools.NetworkInternet.Downloader.Models;
 
 namespace WindowsUtilityPack.Services.Downloader.Engines;
@@ -29,13 +30,8 @@ public sealed partial class MediaDownloadEngine : DownloadEngineBase
             return false;
         }
 
-        var host = uri.Host;
-        return host.Contains("youtube", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("youtu.be", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("vimeo", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("dailymotion", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("twitch", StringComparison.OrdinalIgnoreCase)
-               || host.Contains("soundcloud", StringComparison.OrdinalIgnoreCase);
+        // Fix Issue 16: delegate to the centralised host list so engine and ViewModel stay in sync
+        return DownloaderKnownHosts.Matches(uri.Host, DownloaderKnownHosts.MediaHosts);
     }
 
     public override Task<DownloadProbeResult> ProbeAsync(DownloadJob job, DownloaderSettings settings, CancellationToken cancellationToken)
@@ -208,8 +204,16 @@ public sealed partial class MediaDownloadEngine : DownloadEngineBase
         var stdoutTask = ReadLinesAsync(process.StandardOutput);
         var stderrTask = ReadLinesAsync(process.StandardError);
 
-        await Task.WhenAll(stdoutTask, stderrTask);
-        await process.WaitForExitAsync(cancellationToken);
+        try
+        {
+            await Task.WhenAll(stdoutTask, stderrTask);
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            try { process.Kill(entireProcessTree: true); } catch { /* best-effort */ }
+            throw;
+        }
 
         if (process.ExitCode != 0)
         {
@@ -229,11 +233,6 @@ public sealed partial class MediaDownloadEngine : DownloadEngineBase
             ProgressPercent = 100,
             OutputFilePath = outputPath,
         });
-    }
-
-    private static string QuoteArg(string arg)
-    {
-        return $"\"{arg.Replace("\"", "\\\"")}\"";
     }
 
     private static double TryParseDouble(string value)
