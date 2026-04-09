@@ -76,6 +76,14 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
 
     public async Task<int> AddFromInputAsync(string input, DownloaderMode mode, bool startImmediately, CancellationToken cancellationToken = default)
     {
+        if (mode is DownloaderMode.AssetGrabber or DownloaderMode.SiteCrawl)
+        {
+            _eventLog.Log(
+                DownloaderLogLevel.Normal,
+                "Discovery modes do not download directly. Use Scan Page or Crawl Site, then add discovered items.");
+            return 0;
+        }
+
         var urls = _inputParser.ExtractCandidateUrls(input);
         if (urls.Count == 0)
         {
@@ -116,6 +124,11 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
                     : _settings.Queue.DefaultPriority,
                 OutputDirectory = BuildOutputDirectory(category.Name, uri?.Host),
                 RequestedFileName = InferFileName(url),
+                SelectedProfile = mode == DownloaderMode.MediaDownload
+                    ? _settings.Media.PreferredVideoFormat
+                    : "best",
+                SelectedContainer = "mp4",
+                MediaOutputKind = MediaOutputKind.Video,
                 Status = _settings.General.StageLinksBeforeDownload && !startImmediately
                     ? DownloadJobStatus.Staged
                     : DownloadJobStatus.Queued,
@@ -140,7 +153,8 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
 
         RecomputeStatistics();
 
-        var shouldStart = startImmediately || _settings.General.AutoStartOnAdd;
+        var shouldStart = startImmediately
+            || (_settings.General.AutoStartOnAdd && mode == DownloaderMode.QuickDownload);
         if (shouldStart)
         {
             await StartQueueAsync(cancellationToken);
@@ -170,10 +184,13 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
             .ToList();
 
         var added = 0;
+        var ingestionMode = mode is DownloaderMode.AssetGrabber or DownloaderMode.SiteCrawl
+            ? DownloaderMode.QuickDownload
+            : mode;
         foreach (var asset in unique)
         {
             var input = asset.Url;
-            if (await AddFromInputAsync(input, mode, startImmediately, cancellationToken) > 0)
+            if (await AddFromInputAsync(input, ingestionMode, startImmediately, cancellationToken) > 0)
             {
                 added++;
             }
@@ -344,22 +361,90 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
     public void MoveJobsToTop(IEnumerable<DownloadJob> jobs)
     {
         var selected = jobs.OrderBy(job => job.QueueOrder).ToList();
+        if (selected.Count == 0 || Jobs.Count == 0)
+        {
+            return;
+        }
+
         var baseOrder = Jobs.Min(job => job.QueueOrder) - selected.Count - 1;
 
         for (var i = 0; i < selected.Count; i++)
         {
             selected[i].QueueOrder = baseOrder + i;
         }
+
+        NormalizeQueueOrder();
     }
 
     public void MoveJobsToBottom(IEnumerable<DownloadJob> jobs)
     {
         var selected = jobs.OrderBy(job => job.QueueOrder).ToList();
+        if (selected.Count == 0 || Jobs.Count == 0)
+        {
+            return;
+        }
+
         var baseOrder = Jobs.Max(job => job.QueueOrder) + 1;
 
         for (var i = 0; i < selected.Count; i++)
         {
             selected[i].QueueOrder = baseOrder + i;
+        }
+
+        NormalizeQueueOrder();
+    }
+
+    public void MoveJobsUp(IEnumerable<DownloadJob> jobs)
+    {
+        var selected = jobs.Distinct().OrderBy(job => job.QueueOrder).ToList();
+        if (selected.Count == 0)
+        {
+            return;
+        }
+
+        var queue = Jobs.OrderBy(job => job.QueueOrder).ToList();
+        foreach (var job in selected)
+        {
+            var index = queue.IndexOf(job);
+            if (index <= 0)
+            {
+                continue;
+            }
+
+            (queue[index - 1], queue[index]) = (queue[index], queue[index - 1]);
+        }
+
+        ApplyQueueOrder(queue);
+    }
+
+    public void MoveJobsDown(IEnumerable<DownloadJob> jobs)
+    {
+        var selected = jobs.Distinct().OrderByDescending(job => job.QueueOrder).ToList();
+        if (selected.Count == 0)
+        {
+            return;
+        }
+
+        var queue = Jobs.OrderBy(job => job.QueueOrder).ToList();
+        foreach (var job in selected)
+        {
+            var index = queue.IndexOf(job);
+            if (index < 0 || index >= queue.Count - 1)
+            {
+                continue;
+            }
+
+            (queue[index], queue[index + 1]) = (queue[index + 1], queue[index]);
+        }
+
+        ApplyQueueOrder(queue);
+    }
+
+    public void SetPriority(IEnumerable<DownloadJob> jobs, DownloadPriority priority)
+    {
+        foreach (var job in jobs.Distinct())
+        {
+            job.Priority = priority;
         }
     }
 
@@ -539,18 +624,22 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
 
     private DownloadMediaProfile BuildMediaProfile(DownloadJob job)
     {
+        var audioOnly = job.MediaOutputKind == MediaOutputKind.AudioOnly;
+        var formatExpression = string.IsNullOrWhiteSpace(job.SelectedProfile)
+            ? (audioOnly ? "bestaudio/best" : _settings.Media.PreferredVideoFormat)
+            : job.SelectedProfile;
+
         return new DownloadMediaProfile
         {
             ProfileName = job.SelectedProfile,
-            FormatExpression = string.IsNullOrWhiteSpace(job.SelectedProfile)
-                ? _settings.Media.PreferredVideoFormat
-                : job.SelectedProfile,
-            AudioOnly = job.SelectedProfile.Contains("audio", StringComparison.OrdinalIgnoreCase),
+            FormatExpression = formatExpression,
+            AudioOnly = audioOnly,
             DownloadSubtitles = _settings.Media.DownloadSubtitles,
             DownloadThumbnail = _settings.Media.DownloadThumbnail,
             EmbedMetadata = _settings.Media.EmbedMetadata,
             AllowPlaylist = _settings.Media.AllowPlaylist,
             PreferredAudioFormat = _settings.Media.PreferredAudioFormat,
+            PreferredContainer = string.IsNullOrWhiteSpace(job.SelectedContainer) ? "mp4" : job.SelectedContainer,
         };
     }
 
@@ -561,7 +650,14 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         job.TotalBytes = probe.TotalBytes;
         job.IsResumable = probe.SupportsResume;
         job.SegmentCount = Math.Clamp(probe.SuggestedSegments, 1, 8);
-        job.SelectedProfile = string.IsNullOrWhiteSpace(probe.SelectedProfile) ? _settings.Media.PreferredVideoFormat : probe.SelectedProfile;
+        job.SelectedProfile = string.IsNullOrWhiteSpace(probe.SelectedProfile)
+            ? (job.MediaOutputKind == MediaOutputKind.AudioOnly ? "bestaudio/best" : _settings.Media.PreferredVideoFormat)
+            : probe.SelectedProfile;
+        job.EffectivePlan = job.Mode == DownloaderMode.MediaDownload
+            ? job.MediaOutputKind == MediaOutputKind.AudioOnly
+                ? $"Audio only: {job.SelectedContainer.ToUpperInvariant()} ({_settings.Media.PreferredAudioFormat.ToUpperInvariant()})"
+                : $"Video: {job.SelectedContainer.ToUpperInvariant()} ({job.SelectedProfile})"
+            : $"Direct: {job.RequestedFileName}";
 
         if (!string.IsNullOrWhiteSpace(probe.SuggestedFileName))
         {
@@ -712,11 +808,19 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
-            return "download.bin";
+            return $"download-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.dat";
         }
 
         var fileName = Path.GetFileName(uri.LocalPath);
-        return string.IsNullOrWhiteSpace(fileName) ? "download.bin" : fileName;
+        if (!string.IsNullOrWhiteSpace(fileName))
+        {
+            return fileName;
+        }
+
+        var host = uri.Host.Replace(".", "-", StringComparison.Ordinal);
+        return string.IsNullOrWhiteSpace(host)
+            ? $"download-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.dat"
+            : $"{host}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.dat";
     }
 
     private static string GetExtension(string url)
@@ -727,6 +831,20 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         }
 
         return Path.GetExtension(uri.LocalPath);
+    }
+
+    private static void ApplyQueueOrder(IReadOnlyList<DownloadJob> orderedJobs)
+    {
+        for (var i = 0; i < orderedJobs.Count; i++)
+        {
+            orderedJobs[i].QueueOrder = i + 1;
+        }
+    }
+
+    private void NormalizeQueueOrder()
+    {
+        var ordered = Jobs.OrderBy(job => job.QueueOrder).ToList();
+        ApplyQueueOrder(ordered);
     }
 
     private void OnScheduledActionTriggered(object? sender, DownloaderScheduledAction action)

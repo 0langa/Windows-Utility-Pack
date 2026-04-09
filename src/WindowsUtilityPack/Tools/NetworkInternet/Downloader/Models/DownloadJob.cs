@@ -21,6 +21,9 @@ public sealed class DownloadJob : ViewModelBase
     private string _errorSummary = string.Empty;
     private string _outputFilePath = string.Empty;
     private DownloadPriority _priority = DownloadPriority.Normal;
+    private MediaOutputKind _mediaOutputKind = MediaOutputKind.Video;
+    private string _effectivePlan = string.Empty;
+    private int _queueOrder;
 
     public Guid JobId { get; init; } = Guid.NewGuid();
 
@@ -42,6 +45,8 @@ public sealed class DownloadJob : ViewModelBase
 
     public string SelectedProfile { get; set; } = "best";
 
+    public string SelectedContainer { get; set; } = "mp4";
+
     public bool IsResumable { get; set; }
 
     public int SegmentCount { get; set; } = 1;
@@ -50,7 +55,11 @@ public sealed class DownloadJob : ViewModelBase
 
     public string DetailedLogPath { get; set; } = string.Empty;
 
-    public int QueueOrder { get; set; }
+    public int QueueOrder
+    {
+        get => _queueOrder;
+        set => SetProperty(ref _queueOrder, value);
+    }
 
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.Now;
 
@@ -148,6 +157,18 @@ public sealed class DownloadJob : ViewModelBase
     {
         get => _priority;
         set => SetProperty(ref _priority, value);
+    }
+
+    public MediaOutputKind MediaOutputKind
+    {
+        get => _mediaOutputKind;
+        set => SetProperty(ref _mediaOutputKind, value);
+    }
+
+    public string EffectivePlan
+    {
+        get => _effectivePlan;
+        set => SetProperty(ref _effectivePlan, value ?? string.Empty);
     }
 
     public string ProgressLabel => TotalBytes is > 0

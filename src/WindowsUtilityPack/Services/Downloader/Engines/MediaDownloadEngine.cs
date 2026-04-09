@@ -118,6 +118,11 @@ public sealed partial class MediaDownloadEngine : DownloadEngineBase
                 ? settings.Media.PreferredAudioFormat
                 : profile.PreferredAudioFormat));
         }
+        else if (!string.IsNullOrWhiteSpace(profile.PreferredContainer))
+        {
+            args.Add("--merge-output-format");
+            args.Add(QuoteArg(profile.PreferredContainer));
+        }
 
         if (!string.IsNullOrWhiteSpace(settings.Connections.CookieFilePath) && File.Exists(settings.Connections.CookieFilePath))
         {

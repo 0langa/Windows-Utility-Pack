@@ -57,6 +57,7 @@ public sealed class AssetDiscoveryService : IAssetDiscoveryService
                 Url = asset.Url,
                 Extension = asset.FileExtension,
                 SourcePage = asset.SourcePageUrl,
+                Host = ExtractHost(asset.Url),
                 PackageTitle = BuildPackageTitle(asset.SourcePageUrl),
                 TypeLabel = asset.TypeLabel,
                 SizeBytes = asset.FileSizeBytes > 0 ? asset.FileSizeBytes : null,
@@ -133,5 +134,12 @@ public sealed class AssetDiscoveryService : IAssetDiscoveryService
         }
 
         return "Asset Package";
+    }
+
+    private static string ExtractHost(string url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            ? uri.Host
+            : string.Empty;
     }
 }

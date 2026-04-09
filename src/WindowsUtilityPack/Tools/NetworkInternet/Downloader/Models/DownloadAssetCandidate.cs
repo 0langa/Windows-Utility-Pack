@@ -18,6 +18,8 @@ public sealed class DownloadAssetCandidate : ViewModelBase
 
     public string SourcePage { get; set; } = string.Empty;
 
+    public string Host { get; set; } = string.Empty;
+
     public string PackageTitle { get; set; } = string.Empty;
 
     public string TypeLabel { get; set; } = "Other";

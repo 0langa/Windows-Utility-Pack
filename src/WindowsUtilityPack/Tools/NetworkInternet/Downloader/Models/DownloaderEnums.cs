@@ -9,6 +9,13 @@ public enum DownloaderMode
     SiteCrawl,
 }
 
+/// <summary>Explicit output intent for media workflows.</summary>
+public enum MediaOutputKind
+{
+    Video,
+    AudioOnly,
+}
+
 /// <summary>Resolved engine type used to process a download job.</summary>
 public enum DownloadEngineType
 {

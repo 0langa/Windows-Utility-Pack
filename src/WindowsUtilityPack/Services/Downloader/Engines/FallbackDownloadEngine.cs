@@ -14,10 +14,18 @@ public sealed class FallbackDownloadEngine : DownloadEngineBase
 
     public override DownloadEngineType EngineType => DownloadEngineType.Fallback;
 
-    public override bool CanHandle(DownloadJob job, DownloaderSettings settings) => true;
+    public override bool CanHandle(DownloadJob job, DownloaderSettings settings)
+    {
+        return job.Mode is DownloaderMode.QuickDownload or DownloaderMode.MediaDownload;
+    }
 
     public override Task<DownloadProbeResult> ProbeAsync(DownloadJob job, DownloaderSettings settings, CancellationToken cancellationToken)
     {
+        if (!_direct.CanHandle(job, settings))
+        {
+            throw new InvalidOperationException("Fallback direct download is not valid for discovery modes.");
+        }
+
         return _direct.ProbeAsync(job, settings, cancellationToken);
     }
 
@@ -28,6 +36,11 @@ public sealed class FallbackDownloadEngine : DownloadEngineBase
         IProgress<DownloadProgressUpdate> progress,
         CancellationToken cancellationToken)
     {
+        if (!_direct.CanHandle(job, settings))
+        {
+            throw new InvalidOperationException("Fallback direct download is not valid for discovery modes.");
+        }
+
         return _direct.ExecuteAsync(job, settings, plan, progress, cancellationToken);
     }
 }

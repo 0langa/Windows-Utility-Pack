@@ -128,6 +128,12 @@ public interface IDownloadCoordinatorService
 
     void MoveJobsToBottom(IEnumerable<DownloadJob> jobs);
 
+    void MoveJobsUp(IEnumerable<DownloadJob> jobs);
+
+    void MoveJobsDown(IEnumerable<DownloadJob> jobs);
+
+    void SetPriority(IEnumerable<DownloadJob> jobs, DownloadPriority priority);
+
     void RecomputeStatistics();
 
     void ReloadSettings();

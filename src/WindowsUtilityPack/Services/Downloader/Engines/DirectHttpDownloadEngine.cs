@@ -32,10 +32,12 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
 
         using var client = CreateHttpClient(settings);
         using var request = new HttpRequestMessage(HttpMethod.Head, job.SourceUrl);
+        string? contentType = null;
 
         try
         {
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            contentType = response.Content.Headers.ContentType?.MediaType;
 
             if (response.Headers.Location is not null)
             {
@@ -51,7 +53,9 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
                 ?? response.Content.Headers.ContentDisposition?.FileName
                 ?? Path.GetFileName(new Uri(result.ResolvedUrl).LocalPath);
 
-            fileName = string.IsNullOrWhiteSpace(fileName) ? "download.bin" : fileName.Trim('"');
+            fileName = string.IsNullOrWhiteSpace(fileName)
+                ? BuildFallbackFileName(result.ResolvedUrl, contentType)
+                : fileName.Trim('"');
             result.SuggestedFileName = SanitizeFileName(fileName);
 
             if (result.TotalBytes is > 0 && result.SupportsResume)
@@ -67,8 +71,7 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
         }
         catch
         {
-            var fallbackName = GetFileNameFromUrl(job.SourceUrl);
-            result.SuggestedFileName = SanitizeFileName(string.IsNullOrWhiteSpace(fallbackName) ? "download.bin" : fallbackName);
+            result.SuggestedFileName = SanitizeFileName(BuildFallbackFileName(job.SourceUrl, contentType));
             result.DisplayTitle = result.SuggestedFileName;
             result.SuggestedSegments = 1;
         }
@@ -437,5 +440,36 @@ public sealed class DirectHttpDownloadEngine : DownloadEngineBase
         }
 
         return string.Empty;
+    }
+
+    private static string BuildFallbackFileName(string url, string? contentType)
+    {
+        var urlFileName = GetFileNameFromUrl(url);
+        if (!string.IsNullOrWhiteSpace(urlFileName))
+        {
+            return urlFileName;
+        }
+
+        var extension = contentType switch
+        {
+            "text/html" => ".html",
+            "application/json" => ".json",
+            "text/plain" => ".txt",
+            "application/pdf" => ".pdf",
+            "image/png" => ".png",
+            "image/jpeg" => ".jpg",
+            "image/webp" => ".webp",
+            "audio/mpeg" => ".mp3",
+            "video/mp4" => ".mp4",
+            _ => ".dat",
+        };
+
+        var hostPrefix = "download";
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && !string.IsNullOrWhiteSpace(uri.Host))
+        {
+            hostPrefix = uri.Host.Replace(".", "-", StringComparison.Ordinal);
+        }
+
+        return $"{hostPrefix}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}{extension}";
     }
 }

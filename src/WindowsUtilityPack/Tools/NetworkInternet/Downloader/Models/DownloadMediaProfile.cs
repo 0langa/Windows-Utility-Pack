@@ -18,4 +18,6 @@ public sealed class DownloadMediaProfile
     public bool AllowPlaylist { get; set; }
 
     public string PreferredAudioFormat { get; set; } = "mp3";
+
+    public string PreferredContainer { get; set; } = "mp4";
 }
