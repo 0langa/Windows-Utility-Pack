@@ -82,6 +82,18 @@ public sealed class DownloaderMediaSettings
 
     public string PreferredAudioFormat { get; set; } = "mp3";
 
+    public string PreferredYouTubeVideoQuality { get; set; } = "1080p (Full HD)";
+
+    public string PreferredYouTubeFrameRate { get; set; } = "Up to 60 fps";
+
+    public string PreferredYouTubeVideoCodec { get; set; } = "Any codec";
+
+    public string PreferredYouTubeAudioQuality { get; set; } = "Best available";
+
+    public string PreferredYouTubeAudioCodec { get; set; } = "Best available";
+
+    public string PreferredYouTubeContainer { get; set; } = "mp4";
+
     public bool DownloadSubtitles { get; set; }
 
     public bool DownloadThumbnail { get; set; }

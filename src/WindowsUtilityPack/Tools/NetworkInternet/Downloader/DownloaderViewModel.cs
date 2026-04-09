@@ -29,11 +29,13 @@ public sealed class DownloaderViewModel : ViewModelBase
 
     private string _quickInput = string.Empty;
     private string _mediaInput = string.Empty;
+    private string _youtubeInput = string.Empty;
     private string _scanUrl = string.Empty;
     private string _crawlUrl = string.Empty;
     private string _statusMessage = "Ready";
     private string _quickDetectionSummary = "Paste links and choose Add to Queue or Download Now.";
     private string _mediaAnalysisSummary = "Paste media URL and click Analyze Media.";
+    private string _youtubeAnalysisSummary = "Paste YouTube URL, pick quality, then Analyze or Download.";
     private string _scanStatus = string.Empty;
     private string _assetSearchText = string.Empty;
     private AssetFilterType _selectedAssetFilter = AssetFilterType.All;
@@ -42,6 +44,12 @@ public sealed class DownloaderViewModel : ViewModelBase
     private string _selectedMediaVideoProfile = "bestvideo+bestaudio/best";
     private string _selectedMediaAudioFormat = "mp3";
     private string _selectedMediaContainer = "mp4";
+    private string _selectedYoutubeVideoQuality = "1080p (Full HD)";
+    private string _selectedYoutubeFrameRate = "Up to 60 fps";
+    private string _selectedYoutubeVideoCodec = "Any codec";
+    private string _selectedYoutubeAudioQuality = "Best available";
+    private string _selectedYoutubeAudioCodec = "Best available";
+    private string _selectedYoutubeContainer = "mp4";
     private DownloadJob? _selectedJob;
     private DownloadHistoryEntry? _selectedHistoryEntry;
     private DownloadCategoryRule? _selectedCategoryRule;
@@ -126,10 +134,54 @@ public sealed class DownloaderViewModel : ViewModelBase
         "webm",
     ];
 
+    public IReadOnlyList<string> YoutubeVideoQualities { get; } =
+    [
+        "Best available",
+        "2160p (4K)",
+        "1440p",
+        "1080p (Full HD)",
+        "720p (HD)",
+        "480p",
+        "360p",
+    ];
+
+    public IReadOnlyList<string> YoutubeFrameRates { get; } =
+    [
+        "Any",
+        "Up to 60 fps",
+        "Up to 30 fps",
+    ];
+
+    public IReadOnlyList<string> YoutubeVideoCodecs { get; } =
+    [
+        "Any codec",
+        "H.264 (AVC)",
+        "VP9",
+        "AV1",
+    ];
+
+    public IReadOnlyList<string> YoutubeAudioQualities { get; } =
+    [
+        "Best available",
+        "High (~256 kbps)",
+        "Balanced (~192 kbps)",
+        "Compact (~128 kbps)",
+        "Small (~96 kbps)",
+    ];
+
+    public IReadOnlyList<string> YoutubeAudioCodecs { get; } =
+    [
+        "Best available",
+        "M4A (AAC)",
+        "Opus",
+        "Vorbis",
+    ];
+
     public ObservableCollection<string> HelpTopics { get; } =
     [
         "Start Here: Workflow Overview",
         "Quick direct file download",
+        "YouTube quality tab",
         "Download a YouTube video as video",
         "Extract audio intentionally",
         "Scan a page for assets",
@@ -156,6 +208,12 @@ public sealed class DownloaderViewModel : ViewModelBase
     {
         get => _mediaInput;
         set => SetProperty(ref _mediaInput, value);
+    }
+
+    public string YoutubeInput
+    {
+        get => _youtubeInput;
+        set => SetProperty(ref _youtubeInput, value);
     }
 
     public string ScanUrl
@@ -186,6 +244,12 @@ public sealed class DownloaderViewModel : ViewModelBase
     {
         get => _mediaAnalysisSummary;
         set => SetProperty(ref _mediaAnalysisSummary, value);
+    }
+
+    public string YoutubeAnalysisSummary
+    {
+        get => _youtubeAnalysisSummary;
+        set => SetProperty(ref _youtubeAnalysisSummary, value);
     }
 
     public string ScanStatus
@@ -268,6 +332,78 @@ public sealed class DownloaderViewModel : ViewModelBase
             if (SetProperty(ref _selectedMediaContainer, value))
             {
                 UpdateMediaPlanSummary();
+            }
+        }
+    }
+
+    public string SelectedYoutubeVideoQuality
+    {
+        get => _selectedYoutubeVideoQuality;
+        set
+        {
+            if (SetProperty(ref _selectedYoutubeVideoQuality, value))
+            {
+                UpdateYoutubePlanSummary();
+            }
+        }
+    }
+
+    public string SelectedYoutubeFrameRate
+    {
+        get => _selectedYoutubeFrameRate;
+        set
+        {
+            if (SetProperty(ref _selectedYoutubeFrameRate, value))
+            {
+                UpdateYoutubePlanSummary();
+            }
+        }
+    }
+
+    public string SelectedYoutubeVideoCodec
+    {
+        get => _selectedYoutubeVideoCodec;
+        set
+        {
+            if (SetProperty(ref _selectedYoutubeVideoCodec, value))
+            {
+                UpdateYoutubePlanSummary();
+            }
+        }
+    }
+
+    public string SelectedYoutubeAudioQuality
+    {
+        get => _selectedYoutubeAudioQuality;
+        set
+        {
+            if (SetProperty(ref _selectedYoutubeAudioQuality, value))
+            {
+                UpdateYoutubePlanSummary();
+            }
+        }
+    }
+
+    public string SelectedYoutubeAudioCodec
+    {
+        get => _selectedYoutubeAudioCodec;
+        set
+        {
+            if (SetProperty(ref _selectedYoutubeAudioCodec, value))
+            {
+                UpdateYoutubePlanSummary();
+            }
+        }
+    }
+
+    public string SelectedYoutubeContainer
+    {
+        get => _selectedYoutubeContainer;
+        set
+        {
+            if (SetProperty(ref _selectedYoutubeContainer, value))
+            {
+                UpdateYoutubePlanSummary();
             }
         }
     }
@@ -411,6 +547,14 @@ public sealed class DownloaderViewModel : ViewModelBase
     public AsyncRelayCommand AnalyzeMediaCommand { get; }
 
     public RelayCommand ResetMediaDefaultsCommand { get; }
+
+    public AsyncRelayCommand AnalyzeYoutubeCommand { get; }
+
+    public AsyncRelayCommand AddYoutubeToQueueCommand { get; }
+
+    public AsyncRelayCommand DownloadYoutubeNowCommand { get; }
+
+    public RelayCommand ResetYoutubeDefaultsCommand { get; }
 
     public AsyncRelayCommand ImportLinksCommand { get; }
 
@@ -559,7 +703,26 @@ public sealed class DownloaderViewModel : ViewModelBase
         SelectedMediaContainer = MediaContainers.Contains(SelectedMediaContainer, StringComparer.OrdinalIgnoreCase)
             ? SelectedMediaContainer
             : "mp4";
+        SelectedYoutubeVideoQuality = string.IsNullOrWhiteSpace(Settings.Media.PreferredYouTubeVideoQuality)
+            ? "1080p (Full HD)"
+            : Settings.Media.PreferredYouTubeVideoQuality;
+        SelectedYoutubeFrameRate = string.IsNullOrWhiteSpace(Settings.Media.PreferredYouTubeFrameRate)
+            ? "Up to 60 fps"
+            : Settings.Media.PreferredYouTubeFrameRate;
+        SelectedYoutubeVideoCodec = string.IsNullOrWhiteSpace(Settings.Media.PreferredYouTubeVideoCodec)
+            ? "Any codec"
+            : Settings.Media.PreferredYouTubeVideoCodec;
+        SelectedYoutubeAudioQuality = string.IsNullOrWhiteSpace(Settings.Media.PreferredYouTubeAudioQuality)
+            ? "Best available"
+            : Settings.Media.PreferredYouTubeAudioQuality;
+        SelectedYoutubeAudioCodec = string.IsNullOrWhiteSpace(Settings.Media.PreferredYouTubeAudioCodec)
+            ? "Best available"
+            : Settings.Media.PreferredYouTubeAudioCodec;
+        SelectedYoutubeContainer = MediaContainers.Contains(Settings.Media.PreferredYouTubeContainer, StringComparer.OrdinalIgnoreCase)
+            ? Settings.Media.PreferredYouTubeContainer
+            : "mp4";
         UpdateMediaPlanSummary();
+        UpdateYoutubePlanSummary();
         SelectedHelpTopic = HelpTopics.FirstOrDefault();
 
         DiscoveredAssetsView = CollectionViewSource.GetDefaultView(DiscoveredAssets);
@@ -583,6 +746,10 @@ public sealed class DownloaderViewModel : ViewModelBase
         DownloadMediaNowCommand = new AsyncRelayCommand(_ => AddMediaInputAsync(startNow: true));
         AnalyzeMediaCommand = new AsyncRelayCommand(_ => AnalyzeMediaAsync());
         ResetMediaDefaultsCommand = new RelayCommand(_ => ResetMediaDefaults());
+        AnalyzeYoutubeCommand = new AsyncRelayCommand(_ => AnalyzeYoutubeAsync());
+        AddYoutubeToQueueCommand = new AsyncRelayCommand(_ => AddYoutubeInputAsync(startNow: false));
+        DownloadYoutubeNowCommand = new AsyncRelayCommand(_ => AddYoutubeInputAsync(startNow: true));
+        ResetYoutubeDefaultsCommand = new RelayCommand(_ => ResetYoutubeDefaults());
         ImportLinksCommand = new AsyncRelayCommand(_ => ImportLinksAsync());
         PasteClipboardCommand = new AsyncRelayCommand(_ => PasteClipboardAsync());
         InstallToolsCommand = new AsyncRelayCommand(_ => InstallToolsAsync());
@@ -726,6 +893,72 @@ public sealed class DownloaderViewModel : ViewModelBase
             : $"Workflow: {PredictWorkflow(url, DownloaderMode.MediaDownload)} | Video ({SelectedMediaContainer.ToUpperInvariant()}, {SelectedMediaVideoProfile})";
     }
 
+    private async Task AddYoutubeInputAsync(bool startNow)
+    {
+        var urls = ExtractNormalizedUrls(YoutubeInput);
+        if (urls.Count == 0)
+        {
+            StatusMessage = "Enter one or more valid YouTube URLs.";
+            return;
+        }
+
+        var youtubeUrls = urls.Where(YouTubeDownloadPlanBuilder.IsYouTubeUrl).ToList();
+        if (youtubeUrls.Count == 0)
+        {
+            StatusMessage = "This tab accepts youtube.com or youtu.be links only.";
+            return;
+        }
+
+        SaveSettings();
+
+        var existing = Jobs.Select(job => job.JobId).ToHashSet();
+        var addInput = string.Join(Environment.NewLine, youtubeUrls);
+        var added = await _coordinator.AddFromInputAsync(addInput, DownloaderMode.MediaDownload, startImmediately: false);
+
+        foreach (var job in Jobs.Where(job => !existing.Contains(job.JobId) && job.Mode == DownloaderMode.MediaDownload))
+        {
+            if (!YouTubeDownloadPlanBuilder.IsYouTubeUrl(job.SourceUrl))
+            {
+                continue;
+            }
+
+            ApplyYouTubeSelection(job, startNow || Settings.General.AutoStartOnAdd);
+        }
+
+        if (startNow || Settings.General.AutoStartOnAdd)
+        {
+            await _coordinator.StartQueueAsync();
+        }
+
+        RefreshStatistics();
+        await AnalyzeYoutubeAsync();
+
+        var ignored = urls.Count - youtubeUrls.Count;
+        StatusMessage = added == 0
+            ? "No new YouTube links were added."
+            : startNow
+                ? $"Added {added} YouTube item(s) and started queue{FormatIgnoredMessage(ignored)}."
+                : $"Added {added} YouTube item(s) to queue{FormatIgnoredMessage(ignored)}.";
+    }
+
+    private async Task AnalyzeYoutubeAsync()
+    {
+        await Task.Yield();
+        if (!TryExtractFirstNormalizedUrl(YoutubeInput, out var url))
+        {
+            YoutubeAnalysisSummary = "Paste a valid youtube.com or youtu.be link.";
+            return;
+        }
+
+        if (!YouTubeDownloadPlanBuilder.IsYouTubeUrl(url))
+        {
+            YoutubeAnalysisSummary = "Detected non-YouTube link. This tab is optimized for YouTube only.";
+            return;
+        }
+
+        YoutubeAnalysisSummary = YouTubeDownloadPlanBuilder.BuildSummary(BuildYouTubeOptions());
+    }
+
     private async Task ImportLinksAsync()
     {
         var path = _fileDialog.PickImportListFile();
@@ -832,6 +1065,21 @@ public sealed class DownloaderViewModel : ViewModelBase
         }
     }
 
+    private void ApplyYouTubeSelection(DownloadJob job, bool queueNow)
+    {
+        var options = BuildYouTubeOptions();
+        job.MediaOutputKind = MediaOutputKind.Video;
+        job.SelectedContainer = string.IsNullOrWhiteSpace(options.Container) ? "mp4" : options.Container;
+        job.SelectedProfile = YouTubeDownloadPlanBuilder.BuildFormatExpression(options);
+        job.EffectivePlan = YouTubeDownloadPlanBuilder.BuildSummary(options);
+
+        if (queueNow && job.Status is DownloadJobStatus.Staged or DownloadJobStatus.Paused)
+        {
+            job.Status = DownloadJobStatus.Queued;
+            job.StatusMessage = "Queued";
+        }
+    }
+
     private void ResetMediaDefaults()
     {
         SelectedMediaOutputKind = MediaOutputKind.Video;
@@ -843,6 +1091,17 @@ public sealed class DownloaderViewModel : ViewModelBase
         Settings.Media.EmbedMetadata = true;
         Settings.Media.AllowPlaylist = false;
         UpdateMediaPlanSummary();
+    }
+
+    private void ResetYoutubeDefaults()
+    {
+        SelectedYoutubeVideoQuality = "1080p (Full HD)";
+        SelectedYoutubeFrameRate = "Up to 60 fps";
+        SelectedYoutubeVideoCodec = "Any codec";
+        SelectedYoutubeAudioQuality = "Best available";
+        SelectedYoutubeAudioCodec = "Best available";
+        SelectedYoutubeContainer = "mp4";
+        UpdateYoutubePlanSummary();
     }
 
     private async Task DiscoverAssetsAsync(string inputUrl, bool deepCrawl)
@@ -907,6 +1166,14 @@ public sealed class DownloaderViewModel : ViewModelBase
         Settings.Media.PreferredAudioFormat = string.IsNullOrWhiteSpace(SelectedMediaAudioFormat)
             ? "mp3"
             : SelectedMediaAudioFormat;
+        Settings.Media.PreferredYouTubeVideoQuality = SelectedYoutubeVideoQuality;
+        Settings.Media.PreferredYouTubeFrameRate = SelectedYoutubeFrameRate;
+        Settings.Media.PreferredYouTubeVideoCodec = SelectedYoutubeVideoCodec;
+        Settings.Media.PreferredYouTubeAudioQuality = SelectedYoutubeAudioQuality;
+        Settings.Media.PreferredYouTubeAudioCodec = SelectedYoutubeAudioCodec;
+        Settings.Media.PreferredYouTubeContainer = string.IsNullOrWhiteSpace(SelectedYoutubeContainer)
+            ? "mp4"
+            : SelectedYoutubeContainer;
         Settings.Categories = CategoryRules.Select(CloneRule).ToList();
         _settingsService.Save(Settings);
         _coordinator.ReloadSettings();
@@ -1322,6 +1589,24 @@ public sealed class DownloaderViewModel : ViewModelBase
             : $"Planned output: Video ({SelectedMediaContainer.ToUpperInvariant()}, {SelectedMediaVideoProfile})";
     }
 
+    private void UpdateYoutubePlanSummary()
+    {
+        YoutubeAnalysisSummary = YouTubeDownloadPlanBuilder.BuildSummary(BuildYouTubeOptions());
+    }
+
+    private YouTubeDownloadOptions BuildYouTubeOptions()
+    {
+        return new YouTubeDownloadOptions
+        {
+            VideoQuality = SelectedYoutubeVideoQuality,
+            FrameRate = SelectedYoutubeFrameRate,
+            VideoCodec = SelectedYoutubeVideoCodec,
+            AudioQuality = SelectedYoutubeAudioQuality,
+            AudioCodec = SelectedYoutubeAudioCodec,
+            Container = string.IsNullOrWhiteSpace(SelectedYoutubeContainer) ? "mp4" : SelectedYoutubeContainer,
+        };
+    }
+
     private void SelectHelpTopic(string? topic)
     {
         if (string.IsNullOrWhiteSpace(topic))
@@ -1331,8 +1616,9 @@ public sealed class DownloaderViewModel : ViewModelBase
 
         HelpContent = topic switch
         {
-            "Start Here: Workflow Overview" => "Downloader Studio has seven workspaces:\n\n1) Quick Download\nDirect file and mixed URL input. Fast add/start with auto engine selection.\n\n2) Queue Manager\nMain control center for live jobs: start/pause/stop, retry, reorder, priority, inspector.\n\n3) Media Download\nExplicit media workflow. Video is the default output. Audio-only must be selected manually.\n\n4) Asset Grabber\nScan one page, review staged assets, select items, then queue/download selected.\n\n5) Site Crawl\nControlled multi-page discovery with scope limits (domain, depth, max pages, workers).\n\n6) History & Diagnostics\nReview completed/failed jobs, redownload, open source/file/folder, inspect recent events.\n\n7) Settings, Rules & Help\nPersist behavior, manage category rules, scheduler, and troubleshooting guidance.\n\nExpected result:\n- You always know what action will happen in each tab.\n- Discovery tabs stage results first; they do not silently do fallback direct downloads.",
+            "Start Here: Workflow Overview" => "Downloader Studio has eight workspaces:\n\n1) Quick Download\nDirect file and mixed URL input. Fast add/start with auto engine selection.\n\n2) Queue Manager\nMain control center for live jobs: start/pause/stop, retry, reorder, priority, inspector.\n\n3) Media Download\nExplicit media workflow. Video is the default output. Audio-only must be selected manually.\n\n4) YouTube Video\nFocused YouTube flow with clear quality controls for video resolution/FPS/codec and audio quality/codec.\n\n5) Asset Grabber\nScan one page, review staged assets, select items, then queue/download selected.\n\n6) Site Crawl\nControlled multi-page discovery with scope limits (domain, depth, max pages, workers).\n\n7) History & Diagnostics\nReview completed/failed jobs, redownload, open source/file/folder, inspect recent events.\n\n8) Settings, Rules & Help\nPersist behavior, manage category rules, scheduler, and troubleshooting guidance.\n\nExpected result:\n- You always know what action will happen in each tab.\n- Discovery tabs stage results first; they do not silently do fallback direct downloads.",
             "Quick direct file download" => "Steps:\n1) Open Quick Download.\n2) Paste one or multiple URLs.\n3) Click Analyze Input to preview detected workflow.\n4) Click Add to Queue for staged processing or Download Now for immediate start.\n\nWhat works here:\n- Multi-line and noisy input parsing.\n- URL normalization (including www.* links).\n- Auto engine routing for quick mode.\n\nExpected result:\n- Status bar confirms added item count.\n- New jobs appear in Queue Manager with clear Engine/Status/Plan.",
+            "YouTube quality tab" => "Steps:\n1) Open YouTube Video.\n2) Paste one or more YouTube links.\n3) Choose video quality, FPS, video codec, audio quality, audio codec, and container.\n4) Click Analyze YouTube.\n5) Click Add to Queue or Download Now.\n\nWhat this tab guarantees:\n- YouTube-only routing (non-YouTube links are ignored).\n- Explicit quality plan shown before start.\n- Output stays video-focused with selected quality profile.\n\nExpected result:\n- Plan text clearly states selected video/audio quality profile.\n- Queue entry carries an explicit YouTube format expression.",
             "Download a YouTube video as video" => "Steps:\n1) Open Media Download.\n2) Paste a YouTube/media URL.\n3) Keep Output = Video (default).\n4) Choose Video Profile and Container.\n5) Click Analyze Media.\n6) Click Add to Queue or Download Now.\n\nImportant:\n- Media defaults to VIDEO output.\n- No hidden audio-only carry-over is applied.\n\nExpected result:\n- Media analysis text shows a video plan.\n- Queue item shows plan like 'Video: MP4 (...)'.",
             "Extract audio intentionally" => "Steps:\n1) Open Media Download.\n2) Set Output = AudioOnly.\n3) Choose Audio Format.\n4) Analyze Media.\n5) Add to Queue or Download Now.\n\nSafety behavior:\n- Audio extraction only happens when AudioOnly is explicitly selected.\n- Video mode does not auto-switch to audio mode.\n\nExpected result:\n- Analysis text explicitly says audio-only.\n- Queue job plan indicates audio-only output.",
             "Scan a page for assets" => "Steps:\n1) Open Asset Grabber.\n2) Paste one page URL.\n3) Click Scan Page.\n4) Filter/search results.\n5) Use Select All / Select Visible / Invert.\n6) Click Add Selected to Queue or Download Selected Now.\n\nResult columns:\n- Name, Type, Extension, Size, Source Page, Host, Reachable, Warning.\n\nExpected result:\n- Discovered assets appear in staged list.\n- Only selected assets are queued/downloaded.",
@@ -1344,7 +1630,7 @@ public sealed class DownloaderViewModel : ViewModelBase
             "Scheduler basics" => "Capabilities:\n- One-time schedule start.\n- One-time schedule pause.\n\nSteps:\n1) Go to Settings tab.\n2) Set date/time for start and pause.\n3) Apply Schedule Start / Schedule Pause.\n4) Check scheduler status text.\n5) Use Clear Schedule to remove pending actions.\n\nExpected result:\n- Queue starts/pauses at planned times without manual interaction.",
             "Diagnostics and logging" => "Diagnostics surfaces:\n- Live recent events panel in History & Diagnostics.\n- Export Diagnostics action for external troubleshooting.\n- Optional log-level settings in downloader settings model.\n\nHow to use:\n1) Reproduce issue.\n2) Inspect recent events for failure context.\n3) Export diagnostics file.\n4) Share diagnostics with issue details.\n\nExpected result:\n- Failures are observable and actionable instead of silent.",
             "Troubleshooting common issues" => "1) 'Media downloaded as MP3 unexpectedly'\n- Ensure Media tab Output = Video.\n- Analyze Media should show video plan before start.\n\n2) 'Asset/Crawl URL downloaded as random .bin'\n- Use Asset Grabber or Site Crawl actions (Scan Page / Crawl Site).\n- Discovery modes stage first; they are not direct download actions.\n\n3) 'Nothing starts'\n- Check queue state (Staged vs Queued).\n- Click Start Queue or Start Selected.\n\n4) 'Media tools missing'\n- Install Tools from header.\n- Retry media workflow.\n\n5) 'File already exists'\n- Check duplicate handling mode in settings (Skip/AutoRename/Overwrite).",
-            "Feature validation checklist" => "Quick smoke test sequence:\n\nA) Quick mode\n- Paste 2 URLs -> Add to Queue -> verify queue rows appear.\n\nB) Media video default\n- Paste YouTube URL in Media tab with Output=Video -> Analyze -> Add.\n- Verify plan indicates video, not audio-only.\n\nC) Audio explicit\n- Switch Output=AudioOnly -> Analyze -> Add.\n- Verify plan indicates audio-only.\n\nD) Asset grabber\n- Scan one page -> select subset -> Add Selected to Queue.\n- Verify only selected items are added.\n\nE) Site crawl\n- Crawl with domain/depth limits -> staged results appear.\n\nF) Queue controls\n- Reorder selected up/down and change priority.\n- Verify execution order/status changes.\n\nG) History/diagnostics\n- Complete a job -> appears in history.\n- Export diagnostics file.\n\nIf all steps pass, core downloader workflows are operating correctly.",
+            "Feature validation checklist" => "Quick smoke test sequence:\n\nA) Quick mode\n- Paste 2 URLs -> Add to Queue -> verify queue rows appear.\n\nB) YouTube quality tab\n- Paste YouTube URL -> choose quality profile -> Analyze YouTube -> Add.\n- Verify plan text reflects selected video/audio quality constraints.\n\nC) Media video default\n- Paste YouTube URL in Media tab with Output=Video -> Analyze -> Add.\n- Verify plan indicates video, not audio-only.\n\nD) Audio explicit\n- Switch Output=AudioOnly -> Analyze -> Add.\n- Verify plan indicates audio-only.\n\nE) Asset grabber\n- Scan one page -> select subset -> Add Selected to Queue.\n- Verify only selected items are added.\n\nF) Site crawl\n- Crawl with domain/depth limits -> staged results appear.\n\nG) Queue controls\n- Reorder selected up/down and change priority.\n- Verify execution order/status changes.\n\nH) History/diagnostics\n- Complete a job -> appears in history.\n- Export diagnostics file.\n\nIf all steps pass, core downloader workflows are operating correctly.",
             _ => topic,
         };
     }
@@ -1397,10 +1683,16 @@ public sealed class DownloaderViewModel : ViewModelBase
 
     private static bool TryExtractFirstNormalizedUrl(string input, out string normalized)
     {
-        normalized = string.Empty;
+        normalized = ExtractNormalizedUrls(input).FirstOrDefault() ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(normalized);
+    }
+
+    private static List<string> ExtractNormalizedUrls(string input)
+    {
+        var result = new List<string>();
         if (string.IsNullOrWhiteSpace(input))
         {
-            return false;
+            return result;
         }
 
         var tokens = input.Split(['\r', '\n', '\t', ' ', ';', ','], StringSplitOptions.RemoveEmptyEntries);
@@ -1416,12 +1708,16 @@ public sealed class DownloaderViewModel : ViewModelBase
                 && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
                 && !string.IsNullOrWhiteSpace(uri.Host))
             {
-                normalized = uri.ToString();
-                return true;
+                result.Add(uri.ToString());
             }
         }
 
-        return false;
+        return result;
+    }
+
+    private static string FormatIgnoredMessage(int ignoredCount)
+    {
+        return ignoredCount <= 0 ? string.Empty : $", ignored {ignoredCount} non-YouTube link(s)";
     }
 
     private static string PredictWorkflow(string url, DownloaderMode mode)

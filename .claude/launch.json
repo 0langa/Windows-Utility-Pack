@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Windows Utility Pack",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/WindowsUtilityPack/WindowsUtilityPack.csproj"],
+      "port": null
+    },
+    {
+      "name": "Run Tests",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["test", "tests/WindowsUtilityPack.Tests/WindowsUtilityPack.Tests.csproj"],
+      "port": null
+    }
+  ]
+}

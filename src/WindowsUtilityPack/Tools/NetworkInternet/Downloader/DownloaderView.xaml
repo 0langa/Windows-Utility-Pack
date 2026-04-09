@@ -198,6 +198,78 @@
                     </Border>
                 </Grid>
             </TabItem>
+            <TabItem Header="YouTube Video">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="YouTube-first workflow: paste links, choose exact quality profile, and download to disk quickly." Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
+                    <TextBox Grid.Row="1"
+                             Text="{Binding YoutubeInput, UpdateSourceTrigger=PropertyChanged}"
+                             MinHeight="64"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             Padding="8,6"/>
+                    <Grid Grid.Row="2" Margin="0,8,0,8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <WrapPanel>
+                            <Button Content="Analyze YouTube" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AnalyzeYoutubeCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Add to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddYoutubeToQueueCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Download Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadYoutubeNowCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Reset YouTube Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetYoutubeDefaultsCommand}"/>
+                        </WrapPanel>
+                        <UniformGrid Grid.Row="1" Rows="2" Columns="3" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,12,8">
+                                <TextBlock Text="Video Quality" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding YoutubeVideoQualities}" SelectedItem="{Binding SelectedYoutubeVideoQuality}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,12,8">
+                                <TextBlock Text="Frame Rate" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding YoutubeFrameRates}" SelectedItem="{Binding SelectedYoutubeFrameRate}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,12,8">
+                                <TextBlock Text="Video Codec" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding YoutubeVideoCodecs}" SelectedItem="{Binding SelectedYoutubeVideoCodec}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,12,0">
+                                <TextBlock Text="Audio Quality" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding YoutubeAudioQualities}" SelectedItem="{Binding SelectedYoutubeAudioQuality}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,12,0">
+                                <TextBlock Text="Audio Codec" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding YoutubeAudioCodecs}" SelectedItem="{Binding SelectedYoutubeAudioCodec}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,12,0">
+                                <TextBlock Text="Container" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding MediaContainers}" SelectedItem="{Binding SelectedYoutubeContainer}"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <WrapPanel Grid.Row="2" Margin="0,8,0,0">
+                            <CheckBox Content="Download Subtitles" IsChecked="{Binding Settings.Media.DownloadSubtitles}" Margin="0,0,16,6"/>
+                            <CheckBox Content="Download Thumbnail" IsChecked="{Binding Settings.Media.DownloadThumbnail}" Margin="0,0,16,6"/>
+                            <CheckBox Content="Embed Metadata" IsChecked="{Binding Settings.Media.EmbedMetadata}" Margin="0,0,16,6"/>
+                            <CheckBox Content="Allow Playlist" IsChecked="{Binding Settings.Media.AllowPlaylist}" Margin="0,0,16,6"/>
+                        </WrapPanel>
+                    </Grid>
+                    <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}">
+                        <StackPanel>
+                            <TextBlock Text="YouTube Execution Plan" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding YoutubeAnalysisSummary}" TextWrapping="Wrap"/>
+                            <TextBlock Margin="0,8,0,0"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Text="This tab accepts only youtube.com/youtu.be links and applies the selected quality profile to every added job."/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
 
             <TabItem Header="Asset Grabber">
                 <Grid Margin="10">
