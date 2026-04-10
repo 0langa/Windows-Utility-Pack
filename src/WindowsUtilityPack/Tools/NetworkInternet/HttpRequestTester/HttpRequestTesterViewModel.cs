@@ -171,8 +171,8 @@ public class HttpRequestTesterViewModel : ViewModelBase
             var body = await response.Content.ReadAsStringAsync();
 
             // Pretty-print JSON
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
-            if (contentType.Contains("application/json") || contentType.Contains("text/json"))
+            var responseContentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
+            if (responseContentType.Contains("application/json") || responseContentType.Contains("text/json"))
             {
                 try
                 {

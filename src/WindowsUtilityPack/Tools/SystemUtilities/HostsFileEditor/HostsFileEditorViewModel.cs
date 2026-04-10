@@ -22,6 +22,9 @@ public class HostsFileEditorViewModel : ViewModelBase
     private static readonly string HostsPath =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
                      @"drivers\etc\hosts");
+    private static readonly string BackupPath =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "WindowsUtilityPack", "hosts.backup");
 
     private static readonly string[] BlocklistEntries =
     [
@@ -93,6 +96,7 @@ public class HostsFileEditorViewModel : ViewModelBase
     public RelayCommand      DeleteEntryCommand  { get; }
     public RelayCommand      ToggleEntryCommand  { get; }
     public RelayCommand      AddBlocklistCommand { get; }
+    public AsyncRelayCommand RestoreBackupCommand { get; }
 
     public HostsFileEditorViewModel()
     {
@@ -102,6 +106,7 @@ public class HostsFileEditorViewModel : ViewModelBase
         DeleteEntryCommand  = new RelayCommand(DeleteEntry, () => SelectedEntry != null);
         ToggleEntryCommand  = new RelayCommand(ToggleEntry, () => SelectedEntry != null);
         AddBlocklistCommand = new RelayCommand(AddBlocklist);
+        RestoreBackupCommand = new AsyncRelayCommand(RestoreBackupAsync);
 
         LoadCommand.Execute(null);
     }
@@ -198,6 +203,7 @@ public class HostsFileEditorViewModel : ViewModelBase
     {
         try
         {
+            await CreateBackupAsync();
             var content = BuildFileContent();
             await File.WriteAllTextAsync(HostsPath, content, Encoding.ASCII);
             IsModified    = false;
@@ -210,6 +216,44 @@ public class HostsFileEditorViewModel : ViewModelBase
         catch (Exception ex)
         {
             StatusMessage = $"Save failed: {ex.Message}";
+        }
+    }
+
+    private static async Task CreateBackupAsync()
+    {
+        var backupDir = Path.GetDirectoryName(BackupPath);
+        if (!string.IsNullOrWhiteSpace(backupDir))
+            Directory.CreateDirectory(backupDir);
+
+        if (File.Exists(HostsPath))
+        {
+            var source = await File.ReadAllTextAsync(HostsPath, Encoding.ASCII);
+            await File.WriteAllTextAsync(BackupPath, source, Encoding.ASCII);
+        }
+    }
+
+    private async Task RestoreBackupAsync()
+    {
+        try
+        {
+            if (!File.Exists(BackupPath))
+            {
+                StatusMessage = "No backup found.";
+                return;
+            }
+
+            var backupContent = await File.ReadAllTextAsync(BackupPath, Encoding.ASCII);
+            await File.WriteAllTextAsync(HostsPath, backupContent, Encoding.ASCII);
+            await LoadAsync();
+            StatusMessage = "Hosts file restored from backup.";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            StatusMessage = "Access denied. Run the application as Administrator to restore backup.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Restore failed: {ex.Message}";
         }
     }
 

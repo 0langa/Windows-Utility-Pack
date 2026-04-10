@@ -1,0 +1,111 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.FileDataTools.FileSplitterJoiner.FileSplitterJoinerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="File Splitter / Joiner"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}"
+                       Margin="0,0,0,12"/>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Split File" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,10"/>
+                        <TextBlock Text="Source File" Margin="0,0,0,4"/>
+                        <DockPanel Margin="0,0,0,8">
+                            <Button Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseSplitInputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox Text="{Binding SplitInputFilePath}" IsReadOnly="True"/>
+                        </DockPanel>
+
+                        <TextBlock Text="Output Directory" Margin="0,0,0,4"/>
+                        <DockPanel Margin="0,0,0,8">
+                            <Button Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseSplitOutputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox Text="{Binding SplitOutputDirectory}" IsReadOnly="True"/>
+                        </DockPanel>
+
+                        <TextBlock Text="Chunk Size (MB)" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding ChunkSizeMb, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
+                        <Button Content="Split File" Command="{Binding SplitCommand}" Style="{StaticResource PrimaryActionButtonStyle}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource ToolPanelBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Join Parts" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,10"/>
+                        <TextBlock Text="Part File" Margin="0,0,0,4"/>
+                        <DockPanel Margin="0,0,0,8">
+                            <Button Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseJoinPartCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox Text="{Binding JoinPartFilePath}" IsReadOnly="True"/>
+                        </DockPanel>
+
+                        <TextBlock Text="Output File" Margin="0,0,0,4"/>
+                        <DockPanel Margin="0,0,0,8">
+                            <Button Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseJoinOutputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox Text="{Binding JoinOutputFilePath}" IsReadOnly="True"/>
+                        </DockPanel>
+
+                        <CheckBox Content="Verify checksum from manifest"
+                                  IsChecked="{Binding VerifyChecksum}"
+                                  Margin="0,0,0,10"/>
+
+                        <Button Content="Join Parts" Command="{Binding JoinCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,12,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <ProgressBar Height="14"
+                                     Margin="0,8,0,0"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Value="{Binding ProgressPercent}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                        <Button Content="Cancel"
+                                Command="{Binding CancelCommand}"
+                                Style="{StaticResource SecondaryActionButtonStyle}"
+                                Margin="0,0,8,0"/>
+                        <Button Content="Copy Status"
+                                Command="{Binding CopyStatusCommand}"
+                                Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,12,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Recent Outputs" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding RecentOutputFiles}" MinHeight="120"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
+

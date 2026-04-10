@@ -25,6 +25,8 @@
                             Command="{Binding LoadCommand}"         Margin="0,0,8,0"/>
                     <Button Content="Save"   Style="{StaticResource PrimaryActionButtonStyle}"
                             Command="{Binding SaveCommand}"         Margin="0,0,8,0"/>
+                    <Button Content="Restore Backup"   Style="{StaticResource SecondaryActionButtonStyle}"
+                            Command="{Binding RestoreBackupCommand}"         Margin="0,0,8,0"/>
                     <Button Content="Toggle Selected" Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding ToggleEntryCommand}"  Margin="0,0,8,0"/>
                     <Button Content="Add Blocklist Presets" Style="{StaticResource SecondaryActionButtonStyle}"

@@ -1,0 +1,143 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.ImageTools.ScreenshotAnnotator.ScreenshotAnnotatorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Screenshot Annotator"
+                   FontSize="22"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource PrimaryTextBrush}"
+                   Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,10">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button Content="Capture Screenshot" Command="{Binding CaptureScreenshotCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Content="Load Image" Command="{Binding LoadImageCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Content="Save Annotated" Command="{Binding SaveAnnotatedImageCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Content="Copy Output Path" Command="{Binding CopyOutputPathCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                </StackPanel>
+                <Button Content="Browse Output..." Command="{Binding BrowseOutputCommand}" DockPanel.Dock="Right" Style="{StaticResource SecondaryActionButtonStyle}"/>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Text="{Binding ImagePath}" IsReadOnly="True" Margin="0,0,8,0"/>
+                <TextBox Grid.Column="1" Text="{Binding OutputPath}" IsReadOnly="True"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Preview" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
+                    <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Background="{DynamicResource PanelBackgroundBrush}">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Image Source="{Binding PreviewImage}" Stretch="Uniform"/>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource ToolPanelBorderStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Annotation Builder" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Type" Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AnnotationTypes}" SelectedItem="{Binding AnnotationType}" Margin="0,0,0,8"/>
+
+                        <TextBlock Text="X" Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding X, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Y" Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Y, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Width" Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Height" Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Color" Grid.Row="5" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding AnnotationColor, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Text" Grid.Row="6" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding AnnotationText, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal" Grid.Row="0">
+                            <Button Content="Add Annotation" Command="{Binding AddAnnotationCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Remove Selected" Command="{Binding RemoveSelectedAnnotationCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Clear" Command="{Binding ClearAnnotationsCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        </StackPanel>
+                        <TextBlock Grid.Row="1" Text="Tip: coordinates are pixel positions in the source image." Margin="0,6,0,6" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/>
+                        <DataGrid Grid.Row="2"
+                                  ItemsSource="{Binding Annotations}"
+                                  SelectedItem="{Binding SelectedAnnotation, Mode=TwoWay}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  HeadersVisibility="Column">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
+                                <DataGridTextColumn Header="X" Binding="{Binding X}" Width="52"/>
+                                <DataGridTextColumn Header="Y" Binding="{Binding Y}" Width="52"/>
+                                <DataGridTextColumn Header="W" Binding="{Binding Width}" Width="52"/>
+                                <DataGridTextColumn Header="H" Binding="{Binding Height}" Width="52"/>
+                                <DataGridTextColumn Header="Color" Binding="{Binding Color}" Width="90"/>
+                                <DataGridTextColumn Header="Text" Binding="{Binding Text}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="4" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,10,0,0">
+            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+        </Border>
+    </Grid>
+</UserControl>
+

@@ -61,6 +61,8 @@ public class CertificateInspectorViewModel : ViewModelBase
         }
     }
 
+    public IReadOnlyList<string> InputModes { get; } = ["URL", "File", "PEM"];
+
     public bool IsUrlMode  { get => _inputMode == "URL";  set { if (value) InputMode = "URL";  } }
     public bool IsFileMode { get => _inputMode == "File"; set { if (value) InputMode = "File"; } }
     public bool IsPemMode  { get => _inputMode == "PEM";  set { if (value) InputMode = "PEM";  } }
@@ -92,8 +94,14 @@ public class CertificateInspectorViewModel : ViewModelBase
     public CertificateInfo? Certificate
     {
         get => _certificate;
-        set => SetProperty(ref _certificate, value);
+        set
+        {
+            if (SetProperty(ref _certificate, value))
+                OnPropertyChanged(nameof(HasCertificate));
+        }
     }
+
+    public bool HasCertificate => Certificate != null;
 
     public bool IsLoading
     {

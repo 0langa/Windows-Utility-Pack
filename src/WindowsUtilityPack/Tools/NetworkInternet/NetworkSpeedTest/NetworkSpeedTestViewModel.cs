@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Threading;
+using System.Windows;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;

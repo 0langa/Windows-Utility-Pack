@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="8" MaxWidth="900">
-            <TextBlock Text="UUID / GUID Generator" FontSize="20" FontWeight="SemiBold"
+            <TextBlock Text="UUID / ULID Generator" FontSize="20" FontWeight="SemiBold"
                        Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,16"/>
 
             <!-- Format and Count Settings -->
@@ -11,6 +11,13 @@
                 <StackPanel>
                     <TextBlock Text="Settings" FontWeight="SemiBold"
                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Type:" Width="80" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <ComboBox ItemsSource="{Binding IdTypes}"
+                                  SelectedItem="{Binding IdType}"
+                                  Width="160" Padding="8,4"/>
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="Format:" Width="80" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
@@ -33,7 +40,7 @@
             <!-- Single UUID -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Single UUID" FontWeight="SemiBold"
+                    <TextBlock Text="Single Identifier" FontWeight="SemiBold"
                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
                     <TextBox Text="{Binding SingleId, Mode=OneWay}" IsReadOnly="True"
                              FontFamily="Consolas" FontSize="16" FontWeight="SemiBold"

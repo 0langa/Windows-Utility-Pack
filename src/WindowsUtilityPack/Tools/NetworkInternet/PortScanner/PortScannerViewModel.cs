@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Windows;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;

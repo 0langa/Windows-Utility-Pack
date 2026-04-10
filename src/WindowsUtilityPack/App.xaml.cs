@@ -1,141 +1,127 @@
 using System.Windows;
 using WindowsUtilityPack.Services;
-using WindowsUtilityPack.Services.Storage;
-using WindowsUtilityPack.Tools;
-using WindowsUtilityPack.Tools.SystemUtilities.StorageMaster;
-using WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer;
-using WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
-using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
-using WindowsUtilityPack.Tools.NetworkInternet.Downloader;
-using WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester;
-using WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter;
 using WindowsUtilityPack.Services.Downloader;
 using WindowsUtilityPack.Services.Downloader.Engines;
+using WindowsUtilityPack.Services.FileTools;
+using WindowsUtilityPack.Services.Identifier;
+using WindowsUtilityPack.Services.ImageTools;
 using WindowsUtilityPack.Services.QrCode;
+using WindowsUtilityPack.Services.Storage;
+using WindowsUtilityPack.Services.StructuredData;
 using WindowsUtilityPack.Services.TextConversion;
+using WindowsUtilityPack.Tools;
+using WindowsUtilityPack.Tools.DeveloperProductivity.Base64Encoder;
+using WindowsUtilityPack.Tools.DeveloperProductivity.ColorPicker;
+using WindowsUtilityPack.Tools.DeveloperProductivity.DiffTool;
+using WindowsUtilityPack.Tools.DeveloperProductivity.JsonYamlValidator;
 using WindowsUtilityPack.Tools.DeveloperProductivity.QrCodeGenerator;
+using WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester;
+using WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter;
+using WindowsUtilityPack.Tools.DeveloperProductivity.TimestampConverter;
+using WindowsUtilityPack.Tools.DeveloperProductivity.UuidGenerator;
+using WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer;
+using WindowsUtilityPack.Tools.FileDataTools.FileHashCalculator;
+using WindowsUtilityPack.Tools.FileDataTools.FileSplitterJoiner;
+using WindowsUtilityPack.Tools.FileDataTools.MetadataEditor;
+using WindowsUtilityPack.Tools.FileDataTools.SecureFileShredder;
+using WindowsUtilityPack.Tools.ImageTools.ImageFormatConverter;
+using WindowsUtilityPack.Tools.ImageTools.ImageResizer;
+using WindowsUtilityPack.Tools.ImageTools.ScreenshotAnnotator;
+using WindowsUtilityPack.Tools.NetworkInternet.DnsLookup;
+using WindowsUtilityPack.Tools.NetworkInternet.Downloader;
+using WindowsUtilityPack.Tools.NetworkInternet.HttpRequestTester;
+using WindowsUtilityPack.Tools.NetworkInternet.NetworkSpeedTest;
+using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
+using WindowsUtilityPack.Tools.NetworkInternet.PortScanner;
+using WindowsUtilityPack.Tools.SecurityPrivacy.CertificateInspector;
+using WindowsUtilityPack.Tools.SecurityPrivacy.HashGenerator;
+using WindowsUtilityPack.Tools.SecurityPrivacy.LocalSecretVault;
+using WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
+using WindowsUtilityPack.Tools.SystemUtilities.EnvVarsEditor;
+using WindowsUtilityPack.Tools.SystemUtilities.HostsFileEditor;
+using WindowsUtilityPack.Tools.SystemUtilities.StartupManager;
+using WindowsUtilityPack.Tools.SystemUtilities.StorageMaster;
+using WindowsUtilityPack.Tools.SystemUtilities.SystemInfoDashboard;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack;
 
 /// <summary>
 /// Application entry point and service host.
-///
-/// Startup sequence:
-///   1. OnStartup initialises all singleton services.
-///   2. The saved theme is applied.
-///   3. RegisterTools populates the ToolRegistry and wires every tool key to the NavigationService.
-///   4. WPF creates MainWindow and navigates to "home" on first load.
-///
-/// Services are exposed as static properties so ViewModels can access them.
-/// The preferred pattern is constructor injection where possible.
 /// </summary>
 public partial class App : Application
 {
-    // Singleton service accessors
-
-    public static IThemeService      ThemeService      { get; private set; } = null!;
+    public static IThemeService ThemeService { get; private set; } = null!;
     public static INavigationService NavigationService { get; private set; } = null!;
-    public static ISettingsService   SettingsService   { get; private set; } = null!;
-    public static ILoggingService    LoggingService    { get; private set; } = null!;
+    public static ISettingsService SettingsService { get; private set; } = null!;
+    public static ILoggingService LoggingService { get; private set; } = null!;
     public static INotificationService NotificationService { get; private set; } = null!;
     public static IFolderPickerService FolderPickerService { get; private set; } = null!;
-    public static IUserDialogService   UserDialogService   { get; private set; } = null!;
-    public static IClipboardService    ClipboardService    { get; private set; } = null!;
+    public static IUserDialogService UserDialogService { get; private set; } = null!;
+    public static IClipboardService ClipboardService { get; private set; } = null!;
 
-    // Text Format Converter services
-
-    /// <summary>Presents file open/save dialogs for text conversion workflows.</summary>
     public static IFileDialogService FileDialogService { get; private set; } = null!;
-    /// <summary>Provides the core text conversion and formatting pipeline.</summary>
     public static ITextFormatConversionService TextFormatConversionService { get; private set; } = null!;
-    /// <summary>Builds rich preview documents for converted output.</summary>
     public static ITextPreviewDocumentBuilder TextPreviewDocumentBuilder { get; private set; } = null!;
-    /// <summary>Handles saving conversion results to disk.</summary>
     public static ITextResultExportService TextResultExportService { get; private set; } = null!;
-    /// <summary>Manages the modeless conversion preview window.</summary>
     public static ITextPreviewWindowService TextPreviewWindowService { get; private set; } = null!;
 
-    // Storage Master services
-
-    /// <summary>Core storage scan engine for Storage Master.</summary>
-    public static IScanEngine                   ScanEngine                  { get; private set; } = null!;
-    /// <summary>Duplicate file detection service.</summary>
-    public static IDuplicateDetectionService    DuplicateDetectionService   { get; private set; } = null!;
-    /// <summary>Cleanup recommendation analysis service.</summary>
+    public static IScanEngine ScanEngine { get; private set; } = null!;
+    public static IDuplicateDetectionService DuplicateDetectionService { get; private set; } = null!;
     public static ICleanupRecommendationService CleanupRecommendationService { get; private set; } = null!;
-    /// <summary>Snapshot persistence service.</summary>
-    public static ISnapshotService              SnapshotService             { get; private set; } = null!;
-    /// <summary>Report and export generation service.</summary>
-    public static IReportService                ReportService               { get; private set; } = null!;
-    /// <summary>Application-level elevation/admin mode service.</summary>
-    public static IElevationService             ElevationService            { get; private set; } = null!;
-    /// <summary>Drive analysis and media type detection service.</summary>
-    public static IDriveAnalysisService         DriveAnalysisService        { get; private set; } = null!;
+    public static ISnapshotService SnapshotService { get; private set; } = null!;
+    public static IReportService ReportService { get; private set; } = null!;
+    public static IElevationService ElevationService { get; private set; } = null!;
+    public static IDriveAnalysisService DriveAnalysisService { get; private set; } = null!;
 
-    // Downloader services
-
-    /// <summary>Manages external tool dependencies (yt-dlp, gallery-dl, ffmpeg).</summary>
     public static IDependencyManagerService DependencyManagerService { get; private set; } = null!;
-    /// <summary>Scrapes and extracts assets from web pages and crawl scopes.</summary>
     public static IWebScraperService WebScraperService { get; private set; } = null!;
-    /// <summary>Loads and persists downloader settings.</summary>
     public static IDownloaderSettingsService DownloaderSettingsService { get; private set; } = null!;
-    /// <summary>Parses and normalizes URL inputs.</summary>
     public static IDownloadInputParserService DownloadInputParserService { get; private set; } = null!;
-    /// <summary>Resolves categories and default routing rules.</summary>
     public static IDownloadCategoryService DownloadCategoryService { get; private set; } = null!;
-    /// <summary>Writes downloader diagnostics and event logs.</summary>
     public static IDownloadEventLogService DownloadEventLogService { get; private set; } = null!;
-    /// <summary>Persists completed/failed downloader history.</summary>
     public static IDownloadHistoryService DownloadHistoryService { get; private set; } = null!;
-    /// <summary>Schedules one-time queue start/pause actions.</summary>
     public static IDownloadSchedulerService DownloadSchedulerService { get; private set; } = null!;
-    /// <summary>Discovers downloadable assets from pages and crawl scopes.</summary>
     public static IAssetDiscoveryService AssetDiscoveryService { get; private set; } = null!;
-    /// <summary>Selects the best download engine per job.</summary>
     public static IDownloadEngineResolver DownloadEngineResolver { get; private set; } = null!;
-    /// <summary>Coordinates queue lifecycle and job execution.</summary>
     public static IDownloadCoordinatorService DownloadCoordinatorService { get; private set; } = null!;
-    /// <summary>Open/save dialogs for downloader workflows.</summary>
     public static IDownloaderFileDialogService DownloaderFileDialogService { get; private set; } = null!;
 
-    // QR Code Generator services
-
-    /// <summary>Core QR code generation and export service.</summary>
     public static IQrCodeService QrCodeService { get; private set; } = null!;
-    /// <summary>Dialog service for QR logo/import/export file paths.</summary>
     public static IQrCodeFileDialogService QrCodeFileDialogService { get; private set; } = null!;
+
+    public static IStructuredDataValidationService StructuredDataValidationService { get; private set; } = null!;
+    public static IFileSplitJoinService FileSplitJoinService { get; private set; } = null!;
+    public static IImageProcessingService ImageProcessingService { get; private set; } = null!;
+    public static IUlidGenerator UlidGenerator { get; private set; } = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // Initialise core services
-        LoggingService      = new LoggingService();
-        SettingsService     = new SettingsService();
-       NavigationService   = new NavigationService();
-        ThemeService        = new ThemeService();
+        LoggingService = new LoggingService();
+        SettingsService = new SettingsService();
+        NavigationService = new NavigationService();
+        ThemeService = new ThemeService();
         NotificationService = new NotificationService();
         FolderPickerService = new FolderPickerService();
-        UserDialogService   = new UserDialogService();
-        ClipboardService    = new ClipboardService();
-        FileDialogService   = new FileDialogService();
+        UserDialogService = new UserDialogService();
+        ClipboardService = new ClipboardService();
+
+        FileDialogService = new FileDialogService();
         TextFormatConversionService = new TextFormatConversionService();
         TextPreviewDocumentBuilder = new TextPreviewDocumentBuilder();
         TextResultExportService = new TextResultExportService(FileDialogService);
         TextPreviewWindowService = new TextPreviewWindowService();
 
-        // Initialise Storage Master services
-        ScanEngine                   = new ScanEngine();
-        DuplicateDetectionService    = new DuplicateDetectionService();
+        ScanEngine = new ScanEngine();
+        DuplicateDetectionService = new DuplicateDetectionService();
         CleanupRecommendationService = new CleanupRecommendationService();
-        SnapshotService              = new SnapshotService();
-        ReportService                = new ReportService();
-        ElevationService             = new ElevationService();
-        DriveAnalysisService         = new DriveAnalysisService();
+        SnapshotService = new SnapshotService();
+        ReportService = new ReportService();
+        ElevationService = new ElevationService();
+        DriveAnalysisService = new DriveAnalysisService();
 
-        // Initialise Downloader services
         DependencyManagerService = new DependencyManagerService();
         WebScraperService = new WebScraperService(DependencyManagerService);
         DownloaderSettingsService = new DownloaderSettingsService(SettingsService);
@@ -169,9 +155,13 @@ public partial class App : Application
             DownloadEventLogService,
             DownloadSchedulerService);
 
-        // Initialise QR services
         QrCodeService = new QrCodeService();
         QrCodeFileDialogService = new QrCodeFileDialogService();
+
+        StructuredDataValidationService = new StructuredDataValidationService();
+        FileSplitJoinService = new FileSplitJoinService();
+        ImageProcessingService = new ImageProcessingService();
+        UlidGenerator = new UlidGenerator();
 
         var settings = SettingsService.Load();
         ThemeService.SetTheme(settings.Theme);
@@ -186,46 +176,35 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    /// <summary>
-    /// Registers every available tool with the ToolRegistry.
-    ///
-    /// To add a new tool:
-    ///   1. Create the ViewModel + View pair under Tools/Category/ToolName/.
-    ///   2. Add a ToolDefinition block here.
-    ///   3. Add the matching DataTemplate in App.xaml.
-    ///   4. Optionally add a MenuEntry to MainWindow.xaml.
-    /// </summary>
     private static void RegisterTools()
     {
-        // ── Category icon registration (Segoe MDL2 Assets glyphs) ─────────
-        ToolRegistry.RegisterCategoryIcon("System Utilities",       "\uE770");
-        ToolRegistry.RegisterCategoryIcon("File & Data Tools",      "\uE8B7");
-        ToolRegistry.RegisterCategoryIcon("Security & Privacy",     "\uE72E");
-        ToolRegistry.RegisterCategoryIcon("Network & Internet",     "\uE774");
+        ToolRegistry.RegisterCategoryIcon("System Utilities", "\uE770");
+        ToolRegistry.RegisterCategoryIcon("File & Data Tools", "\uE8B7");
+        ToolRegistry.RegisterCategoryIcon("Security & Privacy", "\uE72E");
+        ToolRegistry.RegisterCategoryIcon("Network & Internet", "\uE774");
         ToolRegistry.RegisterCategoryIcon("Developer & Productivity", "\uE943");
+        ToolRegistry.RegisterCategoryIcon("Image Tools", "\uEB9F");
 
-        // ── Tool registration ─────────────────────────────────────────────
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "home",
-            Name        = "Home",
-            Category    = "General",
-            Icon        = "\U0001F3E0",
-            IconGlyph   = "\uE80F",
+            Key = "home",
+            Name = "Home",
+            Category = "General",
+            Icon = "🏠",
+            IconGlyph = "\uE80F",
             Description = "Application dashboard",
-            Factory     = () => new HomeViewModel(),
+            Factory = () => new HomeViewModel(),
         });
 
-        // Storage Master replaces the old Disk Info tool
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "storage-master",
-            Name        = "Storage Master",
-            Category    = "System Utilities",
-            Icon        = "\U0001F4BD",
-            IconGlyph   = "\uEDA2",
+            Key = "storage-master",
+            Name = "Storage Master",
+            Category = "System Utilities",
+            Icon = "💽",
+            IconGlyph = "\uEDA2",
             Description = "Advanced storage analysis, cleanup, and optimization",
-            Factory     = () => new StorageMasterViewModel(
+            Factory = () => new StorageMasterViewModel(
                 ScanEngine,
                 DuplicateDetectionService,
                 CleanupRecommendationService,
@@ -240,57 +219,192 @@ public partial class App : Application
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "bulk-renamer",
-            Name        = "Bulk File Renamer",
-            Category    = "File & Data Tools",
-            Icon        = "\U0001F4C1",
-            IconGlyph   = "\uE8AC",
+            Key = "startup-manager",
+            Name = "Startup Manager",
+            Category = "System Utilities",
+            IconGlyph = "\uE7B7",
+            Description = "Manage startup entries from user and machine locations",
+            Factory = () => new StartupManagerViewModel(),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "system-info-dashboard",
+            Name = "System Info Dashboard",
+            Category = "System Utilities",
+            IconGlyph = "\uE946",
+            Description = "View hardware, OS, runtime and drive summaries",
+            Factory = () => new SystemInfoViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "env-vars-editor",
+            Name = "Environment Variables Editor",
+            Category = "System Utilities",
+            IconGlyph = "\uE944",
+            Description = "Inspect and edit user/system environment variables",
+            Factory = () => new EnvVarsEditorViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "hosts-file-editor",
+            Name = "Hosts File Editor",
+            Category = "System Utilities",
+            IconGlyph = "\uE774",
+            Description = "Safely edit hosts file with backup and restore support",
+            Factory = () => new HostsFileEditorViewModel(),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "bulk-renamer",
+            Name = "Bulk File Renamer",
+            Category = "File & Data Tools",
+            IconGlyph = "\uE8AC",
             Description = "Rename multiple files with prefix, suffix, or find-replace rules",
-            Factory     = () => new BulkFileRenamerViewModel(FolderPickerService, UserDialogService),
+            Factory = () => new BulkFileRenamerViewModel(FolderPickerService, UserDialogService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "password-generator",
-            Name        = "Password Generator",
-            Category    = "Security & Privacy",
-            Icon        = "\U0001F512",
-            IconGlyph   = "\uE8D7",
+            Key = "file-hash-calculator",
+            Name = "File Hash Calculator",
+            Category = "File & Data Tools",
+            IconGlyph = "\uE9D9",
+            Description = "Compute and verify MD5, SHA-256, and SHA-512 file hashes",
+            Factory = () => new FileHashCalculatorViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "secure-file-shredder",
+            Name = "Secure File Shredder",
+            Category = "File & Data Tools",
+            IconGlyph = "\uE74D",
+            Description = "Securely overwrite and delete files",
+            Factory = () => new SecureFileShredderViewModel(UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "metadata-editor",
+            Name = "Metadata Viewer/Editor",
+            Category = "File & Data Tools",
+            IconGlyph = "\uE7C3",
+            Description = "Inspect and strip metadata from image and audio files",
+            Factory = () => new MetadataEditorViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "file-splitter-joiner",
+            Name = "File Splitter / Joiner",
+            Category = "File & Data Tools",
+            IconGlyph = "\uE8AB",
+            Description = "Split large files into chunks and rejoin with checksum validation",
+            Factory = () => new FileSplitterJoinerViewModel(FileSplitJoinService, FolderPickerService, ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "password-generator",
+            Name = "Password Generator",
+            Category = "Security & Privacy",
+            IconGlyph = "\uE8D7",
             Description = "Generate secure random passwords instantly",
-            Factory     = () => new PasswordGeneratorViewModel(ClipboardService),
+            Factory = () => new PasswordGeneratorViewModel(ClipboardService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "ping-tool",
-            Name        = "Ping Tool",
-            Category    = "Network & Internet",
-            Icon        = "\U0001F310",
-            IconGlyph   = "\uE968",
+            Key = "hash-generator",
+            Name = "Hash Generator",
+            Category = "Security & Privacy",
+            IconGlyph = "\uE943",
+            Description = "Generate and verify hashes for text and files",
+            Factory = () => new HashGeneratorViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "local-secret-vault",
+            Name = "Local Secret Vault",
+            Category = "Security & Privacy",
+            IconGlyph = "\uE72E",
+            Description = "AES-256 encrypted local vault for credentials and notes",
+            Factory = () => new LocalSecretVaultViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "certificate-inspector",
+            Name = "Certificate Inspector",
+            Category = "Security & Privacy",
+            IconGlyph = "\uEB95",
+            Description = "Inspect certificates from URL, file, or pasted PEM",
+            Factory = () => new CertificateInspectorViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "ping-tool",
+            Name = "Ping Tool",
+            Category = "Network & Internet",
+            IconGlyph = "\uE968",
             Description = "Test network connectivity and measure latency",
-            Factory     = () => new PingToolViewModel(),
+            Factory = () => new PingToolViewModel(),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "regex-tester",
-            Name        = "Regex Tester",
-            Category    = "Developer & Productivity",
-            Icon        = "\U0001F4BB",
-            IconGlyph   = "\uE8FD",
-            Description = "Test and debug regular expressions interactively",
-            Factory     = () => new RegexTesterViewModel(),
+            Key = "dns-lookup",
+            Name = "DNS Lookup",
+            Category = "Network & Internet",
+            IconGlyph = "\uE774",
+            Description = "Query A, AAAA, CNAME, MX and TXT DNS records",
+            Factory = () => new DnsLookupViewModel(ClipboardService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "downloader",
-            Name        = "Downloader Studio",
-            Category    = "Network & Internet",
-            Icon        = "\U0001F4E5",
-            IconGlyph   = "\uE896",
+            Key = "port-scanner",
+            Name = "Port Scanner",
+            Category = "Network & Internet",
+            IconGlyph = "\uEC27",
+            Description = "Scan local or remote ports with async cancellation",
+            Factory = () => new PortScannerViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "http-request-tester",
+            Name = "HTTP Request Tester",
+            Category = "Network & Internet",
+            IconGlyph = "\uE774",
+            Description = "Send custom HTTP requests and inspect responses",
+            Factory = () => new HttpRequestTesterViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "network-speed-test",
+            Name = "Network Speed Test",
+            Category = "Network & Internet",
+            IconGlyph = "\uE9D9",
+            Description = "Run download/upload/latency speed checks",
+            Factory = () => new NetworkSpeedTestViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "downloader",
+            Name = "Downloader Studio",
+            Category = "Network & Internet",
+            IconGlyph = "\uE896",
             Description = "Premium queue manager, media downloader, and asset extraction workspace",
-            Factory     = () => new DownloaderViewModel(
+            Factory = () => new DownloaderViewModel(
                 DownloadCoordinatorService,
                 AssetDiscoveryService,
                 DownloaderSettingsService,
@@ -304,13 +418,22 @@ public partial class App : Application
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "text-format-converter",
-            Name        = "Text Format Converter",
-            Category    = "Developer & Productivity",
-            Icon        = "\U0001F9FE",
-            IconGlyph   = "\uE8C1",
+            Key = "regex-tester",
+            Name = "Regex Tester",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE8FD",
+            Description = "Test and debug regular expressions interactively",
+            Factory = () => new RegexTesterViewModel(),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "text-format-converter",
+            Name = "Text Format Converter",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE8C1",
             Description = "Convert, format, and preview text across multiple formats",
-            Factory     = () => new TextFormatConverterViewModel(
+            Factory = () => new TextFormatConverterViewModel(
                 ClipboardService,
                 FileDialogService,
                 TextFormatConversionService,
@@ -322,18 +445,107 @@ public partial class App : Application
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
-            Key         = "qr-code-generator",
-            Name        = "QR Code Generator",
-            Category    = "Developer & Productivity",
-            Icon        = "\U0001F4F1",
-            IconGlyph   = "\uED14",
+            Key = "qr-code-generator",
+            Name = "QR Code Generator",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uED14",
             Description = "Generate, style, and export QR codes for URLs",
-            Factory     = () => new QrCodeGeneratorViewModel(
+            Factory = () => new QrCodeGeneratorViewModel(
                 QrCodeService,
                 QrCodeFileDialogService,
                 ClipboardService,
                 UserDialogService,
                 SettingsService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "color-picker",
+            Name = "Color Picker",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uEC7A",
+            Description = "Pick screen colors and build reusable palettes",
+            Factory = () => new ColorPickerViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "timestamp-converter",
+            Name = "Timestamp Converter",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE823",
+            Description = "Convert Unix epochs and human-readable time values",
+            Factory = () => new TimestampConverterViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "uuid-generator",
+            Name = "UUID / ULID Generator",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE9CE",
+            Description = "Generate UUIDs and ULIDs with bulk copy support",
+            Factory = () => new UuidGeneratorViewModel(ClipboardService, UlidGenerator),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "base64-url-encoder",
+            Name = "Base64 / URL Encoder-Decoder",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE943",
+            Description = "Encode and decode Base64, URL, and HTML text",
+            Factory = () => new Base64EncoderViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "diff-tool",
+            Name = "Diff Tool",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE73E",
+            Description = "Compare text side-by-side with line-level changes",
+            Factory = () => new DiffToolViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "json-yaml-validator",
+            Name = "JSON / YAML Validator",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE943",
+            Description = "Validate and prettify JSON and YAML payloads",
+            Factory = () => new JsonYamlValidatorViewModel(StructuredDataValidationService, ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "image-resizer",
+            Name = "Image Resizer & Compressor",
+            Category = "Image Tools",
+            IconGlyph = "\uE91B",
+            Description = "Batch resize and compress JPG, PNG, WEBP, BMP and TIFF",
+            Factory = () => new ImageResizerViewModel(ImageProcessingService, FolderPickerService, ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "image-format-converter",
+            Name = "Image Format Converter",
+            Category = "Image Tools",
+            IconGlyph = "\uEC17",
+            Description = "Batch convert image formats with quality controls",
+            Factory = () => new ImageFormatConverterViewModel(ImageProcessingService, FolderPickerService, ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "screenshot-annotator",
+            Name = "Screenshot Annotator",
+            Category = "Image Tools",
+            IconGlyph = "\uE722",
+            Description = "Capture screenshots and apply rectangles, arrows, text, blur, or redaction",
+            Factory = () => new ScreenshotAnnotatorViewModel(ImageProcessingService, ClipboardService),
         });
 
         ToolRegistry.RegisterAll(NavigationService);

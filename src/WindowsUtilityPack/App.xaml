@@ -2,16 +2,40 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:converters="clr-namespace:WindowsUtilityPack.Converters"
+             xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels"
+             xmlns:views="clr-namespace:WindowsUtilityPack.Views"
              xmlns:storageMaster="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.StorageMaster"
+             xmlns:startupManager="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.StartupManager"
+             xmlns:systemInfo="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.SystemInfoDashboard"
+             xmlns:envVars="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.EnvVarsEditor"
+             xmlns:hostsEditor="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.HostsFileEditor"
              xmlns:bulkRenamer="clr-namespace:WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer"
+             xmlns:fileHash="clr-namespace:WindowsUtilityPack.Tools.FileDataTools.FileHashCalculator"
+             xmlns:fileShredder="clr-namespace:WindowsUtilityPack.Tools.FileDataTools.SecureFileShredder"
+             xmlns:metadataEditor="clr-namespace:WindowsUtilityPack.Tools.FileDataTools.MetadataEditor"
+             xmlns:fileSplitJoin="clr-namespace:WindowsUtilityPack.Tools.FileDataTools.FileSplitterJoiner"
              xmlns:passwordGen="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator"
+             xmlns:hashGenerator="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.HashGenerator"
+             xmlns:secretVault="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.LocalSecretVault"
+             xmlns:certInspector="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.CertificateInspector"
              xmlns:pingTool="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.PingTool"
+             xmlns:dnsLookup="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.DnsLookup"
+             xmlns:portScanner="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.PortScanner"
+             xmlns:httpTester="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.HttpRequestTester"
+             xmlns:speedTest="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.NetworkSpeedTest"
              xmlns:downloader="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.Downloader"
              xmlns:regexTester="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester"
              xmlns:textFormatConverter="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter"
              xmlns:qrCodeGenerator="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.QrCodeGenerator"
-             xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels"
-             xmlns:views="clr-namespace:WindowsUtilityPack.Views"
+             xmlns:colorPicker="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.ColorPicker"
+             xmlns:timestampConverter="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.TimestampConverter"
+             xmlns:uuidGenerator="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.UuidGenerator"
+             xmlns:base64Encoder="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.Base64Encoder"
+             xmlns:diffTool="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.DiffTool"
+             xmlns:jsonYamlValidator="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.JsonYamlValidator"
+             xmlns:imageResizer="clr-namespace:WindowsUtilityPack.Tools.ImageTools.ImageResizer"
+             xmlns:imageConverter="clr-namespace:WindowsUtilityPack.Tools.ImageTools.ImageFormatConverter"
+             xmlns:screenshotAnnotator="clr-namespace:WindowsUtilityPack.Tools.ImageTools.ScreenshotAnnotator"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
@@ -23,7 +47,6 @@
                 <ResourceDictionary Source="Resources/Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Converters -->
             <converters:BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <converters:BooleanToVisibilityConverter x:Key="InvertedBoolToVisibilityConverter" Invert="True"/>
             <converters:BoolNegationConverter x:Key="BoolNegationConverter"/>
@@ -32,34 +55,47 @@
             <converters:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter"/>
             <converters:PercentageToScaleConverter x:Key="PercentageToScaleConverter"/>
 
-            <!-- DataTemplates: map ViewModels to Views -->
             <DataTemplate DataType="{x:Type vm:HomeViewModel}">
                 <views:HomeView/>
             </DataTemplate>
-            <DataTemplate DataType="{x:Type storageMaster:StorageMasterViewModel}">
-                <storageMaster:StorageMasterView/>
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type bulkRenamer:BulkFileRenamerViewModel}">
-                <bulkRenamer:BulkFileRenamerView/>
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type passwordGen:PasswordGeneratorViewModel}">
-                <passwordGen:PasswordGeneratorView/>
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type pingTool:PingToolViewModel}">
-                <pingTool:PingToolView/>
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type downloader:DownloaderViewModel}">
-                <downloader:DownloaderView/>
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type regexTester:RegexTesterViewModel}">
-                <regexTester:RegexTesterView/>
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type textFormatConverter:TextFormatConverterViewModel}">
-                <textFormatConverter:TextFormatConverterView/>
-            </DataTemplate>
-            <DataTemplate DataType="{x:Type qrCodeGenerator:QrCodeGeneratorViewModel}">
-                <qrCodeGenerator:QrCodeGeneratorView/>
-            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type storageMaster:StorageMasterViewModel}"><storageMaster:StorageMasterView/></DataTemplate>
+            <DataTemplate DataType="{x:Type startupManager:StartupManagerViewModel}"><startupManager:StartupManagerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type systemInfo:SystemInfoViewModel}"><systemInfo:SystemInfoView/></DataTemplate>
+            <DataTemplate DataType="{x:Type envVars:EnvVarsEditorViewModel}"><envVars:EnvVarsEditorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type hostsEditor:HostsFileEditorViewModel}"><hostsEditor:HostsFileEditorView/></DataTemplate>
+
+            <DataTemplate DataType="{x:Type bulkRenamer:BulkFileRenamerViewModel}"><bulkRenamer:BulkFileRenamerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type fileHash:FileHashCalculatorViewModel}"><fileHash:FileHashCalculatorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type fileShredder:SecureFileShredderViewModel}"><fileShredder:SecureFileShredderView/></DataTemplate>
+            <DataTemplate DataType="{x:Type metadataEditor:MetadataEditorViewModel}"><metadataEditor:MetadataEditorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type fileSplitJoin:FileSplitterJoinerViewModel}"><fileSplitJoin:FileSplitterJoinerView/></DataTemplate>
+
+            <DataTemplate DataType="{x:Type passwordGen:PasswordGeneratorViewModel}"><passwordGen:PasswordGeneratorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type hashGenerator:HashGeneratorViewModel}"><hashGenerator:HashGeneratorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type secretVault:LocalSecretVaultViewModel}"><secretVault:LocalSecretVaultView/></DataTemplate>
+            <DataTemplate DataType="{x:Type certInspector:CertificateInspectorViewModel}"><certInspector:CertificateInspectorView/></DataTemplate>
+
+            <DataTemplate DataType="{x:Type pingTool:PingToolViewModel}"><pingTool:PingToolView/></DataTemplate>
+            <DataTemplate DataType="{x:Type dnsLookup:DnsLookupViewModel}"><dnsLookup:DnsLookupView/></DataTemplate>
+            <DataTemplate DataType="{x:Type portScanner:PortScannerViewModel}"><portScanner:PortScannerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type httpTester:HttpRequestTesterViewModel}"><httpTester:HttpRequestTesterView/></DataTemplate>
+            <DataTemplate DataType="{x:Type speedTest:NetworkSpeedTestViewModel}"><speedTest:NetworkSpeedTestView/></DataTemplate>
+            <DataTemplate DataType="{x:Type downloader:DownloaderViewModel}"><downloader:DownloaderView/></DataTemplate>
+
+            <DataTemplate DataType="{x:Type regexTester:RegexTesterViewModel}"><regexTester:RegexTesterView/></DataTemplate>
+            <DataTemplate DataType="{x:Type textFormatConverter:TextFormatConverterViewModel}"><textFormatConverter:TextFormatConverterView/></DataTemplate>
+            <DataTemplate DataType="{x:Type qrCodeGenerator:QrCodeGeneratorViewModel}"><qrCodeGenerator:QrCodeGeneratorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type colorPicker:ColorPickerViewModel}"><colorPicker:ColorPickerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type timestampConverter:TimestampConverterViewModel}"><timestampConverter:TimestampConverterView/></DataTemplate>
+            <DataTemplate DataType="{x:Type uuidGenerator:UuidGeneratorViewModel}"><uuidGenerator:UuidGeneratorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type base64Encoder:Base64EncoderViewModel}"><base64Encoder:Base64EncoderView/></DataTemplate>
+            <DataTemplate DataType="{x:Type diffTool:DiffToolViewModel}"><diffTool:DiffToolView/></DataTemplate>
+            <DataTemplate DataType="{x:Type jsonYamlValidator:JsonYamlValidatorViewModel}"><jsonYamlValidator:JsonYamlValidatorView/></DataTemplate>
+
+            <DataTemplate DataType="{x:Type imageResizer:ImageResizerViewModel}"><imageResizer:ImageResizerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type imageConverter:ImageFormatConverterViewModel}"><imageConverter:ImageFormatConverterView/></DataTemplate>
+            <DataTemplate DataType="{x:Type screenshotAnnotator:ScreenshotAnnotatorViewModel}"><screenshotAnnotator:ScreenshotAnnotatorView/></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

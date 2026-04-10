@@ -93,6 +93,7 @@ public class EnvVarsEditorViewModel : ViewModelBase
     public RelayCommand SaveCommand       { get; }
     public RelayCommand DeleteCommand     { get; }
     public RelayCommand NewCommand        { get; }
+    public RelayCommand RevertCommand     { get; }
     public RelayCommand CopyValueCommand  { get; }
 
     private readonly IClipboardService _clipboard;
@@ -104,6 +105,7 @@ public class EnvVarsEditorViewModel : ViewModelBase
         SaveCommand     = new RelayCommand(Save);
         DeleteCommand   = new RelayCommand(Delete);
         NewCommand      = new RelayCommand(New);
+        RevertCommand   = new RelayCommand(Revert);
         CopyValueCommand = new RelayCommand(CopyValue);
 
         Load();
@@ -217,6 +219,23 @@ public class EnvVarsEditorViewModel : ViewModelBase
         EditValue     = string.Empty;
         IsDirty       = false;
         StatusMessage = "Enter a new variable name and value, then click Save.";
+    }
+
+    private void Revert()
+    {
+        if (SelectedEntry is not null)
+        {
+            EditName = SelectedEntry.Name;
+            EditValue = SelectedEntry.Value;
+            IsDirty = false;
+            StatusMessage = "Reverted unsaved changes.";
+            return;
+        }
+
+        EditName = string.Empty;
+        EditValue = string.Empty;
+        IsDirty = false;
+        StatusMessage = "Edit fields reset.";
     }
 
     private void CopyValue()

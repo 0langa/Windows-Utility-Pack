@@ -1,0 +1,65 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.FileDataTools.MetadataEditor.MetadataEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Metadata Viewer / Editor"
+                   FontSize="22"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource PrimaryTextBrush}"
+                   Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Text="{Binding FilePath}" IsReadOnly="True" Margin="0,0,8,0"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Browse File" Command="{Binding BrowseCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Content="Strip Metadata" Command="{Binding StripMetadataCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Content="Copy All" Command="{Binding CopyAllCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Type:" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding FileType}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="  |  " Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding Metadata}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="160"/>
+                        <DataGridTextColumn Header="Key" Binding="{Binding Key}" Width="220"/>
+                        <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,10,0,0">
+            <TextBlock Text="Supports image metadata and audio tags. Use 'Strip Metadata' to save a sanitized copy."
+                       Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
+        </Border>
+    </Grid>
+</UserControl>
+

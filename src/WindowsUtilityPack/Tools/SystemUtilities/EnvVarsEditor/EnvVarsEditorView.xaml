@@ -91,6 +91,8 @@
                                 Command="{Binding SaveCommand}" Margin="0,0,0,6"/>
                         <Button Content="New"  Style="{StaticResource SecondaryActionButtonStyle}"
                                 Command="{Binding NewCommand}"  Margin="0,0,0,6"/>
+                        <Button Content="Revert"  Style="{StaticResource SecondaryActionButtonStyle}"
+                                Command="{Binding RevertCommand}"  Margin="0,0,0,6"/>
                         <Button Content="Copy Value" Style="{StaticResource SecondaryActionButtonStyle}"
                                 Command="{Binding CopyValueCommand}" Margin="0,0,0,6"/>
                         <Button Content="Delete" Style="{StaticResource SecondaryActionButtonStyle}"

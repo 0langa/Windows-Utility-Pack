@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using System.Windows.Media;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
@@ -15,6 +16,25 @@ public class SavedColor
 
 public sealed class ColorPickerViewModel : ViewModelBase
 {
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Point
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out Point lpPoint);
+
+    [DllImport("user32.dll")]
+    private static extern nint GetDC(nint hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern int ReleaseDC(nint hwnd, nint hdc);
+
+    [DllImport("gdi32.dll")]
+    private static extern uint GetPixel(nint hdc, int nXPos, int nYPos);
+
     private readonly IClipboardService _clipboardService;
 
     private bool _updating;
@@ -118,6 +138,7 @@ public sealed class ColorPickerViewModel : ViewModelBase
     public RelayCommand CopyHexCommand { get; }
     public RelayCommand CopyRgbCommand { get; }
     public RelayCommand CopyHslCommand { get; }
+    public RelayCommand PickFromScreenCommand { get; }
     public RelayCommand AddToPaletteCommand { get; }
     public RelayCommand RemoveFromPaletteCommand { get; }
     public RelayCommand SelectPaletteColorCommand { get; }
@@ -130,6 +151,7 @@ public sealed class ColorPickerViewModel : ViewModelBase
         CopyHexCommand = new RelayCommand(_ => _clipboardService.SetText(HexColor));
         CopyRgbCommand = new RelayCommand(_ => _clipboardService.SetText(CssRgb));
         CopyHslCommand = new RelayCommand(_ => _clipboardService.SetText(CssHsl));
+        PickFromScreenCommand = new RelayCommand(_ => PickFromScreen());
         AddToPaletteCommand = new RelayCommand(_ => AddToPalette());
         RemoveFromPaletteCommand = new RelayCommand(param =>
         {
@@ -144,6 +166,45 @@ public sealed class ColorPickerViewModel : ViewModelBase
         ClearPaletteCommand = new RelayCommand(_ => Palette.Clear());
 
         UpdateFromRgb();
+    }
+
+    private void PickFromScreen()
+    {
+        if (!GetCursorPos(out var point))
+            return;
+
+        var hdc = GetDC(nint.Zero);
+        if (hdc == nint.Zero)
+            return;
+
+        try
+        {
+            var pixel = GetPixel(hdc, point.X, point.Y);
+            var r = (byte)(pixel & 0x000000FF);
+            var g = (byte)((pixel & 0x0000FF00) >> 8);
+            var b = (byte)((pixel & 0x00FF0000) >> 16);
+
+            _updating = true;
+            try
+            {
+                _r = r;
+                _g = g;
+                _b = b;
+                OnPropertyChanged(nameof(R));
+                OnPropertyChanged(nameof(G));
+                OnPropertyChanged(nameof(B));
+            }
+            finally
+            {
+                _updating = false;
+            }
+
+            UpdateFromRgb();
+        }
+        finally
+        {
+            ReleaseDC(nint.Zero, hdc);
+        }
     }
 
     private void UpdateFromRgb()

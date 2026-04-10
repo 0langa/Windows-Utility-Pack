@@ -7,6 +7,8 @@ using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
+using TagLibFile = TagLib.File;
+using TagLibTagTypes = TagLib.TagTypes;
 
 namespace WindowsUtilityPack.Tools.FileDataTools.MetadataEditor;
 
@@ -21,6 +23,9 @@ public class MetadataEditorViewModel : ViewModelBase
 {
     private static readonly HashSet<string> ImageExtensions =
         new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif" };
+
+    private static readonly HashSet<string> AudioExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".mp3", ".flac", ".ogg", ".m4a", ".wav", ".aac", ".wma" };
 
     private string _filePath     = string.Empty;
     private string _fileType     = string.Empty;
@@ -177,15 +182,39 @@ public class MetadataEditorViewModel : ViewModelBase
                     }
                     catch { /* Dispatcher unavailable */ }
                 }
-                else if (ext is ".mp3" or ".flac" or ".ogg" or ".m4a" or ".wav")
+                else if (AudioExtensions.Contains(ext))
                 {
                     fileType = "Audio";
-                    items.Add(new MetadataItem
+                    try
                     {
-                        Category = "Audio",
-                        Key      = "Note",
-                        Value    = "Full ID3/audio tag support requires an external library (e.g. TagLib#)."
-                    });
+                        var tagFile = TagLibFile.Create(path);
+                        var tag = tagFile.Tag;
+                        var properties = tagFile.Properties;
+
+                        TryAdd(items, "Audio", "Title", tag.Title);
+                        TryAdd(items, "Audio", "Album", tag.Album);
+                        TryAdd(items, "Audio", "Album Artist", string.Join("; ", tag.AlbumArtists ?? []));
+                        TryAdd(items, "Audio", "Performers", string.Join("; ", tag.Performers ?? []));
+                        TryAdd(items, "Audio", "Composers", string.Join("; ", tag.Composers ?? []));
+                        TryAdd(items, "Audio", "Genres", string.Join("; ", tag.Genres ?? []));
+                        TryAdd(items, "Audio", "Comment", tag.Comment);
+                        TryAdd(items, "Audio", "Year", tag.Year > 0 ? tag.Year.ToString() : null);
+                        TryAdd(items, "Audio", "Track", tag.Track > 0 ? tag.Track.ToString() : null);
+                        TryAdd(items, "Audio", "Duration", properties.Duration.ToString(@"hh\:mm\:ss"));
+                        TryAdd(items, "Audio", "Bitrate", properties.AudioBitrate > 0 ? $"{properties.AudioBitrate} kbps" : null);
+                        TryAdd(items, "Audio", "Sample Rate", properties.AudioSampleRate > 0 ? $"{properties.AudioSampleRate} Hz" : null);
+                        TryAdd(items, "Audio", "Channels", properties.AudioChannels > 0 ? properties.AudioChannels.ToString() : null);
+                        TryAdd(items, "Audio", "Media Types", properties.MediaTypes.ToString());
+                    }
+                    catch (Exception ex)
+                    {
+                        items.Add(new MetadataItem
+                        {
+                            Category = "Audio",
+                            Key = "Error",
+                            Value = $"Could not read audio metadata: {ex.Message}"
+                        });
+                    }
                 }
 
                 Application.Current.Dispatcher.Invoke(() =>
@@ -221,9 +250,9 @@ public class MetadataEditorViewModel : ViewModelBase
         if (string.IsNullOrEmpty(FilePath)) return;
 
         var ext = Path.GetExtension(FilePath).ToLowerInvariant();
-        if (!ImageExtensions.Contains(ext))
+        if (!ImageExtensions.Contains(ext) && !AudioExtensions.Contains(ext))
         {
-            StatusMessage = "Metadata stripping is only supported for image files in this version.";
+            StatusMessage = "Metadata stripping is only supported for image and audio files.";
             return;
         }
 
@@ -249,35 +278,45 @@ public class MetadataEditorViewModel : ViewModelBase
         {
             await Task.Run(() =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                if (ImageExtensions.Contains(ext))
                 {
-                    BitmapDecoder decoder;
-                    using (var inStream = File.OpenRead(FilePath))
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        decoder = BitmapDecoder.Create(
-                            inStream,
-                            BitmapCreateOptions.PreservePixelFormat,
-                            BitmapCacheOption.OnLoad);
-                    }
+                        BitmapDecoder decoder;
+                        using (var inStream = File.OpenRead(FilePath))
+                        {
+                            decoder = BitmapDecoder.Create(
+                                inStream,
+                                BitmapCreateOptions.PreservePixelFormat,
+                                BitmapCacheOption.OnLoad);
+                        }
 
-                    var frame  = decoder.Frames[0];
-                    // Copy raw pixels into a new WriteableBitmap (strips metadata)
-                    var clean  = new WriteableBitmap(frame);
+                        var frame = decoder.Frames[0];
+                        // Copy raw pixels into a new WriteableBitmap (strips metadata)
+                        var clean = new WriteableBitmap(frame);
 
-                    BitmapEncoder encoder = ext switch
-                    {
-                        ".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = 95 },
-                        ".png"            => new PngBitmapEncoder(),
-                        ".bmp"            => new BmpBitmapEncoder(),
-                        ".tiff" or ".tif" => new TiffBitmapEncoder(),
-                        _                 => new PngBitmapEncoder()
-                    };
+                        BitmapEncoder encoder = ext switch
+                        {
+                            ".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = 95 },
+                            ".png" => new PngBitmapEncoder(),
+                            ".bmp" => new BmpBitmapEncoder(),
+                            ".tiff" or ".tif" => new TiffBitmapEncoder(),
+                            _ => new PngBitmapEncoder()
+                        };
 
-                    encoder.Frames.Add(BitmapFrame.Create(clean));
+                        encoder.Frames.Add(BitmapFrame.Create(clean));
 
-                    using var outStream = File.Create(outputPath);
-                    encoder.Save(outStream);
-                });
+                        using var outStream = File.Create(outputPath);
+                        encoder.Save(outStream);
+                    });
+                }
+                else
+                {
+                    System.IO.File.Copy(FilePath, outputPath, overwrite: true);
+                    var audioFile = TagLibFile.Create(outputPath);
+                    audioFile.RemoveTags(TagLibTagTypes.AllTags);
+                    audioFile.Save();
+                }
             });
 
             StatusMessage = $"Stripped image saved to: {outputPath}";

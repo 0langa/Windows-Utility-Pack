@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using System.IO;
 using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
@@ -41,6 +42,7 @@ public class SystemInfoViewModel : ViewModelBase
     private string _ramAvailable          = string.Empty;
     private string _gpuName               = string.Empty;
     private string _systemDrive           = string.Empty;
+    private string _driveSummary          = string.Empty;
     private string _dotNetVersion         = string.Empty;
     private bool   _isLoading;
 
@@ -57,6 +59,7 @@ public class SystemInfoViewModel : ViewModelBase
     public string RamAvailable         { get => _ramAvailable;         private set => SetProperty(ref _ramAvailable, value); }
     public string GpuName              { get => _gpuName;              private set => SetProperty(ref _gpuName, value); }
     public string SystemDrive          { get => _systemDrive;          private set => SetProperty(ref _systemDrive, value); }
+    public string DriveSummary         { get => _driveSummary;         private set => SetProperty(ref _driveSummary, value); }
     public string DotNetVersion        { get => _dotNetVersion;        private set => SetProperty(ref _dotNetVersion, value); }
 
     public bool IsLoading
@@ -90,6 +93,7 @@ public class SystemInfoViewModel : ViewModelBase
                 var cpu    = ReadCpuNameFromRegistry();
                 var memory = ReadMemory();
                 var gpu    = ReadGpuNameFromRegistry();
+                var drives = BuildDriveSummary();
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -106,6 +110,7 @@ public class SystemInfoViewModel : ViewModelBase
                     RamAvailable         = FormatBytes(memory.available);
                     GpuName              = gpu;
                     SystemDrive          = Environment.GetEnvironmentVariable("SystemDrive") ?? "C:";
+                    DriveSummary         = drives;
                     DotNetVersion        = RuntimeInformation.FrameworkDescription;
                 });
             });
@@ -171,6 +176,26 @@ public class SystemInfoViewModel : ViewModelBase
         return $"{bytes / gb:F2} GB";
     }
 
+    private static string BuildDriveSummary()
+    {
+        try
+        {
+            var lines = new List<string>();
+            foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
+            {
+                var freeGb = drive.AvailableFreeSpace / (1024d * 1024d * 1024d);
+                var totalGb = drive.TotalSize / (1024d * 1024d * 1024d);
+                lines.Add($"{drive.Name} {drive.DriveFormat} {freeGb:F1}/{totalGb:F1} GB free");
+            }
+
+            return lines.Count > 0 ? string.Join(" | ", lines) : "No ready drives detected.";
+        }
+        catch
+        {
+            return "Drive summary unavailable.";
+        }
+    }
+
     private void CopyAll()
     {
         var sb = new StringBuilder();
@@ -199,6 +224,7 @@ public class SystemInfoViewModel : ViewModelBase
         sb.AppendLine("[Other]");
         sb.AppendLine($"  .NET Version : {DotNetVersion}");
         sb.AppendLine($"  GPU          : {GpuName}");
+        sb.AppendLine($"  Drives       : {DriveSummary}");
 
         _clipboard.SetText(sb.ToString());
     }

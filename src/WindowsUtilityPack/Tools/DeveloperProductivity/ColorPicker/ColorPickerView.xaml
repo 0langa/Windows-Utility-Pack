@@ -53,6 +53,9 @@
                                      Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
                             <Button Content="Copy HSL" Command="{Binding CopyHslCommand}"
                                     Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
+                            <Button Content="Pick From Screen"
+                                    Command="{Binding PickFromScreenCommand}"
+                                    Style="{StaticResource PrimaryActionButtonStyle}" Margin="8,0,0,0"/>
                         </StackPanel>
                     </StackPanel>
                 </Grid>
