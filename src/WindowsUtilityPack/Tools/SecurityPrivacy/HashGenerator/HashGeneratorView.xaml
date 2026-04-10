@@ -1,0 +1,196 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.SecurityPrivacy.HashGenerator.HashGeneratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8" MaxWidth="800">
+
+            <TextBlock Text="Hash Generator" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,16"/>
+
+            <!-- Mode toggle -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <RadioButton Content="Text" IsChecked="{Binding IsTextMode}"
+                                     Margin="0,0,16,0" Foreground="{DynamicResource PrimaryTextBrush}"
+                                     GroupName="InputModeGroup"/>
+                        <RadioButton Content="File" IsChecked="{Binding IsFileMode}"
+                                     Foreground="{DynamicResource PrimaryTextBrush}"
+                                     GroupName="InputModeGroup"/>
+                    </StackPanel>
+
+                    <!-- Text input -->
+                    <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                             MinHeight="80" MaxHeight="200"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             FontSize="13" Padding="8"
+                             Visibility="{Binding IsTextMode, Converter={StaticResource BoolToVisibilityConverter}}"
+                             AutomationProperties.Name="Input text to hash"/>
+
+                    <!-- File input -->
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding InputMode}" Value="File">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding FilePath, Mode=OneWay}"
+                                 IsReadOnly="True" Padding="8,6"
+                                 Foreground="{DynamicResource PrimaryTextBrush}"
+                                 AutomationProperties.Name="Selected file path"/>
+                        <Button Grid.Column="1" Content="Browse…"
+                                Command="{Binding BrowseFileCommand}"
+                                Style="{StaticResource SecondaryActionButtonStyle}"
+                                Margin="8,0,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Actions -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Compute Hashes"
+                            Command="{Binding ComputeCommand}"
+                            Style="{StaticResource PrimaryActionButtonStyle}"
+                            Margin="0,0,8,0"/>
+                    <Button Content="Clear"
+                            Command="{Binding ClearCommand}"
+                            Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <TextBlock Text="Computing…"
+                               Visibility="{Binding IsComputing, Converter={StaticResource BoolToVisibilityConverter}}"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               VerticalAlignment="Center" Margin="12,0,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Results -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Hash Results" FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+
+                    <!-- MD5 -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="MD5" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Md5Result, Mode=OneWay}"
+                                 IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+                                 Background="{DynamicResource PanelBackgroundBrush}"
+                                 Foreground="{DynamicResource PrimaryTextBrush}"
+                                 BorderThickness="1" Padding="6,4"/>
+                        <Button Grid.Column="2" Content="Copy" Command="{Binding CopyMd5Command}"
+                                Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"/>
+                    </Grid>
+
+                    <!-- SHA-1 -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SHA-1" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Sha1Result, Mode=OneWay}"
+                                 IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+                                 Background="{DynamicResource PanelBackgroundBrush}"
+                                 Foreground="{DynamicResource PrimaryTextBrush}"
+                                 BorderThickness="1" Padding="6,4"/>
+                        <Button Grid.Column="2" Content="Copy" Command="{Binding CopySha1Command}"
+                                Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"/>
+                    </Grid>
+
+                    <!-- SHA-256 -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SHA-256" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Sha256Result, Mode=OneWay}"
+                                 IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+                                 Background="{DynamicResource PanelBackgroundBrush}"
+                                 Foreground="{DynamicResource PrimaryTextBrush}"
+                                 BorderThickness="1" Padding="6,4"/>
+                        <Button Grid.Column="2" Content="Copy" Command="{Binding CopySha256Command}"
+                                Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"/>
+                    </Grid>
+
+                    <!-- SHA-512 -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SHA-512" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Sha512Result, Mode=OneWay}"
+                                 IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                                 Background="{DynamicResource PanelBackgroundBrush}"
+                                 Foreground="{DynamicResource PrimaryTextBrush}"
+                                 BorderThickness="1" Padding="6,4" TextWrapping="Wrap"/>
+                        <Button Grid.Column="2" Content="Copy" Command="{Binding CopySha512Command}"
+                                Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"/>
+                    </Grid>
+
+                    <!-- CRC-32 -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="CRC-32" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBox Grid.Column="1" Text="{Binding CrcResult, Mode=OneWay}"
+                                 IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+                                 Background="{DynamicResource PanelBackgroundBrush}"
+                                 Foreground="{DynamicResource PrimaryTextBrush}"
+                                 BorderThickness="1" Padding="6,4"/>
+                        <Button Grid.Column="2" Content="Copy"
+                                Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"
+                                IsEnabled="False"/>
+                    </Grid>
+
+                    <!-- BLAKE2b -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="BLAKE2b" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Blake2bResult, Mode=OneWay}"
+                                 IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+                                 Background="{DynamicResource PanelBackgroundBrush}"
+                                 Foreground="{DynamicResource SecondaryTextBrush}"
+                                 BorderThickness="1" Padding="6,4"/>
+                        <Button Grid.Column="2" Content="Copy"
+                                Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"
+                                IsEnabled="False"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

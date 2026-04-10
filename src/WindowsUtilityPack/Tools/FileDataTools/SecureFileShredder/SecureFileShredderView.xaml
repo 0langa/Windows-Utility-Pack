@@ -1,0 +1,106 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.FileDataTools.SecureFileShredder.SecureFileShredderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8" MaxWidth="800">
+
+            <!-- Header -->
+            <TextBlock Text="Secure File Shredder" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,8"/>
+
+            <!-- Warning banner -->
+            <Border Background="#FFEBEE" BorderBrush="#EF9A9A" BorderThickness="1"
+                    CornerRadius="4" Padding="12,10" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontSize="16" Text="&#9888;" Foreground="#C62828"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock FontWeight="SemiBold" Foreground="#C62828" FontSize="13"
+                               VerticalAlignment="Center"
+                               Text="Warning: Shredded files cannot be recovered. This action is permanent."/>
+                </StackPanel>
+            </Border>
+
+            <!-- Pass count + Add files toolbar -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="12" Margin="0,0,0,8">
+                <WrapPanel Orientation="Horizontal">
+                    <TextBlock Text="Overwrite passes:" VerticalAlignment="Center"
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,8,0"/>
+                    <ComboBox SelectedValue="{Binding PassCount}"
+                              SelectedValuePath="Tag"
+                              Width="200" Margin="0,0,16,0">
+                        <ComboBoxItem Tag="1"  Content="1 pass (Quick)"/>
+                        <ComboBoxItem Tag="3"  Content="3 passes (Standard)" IsSelected="True"/>
+                        <ComboBoxItem Tag="7"  Content="7 passes (DoD 5220.22-M)"/>
+                    </ComboBox>
+                    <Button Content="Add Files…"
+                            Style="{StaticResource SecondaryActionButtonStyle}"
+                            Command="{Binding AddFilesCommand}"
+                            Margin="0,0,8,0"
+                            IsEnabled="{Binding IsShredding, Converter={StaticResource BoolNegationConverter}}"/>
+                    <Button Content="Remove Selected"
+                            Style="{StaticResource SecondaryActionButtonStyle}"
+                            Command="{Binding RemoveSelectedCommand}"
+                            Margin="0,0,8,0"/>
+                    <Button Content="Clear All"
+                            Style="{StaticResource SecondaryActionButtonStyle}"
+                            Command="{Binding ClearAllCommand}"/>
+                </WrapPanel>
+            </Border>
+
+            <!-- File list -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="0" Margin="0,0,0,8">
+                <DataGrid ItemsSource="{Binding Files}"
+                          SelectedItem="{Binding SelectedFile, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          SelectionMode="Single"
+                          GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
+                          Background="{DynamicResource CardBackgroundBrush}"
+                          RowBackground="{DynamicResource CardBackgroundBrush}"
+                          AlternatingRowBackground="{DynamicResource PanelBackgroundBrush}"
+                          BorderThickness="0"
+                          MinHeight="180"
+                          MaxHeight="350">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="File Name" Binding="{Binding FileName}"    Width="*"/>
+                        <DataGridTextColumn Header="Size"      Binding="{Binding SizeDisplay}" Width="90"/>
+                        <DataGridTextColumn Header="Status"    Binding="{Binding Status}"      Width="130"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <!-- Progress -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="12"
+                    Visibility="{Binding IsShredding, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Margin="0,0,0,6" FontSize="12"
+                               Foreground="{DynamicResource SecondaryTextBrush}">
+                        <Run Text="Processing: "/>
+                        <Run Text="{Binding CurrentFile}" FontWeight="SemiBold"/>
+                    </TextBlock>
+                    <ProgressBar Value="{Binding Progress}" Minimum="0" Maximum="100" Height="10"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Shred button -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="12" Margin="0,0,0,8">
+                <Button Content="Shred Files"
+                        Style="{StaticResource PrimaryActionButtonStyle}"
+                        Command="{Binding ShredCommand}"
+                        HorizontalAlignment="Left"
+                        IsEnabled="{Binding IsShredding, Converter={StaticResource BoolNegationConverter}}"/>
+            </Border>
+
+            <!-- Status bar -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6">
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

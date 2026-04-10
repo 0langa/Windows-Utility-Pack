@@ -1,0 +1,197 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.FileDataTools.FileHashCalculator.FileHashCalculatorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="HashLabelStyle" TargetType="TextBlock">
+            <Setter Property="Width" Value="70"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+        </Style>
+        <Style x:Key="HashValueStyle" TargetType="TextBox">
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8" MaxWidth="800">
+
+            <!-- Header -->
+            <TextBlock Text="File Hash Calculator" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+            <TextBlock Text="Compute MD5, SHA-1, SHA-256, and SHA-512 checksums for any file"
+                       FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,16"/>
+
+            <!-- Drop zone / Browse -->
+            <Border x:Name="DropZone"
+                    Style="{StaticResource ToolPanelBorderStyle}"
+                    AllowDrop="True"
+                    Drop="DropZone_Drop"
+                    DragOver="DropZone_DragOver"
+                    Padding="20" Margin="0,0,0,8"
+                    MinHeight="80">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <!-- Shown when no file selected -->
+                        <TextBlock Text="Drop a file here or click Browse"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontSize="13"
+                                   Visibility="{Binding HasFile, Converter={StaticResource InvertedBoolToVisibilityConverter}}"/>
+                        <!-- Shown when file selected -->
+                        <TextBlock Text="{Binding FilePath}"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   FontSize="13" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding HasFile, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="1" Content="Browse…"
+                            Style="{StaticResource SecondaryActionButtonStyle}"
+                            Command="{Binding BrowseCommand}"
+                            VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- Progress bar (shown while computing) -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="12"
+                    Visibility="{Binding IsComputing, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,6"/>
+                    <ProgressBar Value="{Binding Progress}" Minimum="0" Maximum="100" Height="8"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Hash results -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="Hash Results" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,12"/>
+
+                    <!-- MD5 -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="MD5" Style="{StaticResource HashLabelStyle}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Md5Hash, Mode=OneWay}"
+                                 Style="{StaticResource HashValueStyle}"/>
+                        <Button Grid.Column="2" Content="Copy"
+                                Style="{StaticResource SecondaryActionButtonStyle}"
+                                Command="{Binding CopyMd5Command}"/>
+                    </Grid>
+
+                    <!-- SHA-1 -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SHA-1" Style="{StaticResource HashLabelStyle}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Sha1Hash, Mode=OneWay}"
+                                 Style="{StaticResource HashValueStyle}"/>
+                        <Button Grid.Column="2" Content="Copy"
+                                Style="{StaticResource SecondaryActionButtonStyle}"
+                                Command="{Binding CopySha1Command}"/>
+                    </Grid>
+
+                    <!-- SHA-256 -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SHA-256" Style="{StaticResource HashLabelStyle}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Sha256Hash, Mode=OneWay}"
+                                 Style="{StaticResource HashValueStyle}"/>
+                        <Button Grid.Column="2" Content="Copy"
+                                Style="{StaticResource SecondaryActionButtonStyle}"
+                                Command="{Binding CopySha256Command}"/>
+                    </Grid>
+
+                    <!-- SHA-512 -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SHA-512" Style="{StaticResource HashLabelStyle}"/>
+                        <TextBox Grid.Column="1" Text="{Binding Sha512Hash, Mode=OneWay}"
+                                 Style="{StaticResource HashValueStyle}"/>
+                        <Button Grid.Column="2" Content="Copy"
+                                Style="{StaticResource SecondaryActionButtonStyle}"
+                                Command="{Binding CopySha512Command}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Verify section -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="Verify Hash" FontWeight="SemiBold" FontSize="13"
+                               Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
+                    <TextBlock Text="Paste an expected hash below to compare against computed values."
+                               FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding VerifyHash, UpdateSourceTrigger=PropertyChanged}"
+                                 Padding="6,4" FontFamily="Consolas" FontSize="12"
+                                 VerticalContentAlignment="Center"/>
+                        <Button Grid.Column="2" Content="Verify"
+                                Style="{StaticResource PrimaryActionButtonStyle}"
+                                Command="{Binding VerifyCommand}"/>
+                    </Grid>
+
+                    <!-- Verify result (visible only when set) -->
+                    <Border Margin="0,8,0,0"
+                            Visibility="{Binding HasVerifyResult, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{Binding VerifyResult}"
+                                   FontWeight="SemiBold" FontSize="13">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#C62828"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding VerifyResult,
+                                            Converter={StaticResource StringEqualsToVisibilityConverter},
+                                            ConverterParameter=Match - Hash verified!}"
+                                                     Value="Visible">
+                                            <Setter Property="Foreground" Value="#2E7D32"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Status bar -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6">
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

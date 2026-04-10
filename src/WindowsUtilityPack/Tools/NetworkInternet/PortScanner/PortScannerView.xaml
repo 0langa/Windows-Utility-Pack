@@ -1,0 +1,126 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.NetworkInternet.PortScanner.PortScannerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8" MaxWidth="800">
+
+            <TextBlock Text="Port Scanner" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,16"/>
+
+            <!-- Configuration -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="160"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Host:" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
+                                 IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
+                                 Padding="8,6" Margin="0,0,12,0"
+                                 AutomationProperties.Name="Target host"/>
+                        <TextBlock Grid.Column="2" Text="Port range:" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="3"
+                                 Text="{Binding PortRangeText, UpdateSourceTrigger=PropertyChanged}"
+                                 IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
+                                 Padding="8,6"
+                                 AutomationProperties.Name="Port range"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Timeout (ms):" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding TimeoutMs, UpdateSourceTrigger=LostFocus}"
+                                 IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
+                                 Padding="8,6" Margin="0,0,12,0"
+                                 AutomationProperties.Name="Timeout milliseconds"/>
+                        <TextBlock Grid.Column="2" Text="Concurrency:" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="3"
+                                 Text="{Binding Concurrency, UpdateSourceTrigger=LostFocus}"
+                                 IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
+                                 Padding="8,6" Margin="0,0,16,0"
+                                 AutomationProperties.Name="Concurrency limit"/>
+                        <Button Grid.Column="5" Content="Scan"
+                                Command="{Binding ScanCommand}"
+                                Style="{StaticResource PrimaryActionButtonStyle}"
+                                Margin="0,0,8,0"/>
+                        <Button Grid.Column="6" Content="Stop"
+                                Command="{Binding StopCommand}"
+                                Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Progress -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12"
+                    Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6"/>
+                    <ProgressBar Value="{Binding Progress}" Minimum="0" Maximum="100" Height="8"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Results -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Copy Open Ports"
+                                Command="{Binding CopyOpenPortsCommand}"
+                                Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        <TextBlock Text="Open Ports" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <DataGrid ItemsSource="{Binding Results}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              MinHeight="120" MaxHeight="400"
+                              Background="{DynamicResource CardBackgroundBrush}"
+                              Foreground="{DynamicResource PrimaryTextBrush}"
+                              BorderThickness="0"
+                              CanUserResizeRows="False"
+                              SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Port"    Binding="{Binding Port}"       Width="70"/>
+                            <DataGridTextColumn Header="Service" Binding="{Binding Service}"    Width="120"/>
+                            <DataGridTextColumn Header="Status"  Binding="{Binding Status}"     Width="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Response (ms)" Binding="{Binding ResponseMs}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- Status bar when not scanning -->
+            <TextBlock Text="{Binding StatusMessage}"
+                       Visibility="{Binding IsScanning, Converter={StaticResource InvertedBoolToVisibilityConverter}}"
+                       Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

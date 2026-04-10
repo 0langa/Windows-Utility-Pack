@@ -1,0 +1,156 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.SystemUtilities.SystemInfoDashboard.SystemInfoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="InfoLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="140"/>
+        </Style>
+        <Style x:Key="InfoValueStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8" MaxWidth="900">
+
+            <!-- Header row -->
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="System Info" FontSize="20" FontWeight="SemiBold"
+                           Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="Refresh"
+                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Command="{Binding LoadCommand}" Margin="0,0,8,0"/>
+                <Button Grid.Column="2" Content="Copy All"
+                        Style="{StaticResource PrimaryActionButtonStyle}"
+                        Command="{Binding CopyAllCommand}"/>
+            </Grid>
+
+            <!-- Loading indicator -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="10"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Margin="0,0,0,8">
+                <TextBlock Text="Loading system information…"
+                           Foreground="{DynamicResource SecondaryTextBrush}"/>
+            </Border>
+
+            <!-- Two-column grid of info sections -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- OS Section -->
+                <Border Grid.Row="0" Grid.Column="0"
+                        Style="{StaticResource ToolPanelBorderStyle}" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Operating System" FontWeight="SemiBold" FontSize="13"
+                                   Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="OS Name" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding OsName}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Version" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding OsVersion}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Build" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding OsBuild}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Architecture" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding Architecture}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Computer Section -->
+                <Border Grid.Row="0" Grid.Column="2"
+                        Style="{StaticResource ToolPanelBorderStyle}" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Computer" FontWeight="SemiBold" FontSize="13"
+                                   Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Computer Name" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding ComputerName}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="User" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding UserName}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="System Drive" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding SystemDrive}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- CPU Section -->
+                <Border Grid.Row="2" Grid.Column="0"
+                        Style="{StaticResource ToolPanelBorderStyle}" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Processor" FontWeight="SemiBold" FontSize="13"
+                                   Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="CPU Name" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding CpuName}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Cores" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding CpuCores}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Logical Processors" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding CpuLogicalProcessors}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Memory + Other Section -->
+                <Border Grid.Row="2" Grid.Column="2"
+                        Style="{StaticResource ToolPanelBorderStyle}" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Memory &amp; Other" FontWeight="SemiBold" FontSize="13"
+                                   Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Total RAM" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding RamTotal}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Available RAM" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding RamAvailable}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text=".NET Version" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding DotNetVersion}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="GPU" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding GpuName}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

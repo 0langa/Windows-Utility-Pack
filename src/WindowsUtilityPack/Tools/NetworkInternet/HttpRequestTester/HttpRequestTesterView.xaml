@@ -1,0 +1,146 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.NetworkInternet.HttpRequestTester.HttpRequestTesterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8" MaxWidth="900">
+
+            <TextBlock Text="HTTP Request Tester" FontSize="20" FontWeight="SemiBold"
+                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,16"/>
+
+            <!-- URL + Method + Send -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox ItemsSource="{Binding Methods}"
+                                  SelectedItem="{Binding Method}"
+                                  Width="110" Margin="0,0,8,0"
+                                  FontWeight="SemiBold"
+                                  AutomationProperties.Name="HTTP method"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"
+                                 Padding="8,6"
+                                 AutomationProperties.Name="Request URL"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Sending…"
+                                   Visibility="{Binding IsSending, Converter={StaticResource BoolToVisibilityConverter}}"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="Send"
+                                Command="{Binding SendCommand}"
+                                Style="{StaticResource PrimaryActionButtonStyle}"
+                                Margin="0,0,8,0"/>
+                        <Button Grid.Column="2" Content="Clear"
+                                Command="{Binding ClearCommand}"
+                                Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Request Headers -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Request Headers (Key: Value, one per line)"
+                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding RequestHeaders, UpdateSourceTrigger=PropertyChanged}"
+                             MinHeight="60" MaxHeight="120"
+                             FontFamily="Consolas" FontSize="12"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             AutomationProperties.Name="Custom request headers"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Request Body -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12"
+                    Visibility="{Binding ShowRequestBody, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Text="Request Body"
+                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding RequestBody, UpdateSourceTrigger=PropertyChanged}"
+                             MinHeight="80" MaxHeight="200"
+                             FontFamily="Consolas" FontSize="12"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             AutomationProperties.Name="Request body"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Response Status -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border CornerRadius="4" Padding="8,4" Margin="0,0,12,0" VerticalAlignment="Center">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ResponseStatusCode}" Value="0">
+                                        <Setter Property="Background" Value="{DynamicResource SubtleBorderBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding ResponseStatus}" FontWeight="Bold"
+                                   Foreground="White" FontSize="13"/>
+                    </Border>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                               Foreground="{DynamicResource SecondaryTextBrush}">
+                        <Run Text="{Binding ResponseTimeMs, Mode=OneWay}"/>
+                        <Run Text="ms"/>
+                    </TextBlock>
+                    <Button Grid.Column="3" Content="Copy Response"
+                            Command="{Binding CopyResponseCommand}"
+                            Style="{StaticResource SecondaryActionButtonStyle}"/>
+                </Grid>
+            </Border>
+
+            <!-- Response Headers -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Response Headers"
+                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding ResponseHeaders, Mode=OneWay}"
+                             IsReadOnly="True"
+                             MinHeight="60" MaxHeight="120"
+                             FontFamily="Consolas" FontSize="11"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="{DynamicResource PanelBackgroundBrush}"
+                             Foreground="{DynamicResource PrimaryTextBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Response Body -->
+            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Response Body"
+                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding ResponseBody, Mode=OneWay}"
+                             IsReadOnly="True"
+                             MinHeight="120" MaxHeight="500"
+                             FontFamily="Consolas" FontSize="12"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="{DynamicResource PanelBackgroundBrush}"
+                             Foreground="{DynamicResource PrimaryTextBrush}"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
