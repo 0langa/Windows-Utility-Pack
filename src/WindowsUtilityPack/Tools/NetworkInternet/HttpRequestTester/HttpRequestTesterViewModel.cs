@@ -15,7 +15,8 @@ namespace WindowsUtilityPack.Tools.NetworkInternet.HttpRequestTester;
 /// </summary>
 public class HttpRequestTesterViewModel : ViewModelBase
 {
-    private static readonly HttpClient _httpClient = new();
+    // Timeout is handled per-request via CancellationTokenSource.
+    private static readonly HttpClient _httpClient = new() { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
 
     private readonly IClipboardService _clipboard;
 
@@ -30,6 +31,11 @@ public class HttpRequestTesterViewModel : ViewModelBase
     private long   _responseTimeMs;
     private bool   _isSending;
     private bool   _showRequestBody;
+    private string _authMode           = "None";
+    private string _authUsername       = string.Empty;
+    private string _authPassword       = string.Empty;
+    private string _authToken          = string.Empty;
+    private int    _timeoutSeconds     = 30;
 
     public string Url
     {
@@ -104,6 +110,49 @@ public class HttpRequestTesterViewModel : ViewModelBase
         set => SetProperty(ref _showRequestBody, value);
     }
 
+    public ObservableCollection<string> AuthModes { get; } = ["None", "Basic", "Bearer Token"];
+
+    public string AuthMode
+    {
+        get => _authMode;
+        set
+        {
+            if (SetProperty(ref _authMode, value))
+            {
+                OnPropertyChanged(nameof(ShowBasicAuth));
+                OnPropertyChanged(nameof(ShowBearerAuth));
+            }
+        }
+    }
+
+    public bool ShowBasicAuth   => AuthMode == "Basic";
+    public bool ShowBearerAuth  => AuthMode == "Bearer Token";
+
+    public string AuthUsername
+    {
+        get => _authUsername;
+        set => SetProperty(ref _authUsername, value);
+    }
+
+    public string AuthPassword
+    {
+        get => _authPassword;
+        set => SetProperty(ref _authPassword, value);
+    }
+
+    public string AuthToken
+    {
+        get => _authToken;
+        set => SetProperty(ref _authToken, value);
+    }
+
+    /// <summary>Per-request timeout in seconds. Minimum 1.</summary>
+    public int TimeoutSeconds
+    {
+        get => _timeoutSeconds;
+        set => SetProperty(ref _timeoutSeconds, Math.Max(1, value));
+    }
+
     public AsyncRelayCommand SendCommand         { get; }
     public RelayCommand      CopyResponseCommand { get; }
     public RelayCommand      ClearCommand        { get; }
@@ -129,7 +178,22 @@ public class HttpRequestTesterViewModel : ViewModelBase
 
         try
         {
+            using var cts     = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds));
             using var request = new HttpRequestMessage(new HttpMethod(Method), Url);
+
+            // Apply authentication header
+            switch (AuthMode)
+            {
+                case "Basic" when !string.IsNullOrEmpty(AuthUsername):
+                    var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{AuthUsername}:{AuthPassword}"));
+                    request.Headers.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+                    break;
+                case "Bearer Token" when !string.IsNullOrEmpty(AuthToken):
+                    request.Headers.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AuthToken);
+                    break;
+            }
 
             // Parse and add custom request headers
             foreach (var line in RequestHeaders.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -152,7 +216,7 @@ public class HttpRequestTesterViewModel : ViewModelBase
             }
 
             var sw = Stopwatch.StartNew();
-            using var response = await _httpClient.SendAsync(request);
+            using var response = await _httpClient.SendAsync(request, cts.Token);
             sw.Stop();
 
             ResponseTimeMs     = sw.ElapsedMilliseconds;
@@ -183,6 +247,11 @@ public class HttpRequestTesterViewModel : ViewModelBase
             }
 
             ResponseBody = body;
+        }
+        catch (OperationCanceledException)
+        {
+            ResponseStatus = "Timeout";
+            ResponseBody   = $"Request timed out after {TimeoutSeconds}s.";
         }
         catch (Exception ex)
         {

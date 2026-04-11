@@ -47,11 +47,17 @@
                         <TextBox Grid.Column="1"
                                  Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="Request URL"/>
-                        <Button Grid.Column="2"
-                                Content="Send"
-                                Command="{Binding SendCommand}"
-                                Style="{StaticResource PrimaryActionButtonStyle}"
-                                Margin="10,0,8,0"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,8,0">
+                            <Button Content="Send"
+                                    Command="{Binding SendCommand}"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"
+                                    Margin="0,0,8,0"/>
+                            <TextBlock Text="Timeout (s):" Foreground="{DynamicResource SecondaryTextBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,6,0" FontSize="12"/>
+                            <TextBox Text="{Binding TimeoutSeconds, UpdateSourceTrigger=LostFocus}"
+                                     Width="46" Padding="6,4" FontSize="12"
+                                     AutomationProperties.Name="Request timeout seconds"/>
+                        </StackPanel>
                         <Button Grid.Column="3"
                                 Content="Clear"
                                 Command="{Binding ClearCommand}"
@@ -121,6 +127,43 @@
                                      TextWrapping="Wrap"
                                      VerticalScrollBarVisibility="Auto"
                                      AutomationProperties.Name="Custom request headers"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource ElevatedSurfaceStyle}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Authentication" Style="{StaticResource SectionHeadingTextStyle}" FontSize="18"/>
+                            <ComboBox ItemsSource="{Binding AuthModes}"
+                                      SelectedItem="{Binding AuthMode}"
+                                      Margin="0,8,0,0"
+                                      AutomationProperties.Name="Authentication mode"/>
+                            <!-- Basic auth fields -->
+                            <Grid Margin="0,8,0,0"
+                                  Visibility="{Binding ShowBasicAuth, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding AuthUsername, UpdateSourceTrigger=PropertyChanged}"
+                                         Padding="8,6"
+                                         AutomationProperties.Name="Basic auth username">
+                                    <TextBox.Tag>Username</TextBox.Tag>
+                                </TextBox>
+                                <PasswordBox x:Name="BasicAuthPasswordBox"
+                                             Grid.Column="2"
+                                             PasswordChanged="BasicAuthPasswordBox_PasswordChanged"
+                                             Padding="8,6"
+                                             AutomationProperties.Name="Basic auth password"/>
+                            </Grid>
+                            <!-- Bearer token field -->
+                            <TextBox Margin="0,8,0,0"
+                                     Text="{Binding AuthToken, UpdateSourceTrigger=PropertyChanged}"
+                                     FontFamily="Consolas"
+                                     Padding="8,6"
+                                     Visibility="{Binding ShowBearerAuth, Converter={StaticResource BoolToVisibilityConverter}}"
+                                     AutomationProperties.Name="Bearer token"/>
                         </StackPanel>
                     </Border>
 

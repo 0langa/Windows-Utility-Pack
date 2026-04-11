@@ -84,9 +84,15 @@
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="Copy Open Ports"
-                                Command="{Binding CopyOpenPortsCommand}"
-                                Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Content="Export CSV"
+                                    Command="{Binding ExportCsvCommand}"
+                                    Style="{StaticResource SecondaryActionButtonStyle}"
+                                    Margin="0,0,8,0"/>
+                            <Button Content="Copy Open Ports"
+                                    Command="{Binding CopyOpenPortsCommand}"
+                                    Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        </StackPanel>
                         <TextBlock Text="Open Ports" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                    VerticalAlignment="Center"/>

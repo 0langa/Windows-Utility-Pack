@@ -3,6 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Windows.Threading;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
@@ -47,17 +48,21 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
     private byte[]? _derivedKey;
     private byte[]? _salt;
 
+    private DispatcherTimer? _autoLockTimer;
+    private DateTime         _lastActivityUtc;
+
     private ObservableCollection<SecretEntry> _allSecrets = [];
     private SecretEntry?  _selectedSecret;
-    private string        _searchText     = string.Empty;
-    private string        _editName       = string.Empty;
-    private string        _editValue      = string.Empty;
-    private string        _editCategory   = string.Empty;
-    private string        _editNotes      = string.Empty;
+    private string        _searchText       = string.Empty;
+    private string        _editName         = string.Empty;
+    private string        _editValue        = string.Empty;
+    private string        _editCategory     = string.Empty;
+    private string        _editNotes        = string.Empty;
     private bool          _isValueVisible;
-    private bool          _isLocked       = true;
-    private string        _masterPassword = string.Empty;
-    private string        _statusMessage  = string.Empty;
+    private bool          _isLocked         = true;
+    private string        _masterPassword   = string.Empty;
+    private string        _statusMessage    = string.Empty;
+    private int           _autoLockMinutes  = 5;
     private int           _failedUnlockAttempts;
     private DateTimeOffset? _lockedOutUntilUtc;
 
@@ -69,7 +74,10 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
         set
         {
             if (SetProperty(ref _selectedSecret, value) && value != null)
+            {
+                ResetActivityTimer();
                 LoadEditFields(value);
+            }
         }
     }
 
@@ -131,6 +139,15 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _statusMessage, value);
     }
 
+    /// <summary>
+    /// Minutes of inactivity before the vault auto-locks. Set to 0 to disable.
+    /// </summary>
+    public int AutoLockMinutes
+    {
+        get => _autoLockMinutes;
+        set => SetProperty(ref _autoLockMinutes, Math.Max(0, value));
+    }
+
     public AsyncRelayCommand UnlockCommand          { get; }
     public RelayCommand      LockCommand            { get; }
     public RelayCommand      AddSecretCommand       { get; }
@@ -183,6 +200,7 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
                 MasterPassword = string.Empty;
                 _failedUnlockAttempts = 0;
                 _lockedOutUntilUtc = null;
+                StartAutoLockTimer();
                 FilterSecrets();
                 return;
             }
@@ -204,6 +222,7 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
             MasterPassword = string.Empty;
             _failedUnlockAttempts = 0;
             _lockedOutUntilUtc = null;
+            StartAutoLockTimer();
             FilterSecrets();
         }
         catch (Exception ex) when (ex is CryptographicException or JsonException)
@@ -236,6 +255,7 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
 
     private void Lock()
     {
+        StopAutoLockTimer();
         ReplaceDerivedKey(null);
         ReplaceSalt(null);
         IsLocked      = true;
@@ -248,6 +268,7 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
 
     private void AddSecret()
     {
+        ResetActivityTimer();
         EditName     = "New Secret";
         EditValue    = string.Empty;
         EditCategory = string.Empty;
@@ -259,6 +280,7 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
     private async Task SaveSecretAsync()
     {
         if (_derivedKey == null) return;
+        ResetActivityTimer();
         var plaintextBytes = Encoding.UTF8.GetBytes(EditValue);
         var encryptedBytes = Encrypt(plaintextBytes, _derivedKey);
         ClearSensitiveBuffer(plaintextBytes);
@@ -322,6 +344,7 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
     private void CopyValue()
     {
         if (SelectedSecret == null || _derivedKey == null) return;
+        ResetActivityTimer();
         try
         {
             var plainBytes = Decrypt(Convert.FromBase64String(SelectedSecret.EncryptedValue), _derivedKey);
@@ -390,6 +413,37 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
         await File.WriteAllTextAsync(VaultPath, output);
     }
 
+    private void StartAutoLockTimer()
+    {
+        _lastActivityUtc = DateTime.UtcNow;
+        if (_autoLockTimer == null)
+        {
+            _autoLockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+            _autoLockTimer.Tick += OnAutoLockTimerTick;
+        }
+        _autoLockTimer.Start();
+    }
+
+    private void StopAutoLockTimer()
+    {
+        _autoLockTimer?.Stop();
+    }
+
+    private void OnAutoLockTimerTick(object? sender, EventArgs e)
+    {
+        if (AutoLockMinutes <= 0 || IsLocked) return;
+        if ((DateTime.UtcNow - _lastActivityUtc).TotalMinutes >= AutoLockMinutes)
+        {
+            StatusMessage = $"Vault auto-locked after {AutoLockMinutes} minute(s) of inactivity.";
+            Lock();
+        }
+    }
+
+    private void ResetActivityTimer()
+    {
+        _lastActivityUtc = DateTime.UtcNow;
+    }
+
     internal static TimeSpan GetUnlockBackoffDelay(int failedAttempts)
     {
         var sanitizedAttempts = Math.Max(1, failedAttempts);
@@ -455,6 +509,12 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        if (_autoLockTimer != null)
+        {
+            _autoLockTimer.Stop();
+            _autoLockTimer.Tick -= OnAutoLockTimerTick;
+            _autoLockTimer = null;
+        }
         Lock();
     }
 }

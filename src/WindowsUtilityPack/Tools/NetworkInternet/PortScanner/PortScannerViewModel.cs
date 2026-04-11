@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -31,20 +32,75 @@ public class PortScannerViewModel : ViewModelBase
 
     private static readonly Dictionary<int, string> WellKnownServices = new()
     {
-        { 21,    "FTP"        },
-        { 22,    "SSH"        },
-        { 23,    "Telnet"     },
-        { 25,    "SMTP"       },
-        { 53,    "DNS"        },
-        { 80,    "HTTP"       },
-        { 110,   "POP3"       },
-        { 143,   "IMAP"       },
-        { 443,   "HTTPS"      },
-        { 3306,  "MySQL"      },
-        { 3389,  "RDP"        },
-        { 5432,  "PostgreSQL" },
-        { 8080,  "HTTP-Alt"   },
-        { 27017, "MongoDB"    },
+        { 20,    "FTP-Data"       },
+        { 21,    "FTP"            },
+        { 22,    "SSH"            },
+        { 23,    "Telnet"         },
+        { 25,    "SMTP"           },
+        { 53,    "DNS"            },
+        { 67,    "DHCP-Server"    },
+        { 68,    "DHCP-Client"    },
+        { 69,    "TFTP"           },
+        { 80,    "HTTP"           },
+        { 88,    "Kerberos"       },
+        { 110,   "POP3"           },
+        { 111,   "RPC"            },
+        { 119,   "NNTP"           },
+        { 123,   "NTP"            },
+        { 135,   "MS-RPC"         },
+        { 137,   "NetBIOS-NS"     },
+        { 138,   "NetBIOS-DGM"    },
+        { 139,   "NetBIOS-SSN"    },
+        { 143,   "IMAP"           },
+        { 161,   "SNMP"           },
+        { 162,   "SNMP-Trap"      },
+        { 179,   "BGP"            },
+        { 389,   "LDAP"           },
+        { 443,   "HTTPS"          },
+        { 445,   "SMB"            },
+        { 465,   "SMTPS"          },
+        { 500,   "IKE/IPsec"      },
+        { 514,   "Syslog"         },
+        { 515,   "LPD/LPR"        },
+        { 587,   "SMTP-Submission" },
+        { 636,   "LDAPS"          },
+        { 993,   "IMAPS"          },
+        { 995,   "POP3S"          },
+        { 1080,  "SOCKS"          },
+        { 1433,  "MSSQL"          },
+        { 1521,  "Oracle"         },
+        { 1723,  "PPTP"           },
+        { 2181,  "ZooKeeper"      },
+        { 2375,  "Docker"         },
+        { 2376,  "Docker-TLS"     },
+        { 3000,  "Dev-HTTP"       },
+        { 3268,  "LDAP-GC"        },
+        { 3306,  "MySQL"          },
+        { 3389,  "RDP"            },
+        { 4369,  "RabbitMQ-EPMD"  },
+        { 5000,  "Dev-HTTP"       },
+        { 5432,  "PostgreSQL"     },
+        { 5601,  "Kibana"         },
+        { 5672,  "AMQP"           },
+        { 5900,  "VNC"            },
+        { 5985,  "WinRM-HTTP"     },
+        { 5986,  "WinRM-HTTPS"    },
+        { 6379,  "Redis"          },
+        { 6443,  "Kubernetes-API" },
+        { 7001,  "WebLogic"       },
+        { 8080,  "HTTP-Alt"       },
+        { 8443,  "HTTPS-Alt"      },
+        { 8888,  "Dev-HTTP"       },
+        { 9000,  "SonarQube"      },
+        { 9200,  "Elasticsearch"  },
+        { 9300,  "Elasticsearch-C"},
+        { 9418,  "Git"            },
+        { 11211, "Memcached"      },
+        { 15672, "RabbitMQ-Mgmt"  },
+        { 27017, "MongoDB"        },
+        { 27018, "MongoDB-Shard"  },
+        { 50000, "SAP"            },
+        { 50070, "Hadoop-HDFS"    },
     };
 
     private readonly IClipboardService _clipboard;
@@ -106,6 +162,7 @@ public class PortScannerViewModel : ViewModelBase
     public AsyncRelayCommand ScanCommand          { get; }
     public RelayCommand      StopCommand          { get; }
     public RelayCommand      CopyOpenPortsCommand { get; }
+    public RelayCommand      ExportCsvCommand     { get; }
 
     public PortScannerViewModel(IClipboardService clipboard, IBackgroundTaskService backgroundTaskService)
     {
@@ -115,6 +172,7 @@ public class PortScannerViewModel : ViewModelBase
         ScanCommand          = new AsyncRelayCommand(_ => RunScanAsync(), _ => !IsScanning);
         StopCommand          = new RelayCommand(_ => StopScan(),           _ => IsScanning);
         CopyOpenPortsCommand = new RelayCommand(_ => CopyOpenPorts(),     _ => Results.Count > 0);
+        ExportCsvCommand     = new RelayCommand(_ => ExportCsv(),         _ => Results.Count > 0);
     }
 
     /// <summary>
@@ -283,5 +341,40 @@ public class PortScannerViewModel : ViewModelBase
             sb.AppendLine($"  Port {r.Port,-6} {r.Service,-14} {r.ResponseMs} ms");
         _clipboard.SetText(sb.ToString());
         StatusMessage = "Open ports copied to clipboard.";
+    }
+
+    private void ExportCsv()
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title       = "Export scan results",
+            FileName    = $"portscan_{Host}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+            DefaultExt  = ".csv",
+            Filter      = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+            OverwritePrompt = true,
+        };
+
+        if (dialog.ShowDialog() != true) return;
+
+        try
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Port,Service,Status,ResponseMs");
+            foreach (var r in Results)
+                sb.AppendLine($"{r.Port},{EscapeCsv(r.Service)},{EscapeCsv(r.Status)},{r.ResponseMs}");
+            File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
+            StatusMessage = $"Results exported to {System.IO.Path.GetFileName(dialog.FileName)}.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Export failed: {ex.Message}";
+        }
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
     }
 }
