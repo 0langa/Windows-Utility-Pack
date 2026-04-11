@@ -1,6 +1,7 @@
 using System.Windows.Controls;
 using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
+using WindowsUtilityPack.Tools;
 using WindowsUtilityPack.ViewModels;
 using Xunit;
 
@@ -26,6 +27,18 @@ public sealed class MainWindowViewModelTests
         vm.OpenCommandPaletteCommand.Execute(null);
 
         Assert.True(vm.IsCommandPaletteOpen);
+    }
+
+    [Fact]
+    public void OpenCommandPalette_RaisesFocusRequestEvent()
+    {
+        var vm = CreateVm();
+        var raised = false;
+        vm.CommandPaletteRequested += (_, _) => raised = true;
+
+        vm.OpenCommandPaletteCommand.Execute(null);
+
+        Assert.True(raised);
     }
 
     [Fact]
@@ -194,6 +207,73 @@ public sealed class MainWindowViewModelTests
         Assert.False(vm.IsCommandPaletteOpen);
     }
 
+    [Fact]
+    public void ExecuteCommandPaletteItem_QuickScreenshotShellAction_RaisesShellActionRequested()
+    {
+        var palette = new StubCommandPaletteService
+        {
+            Results = [new CommandPaletteItem { Id = "shell:quick-screenshot", Title = "Quick Screenshot", CommandKey = "quick-screenshot", Kind = CommandPaletteItemKind.ShellAction }]
+        };
+        var vm = CreateVm(palette: palette);
+        ShellHotkeyAction? action = null;
+        vm.ShellActionRequested += (_, requestedAction) => action = requestedAction;
+        vm.OpenCommandPaletteCommand.Execute(null);
+
+        vm.ExecuteCommandPaletteItemCommand.Execute(vm.SelectedCommandPaletteItem);
+
+        Assert.Equal(ShellHotkeyAction.QuickScreenshot, action);
+    }
+
+    [Fact]
+    public void ExecuteCommandPaletteItem_OpenScreenshotAnnotatorShellAction_RaisesShellActionRequested()
+    {
+        var palette = new StubCommandPaletteService
+        {
+            Results = [new CommandPaletteItem { Id = "shell:open-screenshot-annotator", Title = "Open Screenshot Annotator", CommandKey = "open-screenshot-annotator", Kind = CommandPaletteItemKind.ShellAction }]
+        };
+        var vm = CreateVm(palette: palette);
+        ShellHotkeyAction? action = null;
+        vm.ShellActionRequested += (_, requestedAction) => action = requestedAction;
+        vm.OpenCommandPaletteCommand.Execute(null);
+
+        vm.ExecuteCommandPaletteItemCommand.Execute(vm.SelectedCommandPaletteItem);
+
+        Assert.Equal(ShellHotkeyAction.OpenScreenshotAnnotator, action);
+    }
+
+    [Fact]
+    public void ExecuteCommandPaletteItem_ToggleMainWindowShellAction_RaisesShellActionRequested()
+    {
+        var palette = new StubCommandPaletteService
+        {
+            Results = [new CommandPaletteItem { Id = "shell:toggle-main-window", Title = "Toggle Main Window", CommandKey = "toggle-main-window", Kind = CommandPaletteItemKind.ShellAction }]
+        };
+        var vm = CreateVm(palette: palette);
+        ShellHotkeyAction? action = null;
+        vm.ShellActionRequested += (_, requestedAction) => action = requestedAction;
+        vm.OpenCommandPaletteCommand.Execute(null);
+
+        vm.ExecuteCommandPaletteItemCommand.Execute(vm.SelectedCommandPaletteItem);
+
+        Assert.Equal(ShellHotkeyAction.ToggleMainWindow, action);
+    }
+
+    [Fact]
+    public void ExecuteCommandPaletteItem_OpenClipboardManagerShellAction_NavigatesToClipboardManager()
+    {
+        var nav = new StubNavigationService();
+        var palette = new StubCommandPaletteService
+        {
+            Results = [new CommandPaletteItem { Id = "shell:open-clipboard-manager", Title = "Open Clipboard Manager", CommandKey = "open-clipboard-manager", Kind = CommandPaletteItemKind.ShellAction }]
+        };
+        var vm = CreateVm(navigation: nav, palette: palette);
+        vm.OpenCommandPaletteCommand.Execute(null);
+
+        vm.ExecuteCommandPaletteItemCommand.Execute(vm.SelectedCommandPaletteItem);
+
+        Assert.Equal("clipboard-manager", nav.LastNavigatedKey);
+    }
+
     // ── Notifications ─────────────────────────────────────────────────────────
 
     [Fact]
@@ -280,6 +360,34 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("Stub", vm.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void PopOutCurrentToolCommand_EnabledAfterNavigatingToDetachedTool_AndUpdatesStatus()
+    {
+        var key = $"stub-tool-{Guid.NewGuid():N}";
+        ToolRegistry.Register(new ToolDefinition
+        {
+            Key = key,
+            Name = "Stub Tool",
+            Category = "Test",
+            Factory = static () => new StubToolViewModel(),
+        });
+
+        var nav = new StubNavigationService();
+        var host = new StubToolWindowHostService();
+        var vm = CreateVm(navigation: nav, toolWindowHost: host);
+
+        Assert.False(vm.PopOutCurrentToolCommand.CanExecute(null));
+
+        nav.SimulateNavigation(typeof(StubToolViewModel));
+
+        Assert.True(vm.PopOutCurrentToolCommand.CanExecute(null));
+
+        vm.PopOutCurrentToolCommand.Execute(null);
+
+        Assert.Equal(key, host.LastToolKey);
+        Assert.Equal("Detached successfully.", vm.StatusMessage);
+    }
+
     // ── Dispose ───────────────────────────────────────────────────────────────
 
     [Fact]
@@ -347,13 +455,15 @@ public sealed class MainWindowViewModelTests
     private static MainWindowViewModel CreateVm(
         StubNavigationService?     navigation    = null,
         StubNotificationService?   notifications = null,
-        StubCommandPaletteService? palette       = null)
+        StubCommandPaletteService? palette       = null,
+        StubToolWindowHostService? toolWindowHost = null)
     {
         navigation    ??= new StubNavigationService();
         var theme       = new StubThemeService(AppTheme.Dark);
         notifications ??= new StubNotificationService();
+        toolWindowHost ??= new StubToolWindowHostService();
 
-        return new MainWindowViewModel(navigation, theme, notifications, palette);
+        return new MainWindowViewModel(navigation, theme, notifications, palette, null, toolWindowHost);
     }
 
     // ── Stub implementations ──────────────────────────────────────────────────
@@ -451,6 +561,24 @@ public sealed class MainWindowViewModelTests
         public void RecordExecution(string itemId)
         {
             LastRecordedExecution = itemId;
+        }
+    }
+
+    private sealed class StubToolWindowHostService : IToolWindowHostService
+    {
+        public string? LastToolKey { get; private set; }
+
+        public int OpenWindowCount => LastToolKey is null ? 0 : 1;
+
+        public bool TryOpenOrActivate(string toolKey, out string message)
+        {
+            LastToolKey = toolKey;
+            message = "Detached successfully.";
+            return true;
+        }
+
+        public void CloseAll()
+        {
         }
     }
 }

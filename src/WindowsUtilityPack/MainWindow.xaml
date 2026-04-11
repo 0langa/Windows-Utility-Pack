@@ -13,6 +13,7 @@
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
+        PreviewKeyDown="OnPreviewKeyDown"
         StateChanged="OnWindowStateChanged"
         Closing="OnWindowClosing"
         Closed="OnWindowClosed">
@@ -150,6 +151,7 @@
             <!-- Dimming backdrop -->
             <Border x:Name="PaletteBackdrop"
                     Panel.ZIndex="20"
+                    MouseLeftButtonDown="OnPaletteBackdropMouseLeftButtonDown"
                     Visibility="{Binding IsCommandPaletteOpen, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Border.Background>
                     <SolidColorBrush Color="#000000" Opacity="0.55"/>

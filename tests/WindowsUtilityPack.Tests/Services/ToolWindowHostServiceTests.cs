@@ -52,6 +52,40 @@ public sealed class ToolWindowHostServiceTests
         Assert.Equal(1, host.ActivateCalls);
     }
 
+    [Fact]
+    public void TryOpenOrActivate_ReturnsFalse_ForUnknownTool()
+    {
+        var service = new ToolWindowHostService(new FakeFactory(new FakeToolWindowHost()));
+
+        var result = service.TryOpenOrActivate($"missing-{Guid.NewGuid():N}", out var message);
+
+        Assert.False(result);
+        Assert.Equal("Tool is not registered.", message);
+    }
+
+    [Fact]
+    public void CloseAll_ClosesTrackedWindows_AndClearsCount()
+    {
+        var key = $"tool-window-{Guid.NewGuid():N}";
+        ToolRegistry.Register(new ToolDefinition
+        {
+            Key = key,
+            Name = "Windowed Tool",
+            Category = "Test",
+            Factory = () => new StubViewModel(),
+        });
+
+        var host = new FakeToolWindowHost();
+        var service = new ToolWindowHostService(new FakeFactory(host));
+
+        _ = service.TryOpenOrActivate(key, out _);
+
+        service.CloseAll();
+
+        Assert.Equal(1, host.CloseCalls);
+        Assert.Equal(0, service.OpenWindowCount);
+    }
+
     private sealed class StubViewModel : ViewModelBase { }
 
     private sealed class FakeFactory : IToolWindowHostFactory
@@ -77,6 +111,8 @@ public sealed class ToolWindowHostServiceTests
 
         public int ActivateCalls { get; private set; }
 
+        public int CloseCalls { get; private set; }
+
         public void Show()
         {
             ShowCalls++;
@@ -90,6 +126,7 @@ public sealed class ToolWindowHostServiceTests
 
         public void Close()
         {
+            CloseCalls++;
             IsVisible = false;
             Closed?.Invoke(this, EventArgs.Empty);
         }

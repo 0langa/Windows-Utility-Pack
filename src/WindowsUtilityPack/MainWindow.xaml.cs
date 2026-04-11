@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
 
@@ -260,7 +261,7 @@ public partial class MainWindow : Window
 
     private void OnCommandPaletteRequested(object? sender, EventArgs e)
     {
-        _ = Dispatcher.InvokeAsync(() => _paletteHost.ShowOrActivate());
+        _ = Dispatcher.InvokeAsync(FocusCommandPaletteQueryBox, DispatcherPriority.Background);
     }
 
     private void OnTrayActionInvoked(object? sender, TrayMenuAction action)
@@ -472,6 +473,27 @@ public partial class MainWindow : Window
         {
             HideToTray("Running in system tray.");
         }
+    }
+
+    private void OnPaletteBackdropMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.CloseCommandPaletteCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private void FocusCommandPaletteQueryBox()
+    {
+        if (DataContext is not MainWindowViewModel vm || !vm.IsCommandPaletteOpen)
+        {
+            return;
+        }
+
+        CommandPaletteQueryBox.Focus();
+        Keyboard.Focus(CommandPaletteQueryBox);
+        CommandPaletteQueryBox.SelectAll();
     }
 
     private void OnTrayExitClick(object? sender, EventArgs e)

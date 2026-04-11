@@ -1,6 +1,7 @@
 using System.Windows.Controls;
 using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
+using WindowsUtilityPack.Tools;
 using WindowsUtilityPack.ViewModels;
 using Xunit;
 
@@ -8,6 +9,8 @@ namespace WindowsUtilityPack.Tests.ViewModels;
 
 public class HomeViewModelTests
 {
+    private sealed class TestViewModel : ViewModelBase { }
+
     [Fact]
     public void InspectClipboardCommand_ResetsQuickPingStatus_WhenClipboardNoLongerContainsHost()
     {
@@ -21,6 +24,67 @@ public class HomeViewModelTests
 
         Assert.Equal("Clipboard is empty", vm.ClipboardSummary);
         Assert.Equal("No URL/host detected in clipboard", vm.QuickPingStatus);
+    }
+
+    [Fact]
+    public void CopyToolNameCommand_CopiesRegisteredToolName()
+    {
+        var toolKey = $"copy-tool-{Guid.NewGuid():N}";
+        ToolRegistry.Register(new ToolDefinition
+        {
+            Key = toolKey,
+            Name = "Clipboard Copy Tool",
+            Category = "Test",
+            Factory = static () => new TestViewModel(),
+        });
+
+        var clipboard = new TestClipboardService(string.Empty);
+        var vm = CreateViewModel(clipboard);
+
+        vm.CopyToolNameCommand.Execute(toolKey);
+
+        Assert.Equal("Clipboard Copy Tool", clipboard.Text);
+    }
+
+    [Fact]
+    public void ViewDescriptionCommand_WithoutDialogs_CopiesFallbackDescription()
+    {
+        var toolKey = $"describe-tool-{Guid.NewGuid():N}";
+        ToolRegistry.Register(new ToolDefinition
+        {
+            Key = toolKey,
+            Name = "Describe Tool",
+            Description = "Explains the selected tool.",
+            Category = "Test",
+            Factory = static () => new TestViewModel(),
+        });
+
+        var clipboard = new TestClipboardService(string.Empty);
+        var vm = CreateViewModel(clipboard);
+
+        vm.ViewDescriptionCommand.Execute(toolKey);
+
+        Assert.Equal("Describe Tool: Explains the selected tool.", clipboard.Text);
+    }
+
+    [Fact]
+    public void SearchQuery_SynonymMatch_FindsRegisteredTool()
+    {
+        var toolKey = $"uuid-tool-{Guid.NewGuid():N}";
+        ToolRegistry.Register(new ToolDefinition
+        {
+            Key = toolKey,
+            Name = "UUID Tool",
+            Description = "Generate unique identifiers.",
+            Category = "Test",
+            Factory = static () => new TestViewModel(),
+        });
+
+        var vm = CreateViewModel(new TestClipboardService(string.Empty));
+
+        vm.SearchQuery = "guid";
+
+        Assert.Contains(vm.SearchResults, tool => tool.Key == toolKey);
     }
 
     private static HomeViewModel CreateViewModel(TestClipboardService clipboard)
@@ -67,8 +131,6 @@ public class HomeViewModelTests
         public void Register(string key, Func<ViewModelBase> factory) { }
 
         public void SetContentHost(ContentControl host) { }
-
-        private sealed class TestViewModel : ViewModelBase { }
     }
 
     private sealed class TestDashboardService : IHomeDashboardService

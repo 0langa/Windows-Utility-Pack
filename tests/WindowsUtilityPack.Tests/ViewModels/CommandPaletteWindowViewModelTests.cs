@@ -33,6 +33,35 @@ public sealed class CommandPaletteWindowViewModelTests
         Assert.Equal("shell:settings", invoked!.Id);
     }
 
+    [Fact]
+    public void ActivateFresh_ClearsQuery_AndRestoresFirstSelection()
+    {
+        var service = new StubPaletteService();
+        var vm = new CommandPaletteWindowViewModel(service)
+        {
+            Query = "settings"
+        };
+
+        vm.ActivateFresh();
+
+        Assert.Equal(string.Empty, vm.Query);
+        Assert.NotNull(vm.SelectedItem);
+        Assert.Equal("shell:settings", vm.SelectedItem!.Id);
+    }
+
+    [Fact]
+    public void ExecuteSelectedCommand_CanExecute_TracksSelectionState()
+    {
+        var service = new StubPaletteService();
+        var vm = new CommandPaletteWindowViewModel(service);
+
+        Assert.True(vm.ExecuteSelectedCommand.CanExecute(null));
+
+        vm.SelectedItem = null;
+
+        Assert.False(vm.ExecuteSelectedCommand.CanExecute(null));
+    }
+
     private sealed class StubPaletteService : ICommandPaletteService
     {
         public IReadOnlyList<CommandPaletteItem> Search(string? query, int limit = 20)
