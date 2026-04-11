@@ -5,24 +5,31 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="780" d:DesignWidth="1200">
-    <Grid Margin="8">
+    <Grid Margin="4">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="430"/>
+            <ColumnDefinition Width="420"/>
             <ColumnDefinition Width="16"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}">
+        <Border Grid.Column="0" Style="{StaticResource ElevatedSurfaceStyle}">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="{StaticResource IconQr}" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="QR Code Generator" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                    </StackPanel>
+                    <Border Style="{StaticResource HeroSurfaceStyle}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{StaticResource IconQr}" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" />
+                                <TextBlock Text="QR Code Generator" Style="{StaticResource SectionHeadingTextStyle}"/>
+                            </StackPanel>
+                            <TextBlock Text="Generate branded, export-ready QR codes with live preview, safety warnings, and reusable presets."
+                                       Style="{StaticResource MetadataTextStyle}"
+                                       Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
 
                     <TextBlock Text="URL" Style="{StaticResource PanelHeaderTextStyle}"/>
                     <TextBox Margin="0,4,0,0" Padding="8,6" Text="{Binding UrlInput, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Margin="0,6,0,0" Foreground="#DC2626" Text="{Binding ValidationMessage}" TextWrapping="Wrap"/>
+                    <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource ErrorBrush}" Text="{Binding ValidationMessage}" TextWrapping="Wrap"/>
                     <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource SecondaryTextBrush}" Text="{Binding NormalizedUrl}" TextWrapping="Wrap"/>
 
                     <WrapPanel Margin="0,12,0,0">
@@ -130,7 +137,7 @@
             </ScrollViewer>
         </Border>
 
-        <Border Grid.Column="2" Style="{StaticResource ToolPanelBorderStyle}">
+        <Border Grid.Column="2" Style="{StaticResource ElevatedSurfaceStyle}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -148,7 +155,7 @@
                     </StackPanel>
                 </DockPanel>
 
-                <Border Grid.Row="1" Margin="0,12,0,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Background="{DynamicResource PreviewBackgroundBrush}">
+                <Border Grid.Row="1" Margin="0,12,0,0" BorderBrush="{DynamicResource StrongBorderBrush}" BorderThickness="1" CornerRadius="14" Background="{DynamicResource PreviewBackgroundBrush}">
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <Grid MinHeight="380" MinWidth="380">
                             <Image Source="{Binding PreviewImage}" Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -164,8 +171,8 @@
                 <ItemsControl Grid.Row="2" Margin="0,10,0,0" ItemsSource="{Binding Warnings}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="0,0,0,6" Padding="10,6" CornerRadius="6" Background="#FFF7ED" BorderBrush="#FDBA74" BorderThickness="1">
-                                <TextBlock Text="{Binding}" Foreground="#9A3412" TextWrapping="Wrap"/>
+                            <Border Margin="0,0,0,6" Padding="10,8" CornerRadius="10" Background="{DynamicResource WarningSurfaceBrush}" BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1">
+                                <TextBlock Text="{Binding}" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap"/>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -178,7 +185,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
 
-                    <Border Grid.Column="1" Style="{StaticResource ToolPanelBorderStyle}" Padding="10" Margin="12,0,0,0">
+                    <Border Grid.Column="1" Style="{StaticResource StatusSurfaceStyle}" Padding="12" Margin="12,0,0,0">
                         <StackPanel>
                             <TextBlock Text="Recent URLs" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                             <ListBox x:Name="RecentList" Margin="0,8,0,0" Height="120" ItemsSource="{Binding RecentUrls}"/>

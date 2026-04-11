@@ -16,26 +16,35 @@ public class MainWindowViewModel : ViewModelBase
 {
     private readonly INavigationService _navigation;
     private readonly IThemeService _theme;
-    private bool _isDarkTheme = true;
+    private AppTheme _effectiveTheme = AppTheme.Dark;
     private string _statusMessage = "Ready";
     private string _notificationText = string.Empty;
     private bool _isNotificationVisible;
     private NotificationType _notificationType;
 
-    public bool IsDarkTheme
+    public AppTheme EffectiveTheme
     {
-        get => _isDarkTheme;
+        get => _effectiveTheme;
         set
         {
-            if (SetProperty(ref _isDarkTheme, value))
+            if (SetProperty(ref _effectiveTheme, value))
+            {
                 OnPropertyChanged(nameof(ThemeToggleIcon));
+                OnPropertyChanged(nameof(ThemeSummary));
+            }
         }
     }
 
-    /// <summary>
-    /// Segoe MDL2 Assets glyph: sun when dark (switch to light), moon when light (switch to dark).
-    /// </summary>
-    public string ThemeToggleIcon => IsDarkTheme ? "\uE706" : "\uE793";
+    public string ThemeToggleIcon => EffectiveTheme switch
+    {
+        AppTheme.Light => "\uE706",
+        AppTheme.Aurora => "\uEA80",
+        _ => "\uE708",
+    };
+
+    public string ThemeSummary => _theme.CurrentTheme == AppTheme.System
+        ? $"System ({EffectiveTheme})"
+        : EffectiveTheme.ToString();
 
     public string StatusMessage
     {
@@ -93,7 +102,7 @@ public class MainWindowViewModel : ViewModelBase
         _navigation = navigation;
         _theme = theme;
 
-        _isDarkTheme = theme.EffectiveTheme == AppTheme.Dark;
+        _effectiveTheme = theme.EffectiveTheme;
 
         Categories = ToolRegistry.GetCategories();
 
@@ -101,7 +110,8 @@ public class MainWindowViewModel : ViewModelBase
 
         _theme.ThemeChanged += (_, _) =>
         {
-            IsDarkTheme = _theme.EffectiveTheme == AppTheme.Dark;
+            EffectiveTheme = _theme.EffectiveTheme;
+            OnPropertyChanged(nameof(ThemeSummary));
         };
 
         if (notifications is not null)
@@ -146,9 +156,17 @@ public class MainWindowViewModel : ViewModelBase
 
     private void ToggleTheme()
     {
-        IsDarkTheme = !IsDarkTheme;
-        var newTheme = IsDarkTheme ? AppTheme.Dark : AppTheme.Light;
+        var newTheme = _theme.CurrentTheme switch
+        {
+            AppTheme.Dark => AppTheme.Light,
+            AppTheme.Light => AppTheme.Aurora,
+            AppTheme.Aurora => AppTheme.Dark,
+            _ => AppTheme.Dark,
+        };
+
+        EffectiveTheme = newTheme;
         _theme.SetTheme(newTheme);
+        OnPropertyChanged(nameof(ThemeSummary));
 
         // Persist immediately so the user doesn't lose their choice on crash.
         var settings = App.SettingsService.Load();

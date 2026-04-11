@@ -7,136 +7,183 @@
         mc:Ignorable="d"
         Title="Windows Utility Pack"
         Icon="Assets/WindowsUtilityPackLogo.ico"
-        Width="1100" Height="700"
-        MinWidth="900" MinHeight="550"
+        Width="1280"
+        Height="820"
+        MinWidth="980"
+        MinHeight="620"
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
         Closing="OnWindowClosing">
 
-    <Grid>
+    <Grid Margin="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="56"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="28"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ── Header ── -->
         <Border Grid.Row="0"
-                Background="{DynamicResource HeaderBackgroundBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1">
-            <Grid Margin="20,0">
+                Style="{StaticResource HeroSurfaceStyle}"
+                Margin="0,0,0,12">
+            <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Logo + Title → home -->
-                <Button Grid.Column="0" Style="{StaticResource TransparentButtonStyle}"
-                        Command="{Binding NavigateHomeCommand}"
-                        AutomationProperties.Name="Navigate to home">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Image Source="/Assets/WindowsUtilityPackLogo.png"
-                               Width="26" Height="26"
-                               VerticalAlignment="Center" Margin="0,0,10,0"
-                               RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <TextBlock Text="Windows Utility Pack"
-                                   FontSize="18" FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource PrimaryTextBrush}"/>
-                    </StackPanel>
-                </Button>
+                <StackPanel>
+                    <Button Style="{StaticResource TransparentButtonStyle}"
+                            Command="{Binding NavigateHomeCommand}"
+                            AutomationProperties.Name="Navigate to home">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="52"
+                                    Height="52"
+                                    CornerRadius="16"
+                                    Background="{DynamicResource AppSurfaceElevatedBrush}"
+                                    BorderBrush="{DynamicResource StrongBorderBrush}"
+                                    BorderThickness="1"
+                                    Margin="0,0,14,0">
+                                <Image Source="/Assets/WindowsUtilityPackLogo.png"
+                                       Width="30"
+                                       Height="30"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Windows Utility Pack" Style="{StaticResource PrimaryHeadingTextStyle}"/>
+                                <TextBlock Text="Unified desktop toolkit for system, file, network, security, developer, and image workflows"
+                                           Style="{StaticResource MetadataTextStyle}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Button>
 
-                <!-- Theme Toggle -->
-                <Button Grid.Column="2"
-                        Style="{StaticResource ThemeToggleButtonStyle}"
-                        Command="{Binding ToggleThemeCommand}"
-                        FontFamily="Segoe MDL2 Assets"
-                        Content="{Binding ThemeToggleIcon}"
-                        VerticalAlignment="Center"
-                        ToolTip="Toggle Dark / Light Mode"
-                        Margin="0,0,6,0"
-                        AutomationProperties.Name="Toggle theme"/>
+                    <WrapPanel Margin="0,18,0,0">
+                        <Border Style="{StaticResource StatusSurfaceStyle}" Margin="0,0,10,0" Padding="12,8">
+                            <StackPanel>
+                                <TextBlock Text="Navigation" Style="{StaticResource MetadataTextStyle}"/>
+                                <TextBlock Text="Category-driven and template-backed" Style="{StaticResource BodyTextStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatusSurfaceStyle}" Margin="0,0,10,0" Padding="12,8">
+                            <StackPanel>
+                                <TextBlock Text="Theme" Style="{StaticResource MetadataTextStyle}"/>
+                                <TextBlock Text="{Binding ThemeSummary}" Style="{StaticResource BodyTextStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatusSurfaceStyle}" Padding="12,8">
+                            <StackPanel>
+                                <TextBlock Text="Status" Style="{StaticResource MetadataTextStyle}"/>
+                                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource BodyTextStyle}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                </StackPanel>
 
-                <!-- Settings Gear -->
-                <Button Grid.Column="3"
-                        Style="{StaticResource IconButtonStyle}"
-                        Command="{Binding OpenSettingsCommand}"
-                        Content="&#xE713;"
-                        VerticalAlignment="Center"
-                        ToolTip="Settings"
-                        AutomationProperties.Name="Open settings"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button Style="{StaticResource ThemeToggleButtonStyle}"
+                            Command="{Binding ToggleThemeCommand}"
+                            FontFamily="Segoe MDL2 Assets"
+                            Content="{Binding ThemeToggleIcon}"
+                            ToolTip="Cycle theme"
+                            Margin="0,0,8,0"
+                            AutomationProperties.Name="Cycle theme"/>
+                    <Button Style="{StaticResource IconButtonStyle}"
+                            Command="{Binding OpenSettingsCommand}"
+                            Content="&#xE713;"
+                            ToolTip="Open settings"
+                            AutomationProperties.Name="Open settings"/>
+                </StackPanel>
             </Grid>
         </Border>
 
-        <!-- ── Category Navigation Bar ── -->
         <Border Grid.Row="1"
-                Background="{DynamicResource NavBarBackgroundBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="12,8">
-            <ItemsControl ItemsSource="{Binding Categories}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Rows="1" HorizontalAlignment="Stretch"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <controls:CategoryMenuButton
-                            Label="{Binding Label}"
-                            Icon="{Binding Icon}"
-                            NavigateCommand="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                            ToolDefinitions="{Binding Tools}"
-                            Margin="4,0"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                Style="{StaticResource ElevatedSurfaceStyle}"
+                Padding="12"
+                Margin="0,0,0,12">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Categories}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:CategoryMenuButton
+                                Label="{Binding Label}"
+                                Icon="{Binding Icon}"
+                                NavigateCommand="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                ToolDefinitions="{Binding Tools}"
+                                Margin="0,0,10,0"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Border>
 
-        <!-- ── Main Content Area ── -->
         <Grid Grid.Row="2">
-            <ContentControl Content="{Binding CurrentView}" Margin="24,16"/>
+            <ContentControl Content="{Binding CurrentView}" Margin="0"/>
 
-            <!-- ── Notification Banner (overlaid at top) ── -->
-            <Border VerticalAlignment="Top" HorizontalAlignment="Stretch"
-                    Margin="24,0"
-                    Padding="16,10"
-                    CornerRadius="0,0,8,8"
+            <Border VerticalAlignment="Top"
+                    HorizontalAlignment="Stretch"
+                    Style="{StaticResource InfoStatusSurfaceStyle}"
+                    Margin="24,0,24,0"
+                    Padding="16,12"
                     Visibility="{Binding IsNotificationVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-                    </Style>
-                </Border.Style>
                 <Grid>
-                    <TextBlock Text="{Binding NotificationText}"
-                               Foreground="White" FontSize="13"
-                               VerticalAlignment="Center" TextWrapping="Wrap"
-                               Margin="0,0,30,0"/>
-                    <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xE946;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="16"
+                               Foreground="{DynamicResource InfoBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding NotificationText}"
+                               Foreground="{DynamicResource PrimaryTextBrush}"
+                               FontSize="13"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"/>
+                    <Button Grid.Column="2"
+                            Content="Dismiss"
+                            Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding DismissNotificationCommand}"
-                            Foreground="White" Background="Transparent" BorderThickness="0"
-                            FontSize="14" Cursor="Hand" Padding="4,2"
+                            Padding="10,6"
+                            Margin="10,0,0,0"
                             AutomationProperties.Name="Dismiss notification"/>
                 </Grid>
             </Border>
         </Grid>
 
-        <!-- ── Status Bar ── -->
         <Border Grid.Row="3"
-                Background="{DynamicResource HeaderBackgroundBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,1,0,0"
-                Padding="16,0">
-            <TextBlock Text="{Binding StatusMessage}"
-                       Foreground="{DynamicResource SecondaryTextBrush}"
-                       FontSize="11"
-                       VerticalAlignment="Center"/>
+                Style="{StaticResource ElevatedSurfaceStyle}"
+                Padding="14,10"
+                Margin="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="1"
+                           Text="Theme-aware, DPI-aware shell"
+                           Foreground="{DynamicResource TertiaryTextBrush}"
+                           FontSize="11"
+                           VerticalAlignment="Center"/>
+            </Grid>
         </Border>
     </Grid>
 </Window>

@@ -7,28 +7,28 @@
              xmlns:models="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.Downloader.Models"
              mc:Ignorable="d"
              d:DesignHeight="920" d:DesignWidth="1380">
-    <Grid Margin="8">
+    <Grid Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,8">
+        <Border Grid.Row="0" Style="{StaticResource HeroSurfaceStyle}" Margin="0,0,0,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="Downloader Studio" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                    <TextBlock Margin="0,4,0,0" Text="Mode-correct download manager, media workflow, asset grabber, and crawl workstation" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    <TextBlock Text="Downloader Studio" Style="{StaticResource PrimaryHeadingTextStyle}" FontSize="26"/>
+                    <TextBlock Margin="0,6,0,0" Text="Mode-correct download manager, media workflow, asset grabber, and crawl workstation" Foreground="{DynamicResource SecondaryTextBrush}"/>
                 </StackPanel>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6" Margin="0,0,6,0"><TextBlock Text="{Binding QueuedCount, StringFormat=Queued: {0}}"/></Border>
-                    <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6" Margin="0,0,6,0"><TextBlock Text="{Binding ActiveCount, StringFormat=Active: {0}}"/></Border>
-                    <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6" Margin="0,0,6,0"><TextBlock Text="{Binding CompletedCount, StringFormat=Completed: {0}}"/></Border>
-                    <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6" Margin="0,0,6,0"><TextBlock Text="{Binding FailedCount, StringFormat=Failed: {0}}"/></Border>
+                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding QueuedCount, StringFormat=Queued: {0}}"/></Border>
+                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding ActiveCount, StringFormat=Active: {0}}"/></Border>
+                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding CompletedCount, StringFormat=Completed: {0}}"/></Border>
+                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding FailedCount, StringFormat=Failed: {0}}"/></Border>
                     <Button Content="Install Tools" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding InstallToolsCommand}" Margin="10,0,6,0"/>
                     <Button Content="Update yt-dlp" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding UpdateToolsCommand}" Margin="0,0,6,0"/>
                     <TextBlock Text="{Binding DependenciesReady, StringFormat=Deps Ready: {0}}" VerticalAlignment="Center"/>
@@ -115,6 +115,20 @@
                                   IsReadOnly="True"
                                   SelectionChanged="QueueGrid_OnSelectionChanged"
                                   CanUserSortColumns="True">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Start selected" Command="{Binding StartSelectedCommand}"/>
+                                    <MenuItem Header="Pause selected" Command="{Binding PauseSelectedCommand}"/>
+                                    <MenuItem Header="Resume selected" Command="{Binding ResumeSelectedCommand}"/>
+                                    <MenuItem Header="Retry selected" Command="{Binding RetrySelectedCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="Open source URL" Command="{Binding OpenSourceCommand}"/>
+                                    <MenuItem Header="Open containing folder" Command="{Binding OpenContainingFolderCommand}"/>
+                                    <MenuItem Header="Copy source URL" Command="{Binding CopySourceUrlCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="Remove selected" Command="{Binding RemoveSelectedCommand}"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Title" Binding="{Binding DisplayTitle}" Width="2*"/>
                                 <DataGridTextColumn Header="Engine" Binding="{Binding EngineType}" Width="95"/>
@@ -300,6 +314,19 @@
                         <TextBlock Text="{Binding ScanStatus}" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </WrapPanel>
                     <DataGrid Grid.Row="2" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False" SelectionMode="Extended">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Select all" Command="{Binding SelectAllAssetsCommand}"/>
+                                <MenuItem Header="Select visible" Command="{Binding SelectVisibleAssetsCommand}"/>
+                                <MenuItem Header="Deselect all" Command="{Binding DeselectAllAssetsCommand}"/>
+                                <MenuItem Header="Invert selection" Command="{Binding InvertAssetSelectionCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Add selected to queue" Command="{Binding AddSelectedAssetsCommand}"/>
+                                <MenuItem Header="Download selected now" Command="{Binding DownloadSelectedAssetsNowCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Clear staged results" Command="{Binding ClearDiscoveredAssetsCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.Columns>
                             <DataGridCheckBoxColumn Header="Get" Binding="{Binding IsSelected, Mode=TwoWay}" Width="55"/>
                             <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*"/>
@@ -341,6 +368,17 @@
                         <Button Content="Download Selected Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadSelectedAssetsNowCommand}"/>
                     </WrapPanel>
                     <DataGrid Grid.Row="2" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Select all" Command="{Binding SelectAllAssetsCommand}"/>
+                                <MenuItem Header="Select visible" Command="{Binding SelectVisibleAssetsCommand}"/>
+                                <MenuItem Header="Deselect all" Command="{Binding DeselectAllAssetsCommand}"/>
+                                <MenuItem Header="Invert selection" Command="{Binding InvertAssetSelectionCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Add selected to queue" Command="{Binding AddSelectedAssetsCommand}"/>
+                                <MenuItem Header="Download selected now" Command="{Binding DownloadSelectedAssetsNowCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.Columns>
                             <DataGridCheckBoxColumn Header="Get" Binding="{Binding IsSelected, Mode=TwoWay}" Width="55"/>
                             <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*"/>
@@ -376,6 +414,17 @@
                               SelectedItem="{Binding SelectedHistoryEntry, Mode=TwoWay}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Redownload selected" Command="{Binding RedownloadHistoryItemCommand}" CommandParameter="{Binding SelectedItem, ElementName=HistoryGrid}"/>
+                                <MenuItem Header="Open file" Command="{Binding OpenHistoryFileCommand}"/>
+                                <MenuItem Header="Open folder" Command="{Binding OpenHistoryFolderCommand}"/>
+                                <MenuItem Header="Open source URL" Command="{Binding OpenHistorySourceCommand}"/>
+                                <MenuItem Header="Copy URL" Command="{Binding CopyHistorySourceCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Clear history" Command="{Binding ClearHistoryCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="When" Binding="{Binding CompletedAt}" Width="145"/>
                             <DataGridTextColumn Header="Status" Binding="{Binding FinalStatus}" Width="95"/>

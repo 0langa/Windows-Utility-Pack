@@ -10,28 +10,26 @@
              MouseLeave="OnMouseLeave">
 
     <UserControl.Resources>
-        <Style x:Key="DropdownItemStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Padding" Value="14,10"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Cursor" Value="Hand"/>
+        <Style x:Key="DropdownItemStyle" TargetType="Button" BasedOn="{StaticResource SecondaryActionButtonStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Border"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="4"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background"
-                                        Value="{DynamicResource MenuItemHoverBrush}"/>
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource MenuItemHoverBrush}"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -41,29 +39,55 @@
     </UserControl.Resources>
 
     <Grid>
-        <!-- Category Button -->
         <Button x:Name="MainButton"
                 Style="{StaticResource CategoryButtonStyle}"
+                MinWidth="188"
                 HorizontalAlignment="Stretch"
                 Focusable="True"
                 AutomationProperties.Name="{Binding Label, ElementName=Root}">
-            <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="4,0">
-                <TextBlock Text="{Binding Icon, ElementName=Root}"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Width="40"
+                        Height="40"
+                        CornerRadius="12"
+                        Background="{DynamicResource AppSurfaceElevatedBrush}"
+                        BorderBrush="{DynamicResource StrongBorderBrush}"
+                        BorderThickness="1"
+                        Margin="0,0,12,0">
+                    <TextBlock Text="{Binding Icon, ElementName=Root}"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="18"
+                               Foreground="{DynamicResource AccentBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Label, ElementName=Root}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryTextBrush}"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="Open tools"
+                               FontSize="11"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="2"
+                           Text="&#xE70D;"
                            FontFamily="Segoe MDL2 Assets"
-                           FontSize="18"
-                           Foreground="{DynamicResource PrimaryTextBrush}"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,3"/>
-                <TextBlock Text="{Binding Label, ElementName=Root}"
-                           FontSize="11" FontWeight="SemiBold"
-                           Foreground="{DynamicResource SecondaryTextBrush}"
-                           HorizontalAlignment="Center"
-                           TextWrapping="Wrap"
-                           TextAlignment="Center"/>
-            </StackPanel>
+                           FontSize="10"
+                           Foreground="{DynamicResource TertiaryTextBrush}"
+                           VerticalAlignment="Center"/>
+            </Grid>
         </Button>
 
-        <!-- Hover Popup -->
         <Popup x:Name="DropdownPopup"
                PlacementTarget="{Binding ElementName=MainButton}"
                Placement="Bottom"
@@ -73,21 +97,37 @@
             <Border Background="{DynamicResource PopupBackgroundBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="4"
-                    Width="{Binding ActualWidth, ElementName=MainButton}"
+                    CornerRadius="14"
+                    Padding="8"
+                    Width="320"
+                    Margin="0,8,0,0"
                     Effect="{StaticResource DropShadowEffect}"
                     MouseLeave="OnPopupMouseLeave">
-                <ItemsControl ItemsSource="{Binding MenuItems, ElementName=Root}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type self:MenuEntry}">
-                            <Button Content="{Binding Label}"
-                                    Tag="{Binding ToolKey}"
-                                    Style="{StaticResource DropdownItemStyle}"
-                                    Click="OnDropdownItemClick"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <StackPanel>
+                    <TextBlock Text="{Binding Label, ElementName=Root}"
+                               Style="{StaticResource PanelHeaderTextStyle}"
+                               Margin="4,2,4,8"/>
+                    <ItemsControl ItemsSource="{Binding MenuItems, ElementName=Root}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type self:MenuEntry}">
+                                <Button Tag="{Binding ToolKey}"
+                                        Style="{StaticResource DropdownItemStyle}"
+                                        Click="OnDropdownItemClick">
+                                    <DockPanel LastChildFill="True">
+                                        <TextBlock DockPanel.Dock="Left"
+                                                   Text="&#xE8FD;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   Margin="0,0,8,0"
+                                                   Foreground="{DynamicResource AccentBrush}"/>
+                                        <TextBlock Text="{Binding Label}"
+                                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </DockPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </Border>
         </Popup>
     </Grid>

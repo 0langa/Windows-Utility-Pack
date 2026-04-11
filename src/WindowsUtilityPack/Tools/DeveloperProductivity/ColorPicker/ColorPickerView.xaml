@@ -2,202 +2,195 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="8" MaxWidth="900">
-            <TextBlock Text="Color Picker" FontSize="20" FontWeight="SemiBold"
-                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,16"/>
-
-            <!-- Color Preview and Hex Input -->
-            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
+        <StackPanel Margin="4" MaxWidth="1080">
+            <Border Style="{StaticResource HeroSurfaceStyle}" Margin="0,0,0,12">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="120"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="250"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Large color swatch -->
-                    <Border Grid.Column="0" Width="100" Height="100" CornerRadius="8"
-                            BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1"
-                            Margin="0,0,16,0" VerticalAlignment="Top">
-                        <Rectangle Fill="{Binding PreviewBrush}" RadiusX="7" RadiusY="7"/>
-                    </Border>
-
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <!-- HEX -->
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="HEX" Width="60" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
-                            <TextBox Text="{Binding HexColor, UpdateSourceTrigger=PropertyChanged}"
-                                     Width="120" FontFamily="Consolas" FontSize="14"
-                                     Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
-                            <Button Content="Copy HEX" Command="{Binding CopyHexCommand}"
-                                    Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
-                        </StackPanel>
-
-                        <!-- CSS RGB -->
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="CSS RGB" Width="60" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
-                            <TextBox Text="{Binding CssRgb, Mode=OneWay}" IsReadOnly="True"
-                                     Width="180" FontFamily="Consolas" FontSize="13"
-                                     Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
-                            <Button Content="Copy RGB" Command="{Binding CopyRgbCommand}"
-                                    Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
-                        </StackPanel>
-
-                        <!-- CSS HSL -->
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="CSS HSL" Width="60" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
-                            <TextBox Text="{Binding CssHsl, Mode=OneWay}" IsReadOnly="True"
-                                     Width="180" FontFamily="Consolas" FontSize="13"
-                                     Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
-                            <Button Content="Copy HSL" Command="{Binding CopyHslCommand}"
-                                    Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
-                            <Button Content="Pick From Screen"
-                                    Command="{Binding PickFromScreenCommand}"
-                                    Style="{StaticResource PrimaryActionButtonStyle}" Margin="8,0,0,0"/>
-                        </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Color Picker" Style="{StaticResource PrimaryHeadingTextStyle}" FontSize="24"/>
+                        <TextBlock Text="Sample colors from the screen, inspect precise values, and build a reusable palette for design and development work."
+                                   Style="{StaticResource MetadataTextStyle}"
+                                   Margin="0,6,0,0"/>
                     </StackPanel>
+
+                    <Border Grid.Column="1" Style="{StaticResource StatusSurfaceStyle}" Margin="16,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Outputs" Style="{StaticResource PanelHeaderTextStyle}"/>
+                            <TextBlock Text="HEX, RGB, and HSL values stay in sync as you edit or sample."
+                                       Style="{StaticResource MetadataTextStyle}"
+                                       Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
 
-            <!-- RGB Sliders -->
-            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock Text="RGB Channels" FontWeight="SemiBold"
-                               Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
 
-                    <!-- R -->
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="50"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="R" Foreground="Red" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16"
-                                Value="{Binding R}" VerticalAlignment="Center" Margin="8,0"/>
-                        <TextBox Grid.Column="2" Text="{Binding R, UpdateSourceTrigger=PropertyChanged}"
-                                 TextAlignment="Right" Padding="4,2"
-                                 Foreground="{DynamicResource PrimaryTextBrush}"/>
-                    </Grid>
+                <StackPanel Grid.Column="0">
+                    <Border Style="{StaticResource ElevatedSurfaceStyle}" Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                    <!-- G -->
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="50"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="G" Foreground="Green" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16"
-                                Value="{Binding G}" VerticalAlignment="Center" Margin="8,0"/>
-                        <TextBox Grid.Column="2" Text="{Binding G, UpdateSourceTrigger=PropertyChanged}"
-                                 TextAlignment="Right" Padding="4,2"
-                                 Foreground="{DynamicResource PrimaryTextBrush}"/>
-                    </Grid>
+                            <Border Grid.Column="0"
+                                    Width="120"
+                                    Height="120"
+                                    CornerRadius="18"
+                                    BorderBrush="{DynamicResource StrongBorderBrush}"
+                                    BorderThickness="1"
+                                    Margin="0,0,20,0"
+                                    VerticalAlignment="Top">
+                                <Rectangle Fill="{Binding PreviewBrush}" RadiusX="17" RadiusY="17"/>
+                            </Border>
 
-                    <!-- B -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="50"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="B" Foreground="Blue" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16"
-                                Value="{Binding B}" VerticalAlignment="Center" Margin="8,0"/>
-                        <TextBox Grid.Column="2" Text="{Binding B, UpdateSourceTrigger=PropertyChanged}"
-                                 TextAlignment="Right" Padding="4,2"
-                                 Foreground="{DynamicResource PrimaryTextBrush}"/>
-                    </Grid>
+                            <StackPanel Grid.Column="1">
+                                <WrapPanel Margin="0,0,0,10">
+                                    <TextBlock Text="HEX" Width="70" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
+                                    <TextBox Text="{Binding HexColor, UpdateSourceTrigger=PropertyChanged}" Width="140" FontFamily="Consolas"/>
+                                    <Button Content="Copy HEX" Command="{Binding CopyHexCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,0,0,10">
+                                    <TextBlock Text="CSS RGB" Width="70" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
+                                    <TextBox Text="{Binding CssRgb, Mode=OneWay}" IsReadOnly="True" Width="190" FontFamily="Consolas"/>
+                                    <Button Content="Copy RGB" Command="{Binding CopyRgbCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel>
+                                    <TextBlock Text="CSS HSL" Width="70" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
+                                    <TextBox Text="{Binding CssHsl, Mode=OneWay}" IsReadOnly="True" Width="190" FontFamily="Consolas"/>
+                                    <Button Content="Copy HSL" Command="{Binding CopyHslCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
+                                    <Button Content="Pick From Screen" Command="{Binding PickFromScreenCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="8,0,0,0"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource ElevatedSurfaceStyle}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="RGB Channels" Style="{StaticResource SectionHeadingTextStyle}" FontSize="18" Margin="0,0,0,14"/>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="R" Foreground="#EF4444" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding R}" Margin="10,0"/>
+                                <TextBox Grid.Column="2" Text="{Binding R, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="G" Foreground="#22C55E" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding G}" Margin="10,0"/>
+                                <TextBox Grid.Column="2" Text="{Binding G, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="B" Foreground="#3B82F6" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding B}" Margin="10,0"/>
+                                <TextBox Grid.Column="2" Text="{Binding B, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource ElevatedSurfaceStyle}">
+                        <StackPanel>
+                            <TextBlock Text="HSL Values" Style="{StaticResource SectionHeadingTextStyle}" FontSize="18" Margin="0,0,0,14"/>
+                            <UniformGrid Columns="3">
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="Hue" Style="{StaticResource MetadataTextStyle}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding H, Mode=OneWay, StringFormat={}{0:F1}°}" IsReadOnly="True" FontFamily="Consolas"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="Saturation" Style="{StaticResource MetadataTextStyle}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding S, Mode=OneWay, StringFormat={}{0:F1}%}" IsReadOnly="True" FontFamily="Consolas"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Lightness" Style="{StaticResource MetadataTextStyle}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding L, Mode=OneWay, StringFormat={}{0:F1}%}" IsReadOnly="True" FontFamily="Consolas"/>
+                                </StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
-            </Border>
 
-            <!-- HSL Display (read-only) -->
-            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock Text="HSL Values (computed)" FontWeight="SemiBold"
-                               Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="H:" Width="24" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Text="{Binding H, Mode=OneWay, StringFormat={}{0:F1}°}" IsReadOnly="True"
-                                 Width="80" FontFamily="Consolas" Padding="6,4"
-                                 Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,16,0"/>
-                        <TextBlock Text="S:" Width="24" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Text="{Binding S, Mode=OneWay, StringFormat={}{0:F1}%}" IsReadOnly="True"
-                                 Width="80" FontFamily="Consolas" Padding="6,4"
-                                 Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,16,0"/>
-                        <TextBlock Text="L:" Width="24" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Text="{Binding L, Mode=OneWay, StringFormat={}{0:F1}%}" IsReadOnly="True"
-                                 Width="80" FontFamily="Consolas" Padding="6,4"
-                                 Foreground="{DynamicResource PrimaryTextBrush}"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
+                <Border Grid.Column="2" Style="{StaticResource ElevatedSurfaceStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Palette" Style="{StaticResource SectionHeadingTextStyle}" FontSize="18"/>
+                        <TextBlock Text="Save frequently used colors with names and click any swatch to restore it."
+                                   Style="{StaticResource MetadataTextStyle}"
+                                   Margin="0,4,0,12"/>
 
-            <!-- Palette -->
-            <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock Text="Color Palette" FontWeight="SemiBold"
-                               Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
+                        <WrapPanel Margin="0,0,0,14">
+                            <TextBox Text="{Binding PaletteName, UpdateSourceTrigger=PropertyChanged}" Width="210" Margin="0,0,8,0"/>
+                            <Button Content="Add to Palette" Command="{Binding AddToPaletteCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Clear All" Command="{Binding ClearPaletteCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        </WrapPanel>
 
-                    <!-- Add to Palette -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBox Text="{Binding PaletteName, UpdateSourceTrigger=PropertyChanged}"
-                                 Width="200" Padding="6,4"
-                                 Foreground="{DynamicResource PrimaryTextBrush}"/>
-                        <Button Content="Add to Palette" Command="{Binding AddToPaletteCommand}"
-                                Style="{StaticResource PrimaryActionButtonStyle}" Margin="8,0,0,0"/>
-                        <Button Content="Clear All" Command="{Binding ClearPaletteCommand}"
-                                Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
-                    </StackPanel>
-
-                    <!-- Palette items -->
-                    <ItemsControl ItemsSource="{Binding Palette}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Width="80" Margin="4" CornerRadius="6"
-                                        BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1"
-                                        Cursor="Hand">
-                                    <Border.InputBindings>
-                                        <MouseBinding MouseAction="LeftClick"
-                                                      Command="{Binding DataContext.SelectPaletteColorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                      CommandParameter="{Binding}"/>
-                                    </Border.InputBindings>
-                                    <StackPanel>
-                                        <Border Height="40" CornerRadius="6,6,0,0">
-                                            <Border.Background>
-                                                <SolidColorBrush Color="{Binding Color}"/>
-                                            </Border.Background>
-                                        </Border>
-                                        <StackPanel Margin="4,2">
-                                            <TextBlock Text="{Binding Name}" FontSize="10"
-                                                       Foreground="{DynamicResource PrimaryTextBrush}"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding Hex}" FontSize="10" FontFamily="Consolas"
-                                                       Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                            <Button Content="Remove"
-                                                    Command="{Binding DataContext.RemoveFromPaletteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    FontSize="9" Padding="2,1"
-                                                    Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        <ItemsControl ItemsSource="{Binding Palette}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="112"
+                                            Margin="0,0,10,10"
+                                            CornerRadius="12"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            Background="{DynamicResource AppSurfaceAltBrush}">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.SelectPaletteColorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                          CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
+                                        <StackPanel>
+                                            <Border Height="54" CornerRadius="12,12,0,0">
+                                                <Border.Background>
+                                                    <SolidColorBrush Color="{Binding Color}"/>
+                                                </Border.Background>
+                                            </Border>
+                                            <StackPanel Margin="8,6,8,8">
+                                                <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{DynamicResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Hex}" FontSize="10" FontFamily="Consolas" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,2,0,8"/>
+                                                <Button Content="Remove"
+                                                        Command="{Binding DataContext.RemoveFromPaletteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource SecondaryActionButtonStyle}"
+                                                        FontSize="10"
+                                                        Padding="6,4"/>
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

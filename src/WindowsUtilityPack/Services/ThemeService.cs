@@ -17,6 +17,7 @@ public class ThemeService : IThemeService
 {
     private const string DarkThemeUri  = "Themes/DarkTheme.xaml";
     private const string LightThemeUri = "Themes/LightTheme.xaml";
+    private const string AuroraThemeUri = "Themes/AuroraTheme.xaml";
 
     /// <inheritdoc/>
     public AppTheme CurrentTheme { get; private set; } = AppTheme.Dark;
@@ -91,7 +92,7 @@ public class ThemeService : IThemeService
         });
     }
 
-    /// <summary>Swaps the theme ResourceDictionary at position 0.</summary>
+    /// <summary>Swaps the active theme ResourceDictionary.</summary>
     /// <remarks>
     /// Declared <c>protected virtual</c> so that test subclasses can override it
     /// without requiring a live WPF Application instance.
@@ -99,12 +100,18 @@ public class ThemeService : IThemeService
     protected virtual void ApplyTheme(AppTheme theme)
     {
         var mergedDicts = Application.Current.Resources.MergedDictionaries;
-        var themeUri = theme == AppTheme.Dark ? DarkThemeUri : LightThemeUri;
+        var themeUri = theme switch
+        {
+            AppTheme.Light => LightThemeUri,
+            AppTheme.Aurora => AuroraThemeUri,
+            _ => DarkThemeUri,
+        };
 
         var existing = mergedDicts
             .FirstOrDefault(d => d.Source != null &&
                                  (d.Source.OriginalString.Contains("DarkTheme") ||
-                                  d.Source.OriginalString.Contains("LightTheme")));
+                                  d.Source.OriginalString.Contains("LightTheme") ||
+                                  d.Source.OriginalString.Contains("AuroraTheme")));
         if (existing != null)
             mergedDicts.Remove(existing);
 

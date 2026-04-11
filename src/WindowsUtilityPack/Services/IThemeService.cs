@@ -9,6 +9,8 @@ public enum AppTheme
     Dark,
     /// <summary>Light colour scheme.</summary>
     Light,
+    /// <summary>Premium blue-violet accent theme.</summary>
+    Aurora,
     /// <summary>Follow the Windows system setting automatically.</summary>
     System
 }
@@ -22,7 +24,7 @@ public interface IThemeService
     /// <summary>Gets the user-chosen preference (may be <see cref="AppTheme.System"/>).</summary>
     AppTheme CurrentTheme { get; }
 
-    /// <summary>Gets the resolved theme actually displayed (always Dark or Light).</summary>
+    /// <summary>Gets the resolved theme actually displayed (always a concrete theme, never <see cref="AppTheme.System"/>).</summary>
     AppTheme EffectiveTheme { get; }
 
     /// <summary>

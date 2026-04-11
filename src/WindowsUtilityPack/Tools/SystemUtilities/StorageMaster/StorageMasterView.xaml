@@ -5,9 +5,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
     <UserControl.Resources>
-        <Style x:Key="CardBorder" TargetType="Border" BasedOn="{StaticResource ToolPanelBorderStyle}"/>
+        <Style x:Key="CardBorder" TargetType="Border" BasedOn="{StaticResource ElevatedSurfaceStyle}"/>
     </UserControl.Resources>
-    <Grid>
+    <Grid Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -17,7 +17,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <!-- Header toolbar -->
-        <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,6" Padding="14,10">
+        <Border Grid.Row="0" Style="{StaticResource HeroSurfaceStyle}" Margin="0,0,0,8" Padding="18,14">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -27,8 +27,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{StaticResource IconStorage}" FontFamily="Segoe MDL2 Assets" FontSize="26" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource AccentBrush}"/>
                     <StackPanel>
-                        <TextBlock Text="Storage Master" FontSize="20" FontWeight="Bold"
-                                   Foreground="{DynamicResource PrimaryTextBrush}"/>
+                        <TextBlock Text="Storage Master" Style="{StaticResource PrimaryHeadingTextStyle}" FontSize="24"/>
                         <TextBlock Text="Storage analysis, cleanup &amp; optimization" FontSize="11"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </StackPanel>
