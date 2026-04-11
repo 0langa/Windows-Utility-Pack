@@ -63,7 +63,14 @@
                                     </ItemsControl>
                                     <DockPanel Margin="0,4,0,6" Visibility="{Binding HasSearchQuery, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
                                         <TextBlock Text="Recent Searches" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                        <Button Content="Clear" DockPanel.Dock="Right" Style="{StaticResource SectionActionLinkStyle}" Command="{Binding ClearRecentSearchesCommand}"/>
+                                        <Button DockPanel.Dock="Right"
+                                                Style="{StaticResource SectionActionLinkStyle}"
+                                                Command="{Binding ClearRecentSearchesCommand}"
+                                                ToolTip="Clear recent searches"
+                                                Padding="6,2"
+                                                MinHeight="0">
+                                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                        </Button>
                                     </DockPanel>
                                     <ItemsControl ItemsSource="{Binding RecentSearches}" Visibility="{Binding HasSearchQuery, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
                                         <ItemsControl.ItemTemplate><DataTemplate>
@@ -86,7 +93,17 @@
                 </Border>
 
                 <StackPanel Margin="0,0,0,12">
-                    <DockPanel Margin="0,0,0,8"><TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" Foreground="{DynamicResource AccentBrush}"/><TextBlock Text="Favorites" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/><Button Content="Toggle" Style="{StaticResource SectionActionLinkStyle}" Command="{Binding ToggleFavoritesExpandedCommand}" DockPanel.Dock="Right"/></DockPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button Style="{StaticResource SectionActionLinkStyle}"
+                                Command="{Binding ToggleFavoritesExpandedCommand}"
+                                ToolTip="Expand or collapse Favorites"
+                                Padding="0"
+                                MinHeight="0"
+                                Margin="0,0,8,0">
+                            <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}"/>
+                        </Button>
+                        <TextBlock Text="Favorites" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
+                    </DockPanel>
                     <StackPanel Visibility="{Binding FavoritesExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid Visibility="{Binding HasFavorites, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
                             <Rectangle RadiusX="10" RadiusY="10" Stroke="{DynamicResource StrongBorderBrush}" StrokeThickness="1" StrokeDashArray="4 3"/>
@@ -110,7 +127,26 @@
                 </StackPanel>
 
                 <StackPanel Margin="0,0,0,12">
-                    <DockPanel Margin="0,0,0,8"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" Foreground="{DynamicResource AccentBrush}"/><TextBlock Text="Recently Used" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/><Button Content="Toggle" Style="{StaticResource SectionActionLinkStyle}" Command="{Binding ToggleRecentsExpandedCommand}" DockPanel.Dock="Right"/><Button Content="Clear" Style="{StaticResource SectionActionLinkStyle}" Command="{Binding ClearRecentCommand}" DockPanel.Dock="Right" Visibility="{Binding HasRecents, Converter={StaticResource BoolToVisibilityConverter}}"/></DockPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button Style="{StaticResource SectionActionLinkStyle}"
+                                Command="{Binding ToggleRecentsExpandedCommand}"
+                                ToolTip="Expand or collapse Recently Used"
+                                Padding="0"
+                                MinHeight="0"
+                                Margin="0,0,8,0">
+                            <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}"/>
+                        </Button>
+                        <TextBlock Text="Recently Used" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
+                        <Button Style="{StaticResource SectionActionLinkStyle}"
+                                Command="{Binding ClearRecentCommand}"
+                                DockPanel.Dock="Right"
+                                Visibility="{Binding HasRecents, Converter={StaticResource BoolToVisibilityConverter}}"
+                                ToolTip="Clear recently used tools"
+                                Padding="6,2"
+                                MinHeight="0">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                        </Button>
+                    </DockPanel>
                     <StackPanel Visibility="{Binding RecentsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid Visibility="{Binding HasRecents, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
                             <Rectangle RadiusX="10" RadiusY="10" Stroke="{DynamicResource StrongBorderBrush}" StrokeThickness="1" StrokeDashArray="4 3"/>
@@ -136,7 +172,12 @@
                     <DockPanel Margin="0,0,0,8">
                         <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" Foreground="{DynamicResource AccentBrush}"/>
                         <TextBlock Text="Recommended Next Tools" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
-                        <TextBlock Text="Based on your usage patterns" DockPanel.Dock="Right" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Text="Based on your usage patterns"
+                                   DockPanel.Dock="Right"
+                                   Margin="12,2,0,0"
+                                   FontSize="11"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </DockPanel>
                     <ItemsControl ItemsSource="{Binding RecommendedTools}">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -160,13 +201,23 @@
                     </ItemsControl>
                 </StackPanel>
                 <StackPanel Margin="0,0,0,12">
-                    <DockPanel Margin="0,0,0,8"><TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" Foreground="{DynamicResource AccentBrush}"/><TextBlock Text="Browse by Category" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/><Button Content="Toggle" Style="{StaticResource SectionActionLinkStyle}" Command="{Binding ToggleCategoryBrowserExpandedCommand}" DockPanel.Dock="Right"/></DockPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button Style="{StaticResource SectionActionLinkStyle}"
+                                Command="{Binding ToggleCategoryBrowserExpandedCommand}"
+                                ToolTip="Expand or collapse Browse by Category"
+                                Padding="0"
+                                MinHeight="0"
+                                Margin="0,0,8,0">
+                            <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}"/>
+                        </Button>
+                        <TextBlock Text="Browse by Category" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
+                    </DockPanel>
                     <StackPanel Visibility="{Binding CategoryBrowserExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl ItemsSource="{Binding CategorySummaries}">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:HomeCategorySummary}">
-                                    <Button x:Name="CatButton" Width="320" Margin="0,0,10,10" Style="{StaticResource HomeToolHoverLiftButtonStyle}" Command="{Binding DataContext.SelectCategoryCommand, ElementName=Root}" CommandParameter="{Binding Category}">
+                                    <Button x:Name="CatButton" Width="320" Margin="0,0,10,10" Style="{StaticResource HomeToolHoverLiftButtonStyle}" Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Category}">
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="4"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Border Grid.Column="0" Background="{DynamicResource AccentBrush}" CornerRadius="3" Margin="0,0,8,0"/>
@@ -187,6 +238,51 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <Border Style="{StaticResource SurfaceCardStyle}"
+                                Padding="12"
+                                Margin="0,2,0,0"
+                                Visibility="{Binding HasSelectedCategory, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock Text="{Binding SelectedCategory.Label, StringFormat={}Tools in {0}}"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Text="{Binding SelectedCategoryTools.Count, StringFormat={}{0} tools}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding SelectedCategoryTools}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Width="280"
+                                                    Margin="0,0,10,10"
+                                                    Style="{StaticResource HomeToolHoverLiftButtonStyle}"
+                                                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding Key}">
+                                                <DockPanel>
+                                                    <TextBlock Text="{Binding IconGlyph}"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               Margin="0,0,10,0"
+                                                               Foreground="{DynamicResource AccentBrush}"/>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding Description}"
+                                                                   FontSize="11"
+                                                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </StackPanel>
 

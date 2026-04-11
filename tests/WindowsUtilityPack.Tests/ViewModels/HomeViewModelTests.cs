@@ -87,6 +87,34 @@ public class HomeViewModelTests
         Assert.Contains(vm.SearchResults, tool => tool.Key == toolKey);
     }
 
+    [Fact]
+    public void SelectCategoryCommand_SelectsAndTogglesSelectedCategoryTools()
+    {
+        var categoryLabel = $"Category-{Guid.NewGuid():N}";
+        var toolKey = $"category-tool-{Guid.NewGuid():N}";
+        ToolRegistry.Register(new ToolDefinition
+        {
+            Key = toolKey,
+            Name = "Category Tool",
+            Description = "Category selection test tool.",
+            Category = categoryLabel,
+            Factory = static () => new TestViewModel(),
+        });
+
+        var vm = CreateViewModel(new TestClipboardService(string.Empty));
+        var category = vm.Categories.First(c => c.Label.Equals(categoryLabel, StringComparison.Ordinal));
+
+        vm.SelectCategoryCommand.Execute(category);
+
+        Assert.Same(category, vm.SelectedCategory);
+        Assert.Contains(vm.SelectedCategoryTools, tool => tool.Key == toolKey);
+
+        vm.SelectCategoryCommand.Execute(category);
+
+        Assert.Null(vm.SelectedCategory);
+        Assert.Empty(vm.SelectedCategoryTools);
+    }
+
     private static HomeViewModel CreateViewModel(TestClipboardService clipboard)
         => new(
             new TestNavigationService(),
