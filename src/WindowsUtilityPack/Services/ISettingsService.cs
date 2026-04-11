@@ -75,6 +75,21 @@ public class AppSettings
     /// Used for the usage-frequency indicator on tool cards.
     /// </summary>
     public Dictionary<string, int> ToolLaunchCounts { get; set; } = [];
+
+    /// <summary>
+    /// Enables tray mode where the app can continue running while hidden from the taskbar.
+    /// </summary>
+    public bool TrayModeEnabled { get; set; } = true;
+
+    /// <summary>
+    /// If true, minimizing the main window hides it to tray instead of showing on taskbar.
+    /// </summary>
+    public bool MinimizeToTray { get; set; } = true;
+
+    /// <summary>
+    /// If true, notifications and task completion updates are surfaced via tray balloon tips while hidden.
+    /// </summary>
+    public bool TrayAlertsEnabled { get; set; } = true;
 }
 
 /// <summary>

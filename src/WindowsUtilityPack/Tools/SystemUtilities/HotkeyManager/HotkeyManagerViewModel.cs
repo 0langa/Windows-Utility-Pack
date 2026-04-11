@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.IO;
+using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
@@ -32,6 +34,8 @@ public sealed class HotkeyManagerViewModel : ViewModelBase
     public RelayCommand SaveCommand { get; }
     public RelayCommand ResetDefaultsCommand { get; }
     public RelayCommand ReloadCommand { get; }
+    public RelayCommand ExportProfileCommand { get; }
+    public RelayCommand ImportProfileCommand { get; }
 
     public HotkeyManagerViewModel(IHotkeyService hotkeys, IUserDialogService dialogs)
     {
@@ -41,6 +45,8 @@ public sealed class HotkeyManagerViewModel : ViewModelBase
         SaveCommand = new RelayCommand(_ => Save());
         ResetDefaultsCommand = new RelayCommand(_ => ResetDefaults());
         ReloadCommand = new RelayCommand(_ => Reload());
+        ExportProfileCommand = new RelayCommand(_ => ExportProfile());
+        ImportProfileCommand = new RelayCommand(_ => ImportProfile());
 
         Reload();
     }
@@ -97,5 +103,81 @@ public sealed class HotkeyManagerViewModel : ViewModelBase
         }
 
         StatusMessage = "Default hotkey bindings restored. Click Save to persist.";
+    }
+
+    private void ExportProfile()
+    {
+        try
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = "Export hotkey profile",
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                DefaultExt = ".json",
+                AddExtension = true,
+                OverwritePrompt = true,
+                FileName = $"hotkeys-{DateTime.Now:yyyyMMdd-HHmmss}.json",
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var json = _hotkeys.ExportProfileJson();
+            File.WriteAllText(dialog.FileName, json);
+            StatusMessage = "Hotkey profile exported.";
+            _dialogs.ShowInfo("Hotkeys exported", "Hotkey profile was exported successfully.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Unable to export hotkey profile.";
+            _dialogs.ShowError("Hotkey export failed", ex.Message);
+        }
+    }
+
+    private void ImportProfile()
+    {
+        try
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Import hotkey profile",
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                CheckFileExists = true,
+                Multiselect = false,
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var fileInfo = new FileInfo(dialog.FileName);
+            if (!fileInfo.Exists || fileInfo.Length > 1024 * 1024)
+            {
+                StatusMessage = "Profile file is missing or too large.";
+                _dialogs.ShowError("Hotkey import failed", "Profile file is missing or exceeds 1 MB.");
+                return;
+            }
+
+            var json = File.ReadAllText(dialog.FileName);
+            var result = _hotkeys.ImportProfileJson(json);
+            if (!result.Success)
+            {
+                StatusMessage = result.Error;
+                _dialogs.ShowError("Hotkey import failed", result.Error);
+                return;
+            }
+
+            Reload();
+            StatusMessage = $"Imported {result.ImportedCount:N0} hotkey bindings.";
+            _dialogs.ShowInfo("Hotkeys imported", "Hotkey profile was imported successfully.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Unable to import hotkey profile.";
+            _dialogs.ShowError("Hotkey import failed", ex.Message);
+        }
     }
 }

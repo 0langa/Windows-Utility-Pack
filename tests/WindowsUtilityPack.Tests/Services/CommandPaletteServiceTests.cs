@@ -14,6 +14,7 @@ public class CommandPaletteServiceTests
 
         Assert.Contains(items, i => i.CommandKey == "open-settings");
         Assert.Contains(items, i => i.CommandKey == "home");
+        Assert.Contains(items, i => i.CommandKey == "popout-current-tool");
     }
 
     [Fact]

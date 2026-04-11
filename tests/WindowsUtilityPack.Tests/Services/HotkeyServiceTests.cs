@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using System.Text.Json;
 using WindowsUtilityPack.Services;
 using Xunit;
 
@@ -46,15 +47,74 @@ public class HotkeyServiceTests
         Assert.Equal(ShellHotkeyAction.OpenCommandPalette, action);
     }
 
+    [Fact]
+    public void ExportProfileJson_IncludesBindingsAndEnabledState()
+    {
+        var settings = new StubSettingsService
+        {
+            Current = new AppSettings { HotkeysEnabled = false },
+        };
+        var service = new HotkeyService(settings);
+
+        var json = service.ExportProfileJson();
+
+        using var document = JsonDocument.Parse(json);
+        Assert.False(document.RootElement.GetProperty("HotkeysEnabled").GetBoolean());
+        Assert.True(document.RootElement.GetProperty("Bindings").GetArrayLength() > 0);
+    }
+
+    [Fact]
+    public void ImportProfileJson_AppliesImportedBindingsAndEnabledState()
+    {
+        var settings = new StubSettingsService();
+        var service = new HotkeyService(settings);
+
+        const string json = """
+{
+  "version": 1,
+  "hotkeysEnabled": false,
+  "bindings": [
+    { "action": "OpenCommandPalette", "gesture": "Ctrl+Shift+K", "enabled": true }
+  ]
+}
+""";
+
+        var result = service.ImportProfileJson(json);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.ImportedCount);
+        Assert.False(service.HotkeysEnabled);
+        Assert.Collection(
+            service.GetBindings(),
+            binding =>
+            {
+                Assert.Equal("OpenCommandPalette", binding.Action);
+                Assert.Equal("Ctrl+Shift+K", binding.Gesture);
+                Assert.True(binding.Enabled);
+            });
+    }
+
+    [Fact]
+    public void ImportProfileJson_RejectsInvalidJson()
+    {
+        var settings = new StubSettingsService();
+        var service = new HotkeyService(settings);
+
+        var result = service.ImportProfileJson("{ invalid");
+
+        Assert.False(result.Success);
+        Assert.Contains("parsed", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class StubSettingsService : ISettingsService
     {
-        private AppSettings _settings = new();
+        public AppSettings Current { get; set; } = new();
 
-        public AppSettings Load() => _settings;
+        public AppSettings Load() => Current;
 
         public void Save(AppSettings settings)
         {
-            _settings = settings;
+            Current = settings;
         }
     }
 }

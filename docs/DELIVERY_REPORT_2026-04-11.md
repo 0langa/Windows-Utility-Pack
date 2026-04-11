@@ -58,6 +58,10 @@
   - collision validation,
   - shell-level hotkey execution,
   - Hotkey Manager tool UI.
+- Extended hotkey platform with profile portability:
+  - JSON profile export from Hotkey Manager,
+  - JSON profile import with validation and safety limits,
+  - persisted hotkey enabled-state import/export.
 - Added persisted automation rule engine:
   - threshold + cooldown based evaluations,
   - vitals-triggered notifications,
@@ -86,35 +90,66 @@
   - local HttpListener-based mock API host,
   - editable endpoint definitions (method/path/status/content type/body),
   - request log viewer with clear/refresh workflows.
+- Added SSH Remote Tool:
+  - persisted SSH connection profiles,
+  - host/port reachability checks,
+  - generated SSH command copy workflow.
+- Added Certificate Manager tool:
+  - certificate store browsing across location/store selection,
+  - certificate details copy,
+  - PEM export copy for selected certificate.
+- Added tray/background mode foundation:
+  - minimize-to-tray behavior,
+  - close-to-tray behavior with explicit tray exit,
+  - tray context actions (open/exit),
+  - tray balloon alerts for hidden-window notifications and background task completions.
+- Extended automation rules with templates and dry-run simulation:
+  - built-in templates for disk, CPU, and RAM scenarios,
+  - one-click template-based rule creation,
+  - dry-run simulation using user-provided vitals snapshots,
+  - per-rule trigger outcome details for validation before rollout.
+- Added multi-window tool hosting foundation:
+  - reusable detached tool window host service,
+  - shell action to pop out current tool,
+  - command palette support for detached-window action,
+  - one-window-per-tool activation behavior for long-running workflows.
+- Expanded Storage Master with automation-policy execution and richer duplicate previews:
+  - cleanup policy planner service (Conservative/Balanced/Aggressive),
+  - cleanup policy preview/apply flows with risk and minimum-savings controls,
+  - one-click policy execution to recycle selected policy-matched items,
+  - duplicate group confidence/location/age preview metadata for faster review.
 
 ## Refactors and Integration Work
 
 - Extended `MainWindowViewModel` with command palette state and actions.
 - Extended app startup composition in `App.xaml.cs` to instantiate and wire new shared services.
 - Updated shell XAML/code-behind to host command palette overlay and key handling.
+- Hardened downloader queue stop/restart flow against cancellation-token disposal races.
+- Extended shell integration with detached tool window command and header action.
+- Added policy-driven cleanup selection orchestration for Storage Master recommendations.
 
 ## Package Changes
 
 - Added `Microsoft.Data.Sqlite` to `src/WindowsUtilityPack/WindowsUtilityPack.csproj`.
+- Enabled WinForms interop for shell tray icon hosting in `src/WindowsUtilityPack/WindowsUtilityPack.csproj`.
 
 ## Validation Performed
 
 - `dotnet build WindowsUtilityPack.sln` -> success.
 - `dotnet test tests/WindowsUtilityPack.Tests/WindowsUtilityPack.Tests.csproj` -> success.
-- Test summary: 300 passed, 0 failed.
+- Test summary: 319 passed, 0 failed.
 
 ## Remaining Limitations / Next Extensions
 
 This delivery intentionally prioritizes platform foundations and shell integration over a broad, high-risk feature flood.
 
 Remaining roadmap work includes:
-- deeper upgrades for Storage Master, Startup Manager, System Info, Network/Port/HTTP/Vault,
-- first-class new tool additions (SSH Remote Tool, Certificate Manager),
-- multi-window tool hosting, global hotkey management UI, automation rules engine, tray/background mode.
+- deeper upgrades for Startup Manager, System Info, Network/Port/HTTP/Vault,
+- global hotkey management UI.
 
 ## Recommended Next Slice
 
-1. Implement a safe Registry Editor tool with backup/restore and scoped writes.
-2. Add Task Scheduler UI coverage for common trigger/action templates.
-3. Expand Storage Master with automation-policy execution and richer duplicate previewing.
-4. Add tray/background mode with persistent task and alert surfacing.
+1. Deepen Startup Manager and System Info with richer diagnostics and exports.
+2. Expand network/HTTP tools with advanced diagnostics and exportable traces.
+3. Extend global hotkey management with profile scoping per workflow category.
+4. Add Storage Master policy presets import/export for repeatable cleanup workflows.

@@ -21,6 +21,8 @@
                           Margin="0,0,16,0"/>
                 <Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
                 <Button Content="Reset Defaults" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Content="Export Profile" Command="{Binding ExportProfileCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Content="Import Profile" Command="{Binding ImportProfileCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
                 <Button Content="Reload" Command="{Binding ReloadCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
             </StackPanel>
         </Border>

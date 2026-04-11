@@ -27,6 +27,7 @@
              xmlns:hashGenerator="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.HashGenerator"
              xmlns:secretVault="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.LocalSecretVault"
              xmlns:certInspector="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.CertificateInspector"
+             xmlns:certManager="clr-namespace:WindowsUtilityPack.Tools.SecurityPrivacy.CertificateManager"
              xmlns:pingTool="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.PingTool"
              xmlns:dnsLookup="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.DnsLookup"
              xmlns:portScanner="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.PortScanner"
@@ -102,6 +103,7 @@
             <DataTemplate DataType="{x:Type hashGenerator:HashGeneratorViewModel}"><hashGenerator:HashGeneratorView/></DataTemplate>
             <DataTemplate DataType="{x:Type secretVault:LocalSecretVaultViewModel}"><secretVault:LocalSecretVaultView/></DataTemplate>
             <DataTemplate DataType="{x:Type certInspector:CertificateInspectorViewModel}"><certInspector:CertificateInspectorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type certManager:CertificateManagerViewModel}"><certManager:CertificateManagerView/></DataTemplate>
 
             <DataTemplate DataType="{x:Type pingTool:PingToolViewModel}"><pingTool:PingToolView/></DataTemplate>
             <DataTemplate DataType="{x:Type dnsLookup:DnsLookupViewModel}"><dnsLookup:DnsLookupView/></DataTemplate>

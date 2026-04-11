@@ -20,6 +20,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly INotificationService? _notifications;
     private readonly ICommandPaletteService? _commandPalette;
     private readonly IActivityLogService? _activityLogService;
+    private readonly IToolWindowHostService? _toolWindowHost;
     private AppTheme _effectiveTheme = AppTheme.Dark;
     private string _statusMessage = "Ready";
     private string _notificationText = string.Empty;
@@ -28,6 +29,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private bool _isCommandPaletteOpen;
     private string _commandPaletteQuery = string.Empty;
     private CommandPaletteItem? _selectedCommandPaletteItem;
+    private string _currentToolKey = "home";
 
     public AppTheme EffectiveTheme
     {
@@ -133,6 +135,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public RelayCommand NavigateHomeCommand { get; }
     public RelayCommand OpenSettingsCommand { get; }
     public RelayCommand DismissNotificationCommand { get; }
+    public RelayCommand PopOutCurrentToolCommand { get; }
     public RelayCommand OpenCommandPaletteCommand { get; }
     public RelayCommand CloseCommandPaletteCommand { get; }
     public AsyncRelayCommand ExecuteCommandPaletteItemCommand { get; }
@@ -147,12 +150,14 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         IThemeService theme,
         INotificationService? notifications,
         ICommandPaletteService? commandPalette = null,
-        IActivityLogService? activityLogService = null)
+        IActivityLogService? activityLogService = null,
+        IToolWindowHostService? toolWindowHost = null)
     {
         _navigation = navigation;
         _theme = theme;
         _commandPalette = commandPalette;
         _activityLogService = activityLogService;
+        _toolWindowHost = toolWindowHost;
 
         _effectiveTheme = theme.EffectiveTheme;
 
@@ -173,6 +178,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         NavigateHomeCommand = new RelayCommand(_ => _navigation.NavigateTo("home"));
         OpenSettingsCommand = new RelayCommand(_ => OpenSettings());
         DismissNotificationCommand = new RelayCommand(_ => IsNotificationVisible = false);
+        PopOutCurrentToolCommand = new RelayCommand(_ => PopOutCurrentTool(), _ => _toolWindowHost is not null && !_currentToolKey.Equals("home", StringComparison.OrdinalIgnoreCase));
         OpenCommandPaletteCommand = new RelayCommand(_ => OpenCommandPalette());
         CloseCommandPaletteCommand = new RelayCommand(_ => CloseCommandPalette());
         ExecuteCommandPaletteItemCommand = new AsyncRelayCommand(ExecuteCommandPaletteItemAsync);
@@ -185,6 +191,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private void OnNavigated(object? sender, Type vmType)
     {
         OnPropertyChanged(nameof(CurrentView));
+        _currentToolKey = ResolveToolKey(vmType);
+        RelayCommand.RaiseCanExecuteChanged();
 
         // Use the registered display name from ToolRegistry instead of the class name.
         var displayName = vmType.Name.Replace("ViewModel", "");
@@ -302,6 +310,10 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 {
                     _navigation.NavigateTo("home");
                 }
+                else if (item.CommandKey.Equals("popout-current-tool", StringComparison.OrdinalIgnoreCase))
+                {
+                    PopOutCurrentTool();
+                }
                 break;
         }
 
@@ -313,6 +325,44 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         CloseCommandPalette();
+    }
+
+    private void PopOutCurrentTool()
+    {
+        if (_toolWindowHost is null)
+        {
+            StatusMessage = "Detached tool windows are not available.";
+            return;
+        }
+
+        if (_currentToolKey.Equals("home", StringComparison.OrdinalIgnoreCase))
+        {
+            StatusMessage = "Home dashboard cannot be opened in a detached window.";
+            return;
+        }
+
+        var opened = _toolWindowHost.TryOpenOrActivate(_currentToolKey, out var message);
+        StatusMessage = message;
+
+        if (opened && _activityLogService is not null)
+        {
+            _ = _activityLogService.LogAsync("ToolWindows", "OpenOrActivate", _currentToolKey);
+        }
+    }
+
+    private static string ResolveToolKey(Type vmType)
+    {
+        var displayName = vmType.Name.Replace("ViewModel", "", StringComparison.OrdinalIgnoreCase);
+        foreach (var tool in ToolRegistry.All)
+        {
+            if (tool.Name.Replace(" ", "", StringComparison.OrdinalIgnoreCase)
+                .Equals(displayName, StringComparison.OrdinalIgnoreCase))
+            {
+                return tool.Key;
+            }
+        }
+
+        return "home";
     }
 
     public void Dispose()

@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using Forms = System.Windows.Forms;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
 
@@ -18,6 +19,11 @@ namespace WindowsUtilityPack;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private readonly ITrayModeCoordinator _trayCoordinator = new TrayModeCoordinator();
+    private readonly Forms.NotifyIcon _trayIcon;
+    private bool _isHiddenToTray;
+    private bool _explicitExitRequested;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -27,8 +33,27 @@ public partial class MainWindow : Window
             App.ThemeService,
             App.NotificationService,
             App.CommandPaletteService,
-            App.ActivityLogService);
+            App.ActivityLogService,
+            App.ToolWindowHostService);
         DataContext = vm;
+
+        _trayIcon = CreateTrayIcon();
+        _trayIcon.DoubleClick += OnTrayOpenDoubleClick;
+        if (_trayIcon.ContextMenuStrip is { } menu)
+        {
+            if (menu.Items.Count > 0)
+            {
+                menu.Items[0].Click += OnTrayOpenClick;
+            }
+
+            if (menu.Items.Count > 2)
+            {
+                menu.Items[2].Click += OnTrayExitClick;
+            }
+        }
+
+        App.NotificationService.NotificationRequested += OnNotificationRequested;
+        App.BackgroundTaskService.TaskChanged += OnBackgroundTaskChanged;
 
         var settings = App.TryGetSettingsService()?.Load() ?? new AppSettings();
         if (settings.RememberWindowPosition)
@@ -40,6 +65,23 @@ public partial class MainWindow : Window
         }
 
         App.NavigationService.NavigateTo("home");
+    }
+
+    private static Forms.NotifyIcon CreateTrayIcon()
+    {
+        var icon = new Forms.NotifyIcon
+        {
+            Text = "Windows Utility Pack",
+            Icon = System.Drawing.SystemIcons.Application,
+            Visible = true,
+        };
+
+        var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Open");
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Exit");
+        icon.ContextMenuStrip = menu;
+        return icon;
     }
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -108,6 +150,14 @@ public partial class MainWindow : Window
         }
 
         var settings = settingsService.Load();
+
+        if (_trayCoordinator.ShouldInterceptClose(settings, _explicitExitRequested))
+        {
+            e.Cancel = true;
+            HideToTray("Windows Utility Pack is still running in the system tray.");
+            return;
+        }
+
         settings.Theme = themeService.CurrentTheme;
 
         if (settings.RememberWindowPosition)
@@ -121,11 +171,126 @@ public partial class MainWindow : Window
         settingsService.Save(settings);
     }
 
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState != WindowState.Minimized)
+        {
+            return;
+        }
+
+        var settings = App.TryGetSettingsService()?.Load() ?? new AppSettings();
+        if (!_trayCoordinator.ShouldHideOnMinimize(settings))
+        {
+            return;
+        }
+
+        HideToTray("Minimized to system tray.");
+    }
+
+    private void HideToTray(string balloonText)
+    {
+        _isHiddenToTray = true;
+        ShowInTaskbar = false;
+        Hide();
+
+        if (_trayCoordinator.ShouldShowTrayAlert(App.TryGetSettingsService()?.Load() ?? new AppSettings(), _isHiddenToTray))
+        {
+            ShowTrayBalloon("Windows Utility Pack", balloonText, Forms.ToolTipIcon.Info);
+        }
+    }
+
+    private void RestoreFromTray()
+    {
+        _isHiddenToTray = false;
+        ShowInTaskbar = true;
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private void OnNotificationRequested(object? sender, NotificationEventArgs e)
+    {
+        if (!_trayCoordinator.ShouldShowTrayAlert(App.TryGetSettingsService()?.Load() ?? new AppSettings(), _isHiddenToTray))
+        {
+            return;
+        }
+
+        var icon = e.Type switch
+        {
+            NotificationType.Error => Forms.ToolTipIcon.Error,
+            NotificationType.Success => Forms.ToolTipIcon.Info,
+            _ => Forms.ToolTipIcon.Info,
+        };
+
+        _ = Dispatcher.InvokeAsync(() => ShowTrayBalloon("Windows Utility Pack", e.Message, icon));
+    }
+
+    private void OnBackgroundTaskChanged(object? sender, Models.BackgroundTaskInfo e)
+    {
+        if (!_trayCoordinator.ShouldShowTrayAlert(App.TryGetSettingsService()?.Load() ?? new AppSettings(), _isHiddenToTray))
+        {
+            return;
+        }
+
+        if (!_trayCoordinator.ShouldShowTaskCompletionAlert(e))
+        {
+            return;
+        }
+
+        var message = _trayCoordinator.BuildTaskAlertMessage(e);
+        var icon = e.State == Models.BackgroundTaskState.Failed ? Forms.ToolTipIcon.Error : Forms.ToolTipIcon.Info;
+        _ = Dispatcher.InvokeAsync(() => ShowTrayBalloon("Background Task", message, icon));
+    }
+
+    private void ShowTrayBalloon(string title, string message, Forms.ToolTipIcon icon)
+    {
+        _trayIcon.BalloonTipTitle = title;
+        _trayIcon.BalloonTipText = message;
+        _trayIcon.BalloonTipIcon = icon;
+        _trayIcon.ShowBalloonTip(3000);
+    }
+
     private void OnWindowClosed(object? sender, EventArgs e)
     {
+        App.NotificationService.NotificationRequested -= OnNotificationRequested;
+        App.BackgroundTaskService.TaskChanged -= OnBackgroundTaskChanged;
+
+        if (_trayIcon.ContextMenuStrip is { } menu)
+        {
+            if (menu.Items.Count > 0)
+            {
+                menu.Items[0].Click -= OnTrayOpenClick;
+            }
+
+            if (menu.Items.Count > 2)
+            {
+                menu.Items[2].Click -= OnTrayExitClick;
+            }
+        }
+
+        _trayIcon.DoubleClick -= OnTrayOpenDoubleClick;
+        _trayIcon.Visible = false;
+        _trayIcon.Dispose();
+
         if (DataContext is IDisposable disposable)
         {
             disposable.Dispose();
         }
+    }
+
+    private void OnTrayOpenClick(object? sender, EventArgs e)
+    {
+        _ = Dispatcher.InvokeAsync(RestoreFromTray);
+    }
+
+    private void OnTrayOpenDoubleClick(object? sender, EventArgs e)
+    {
+        _ = Dispatcher.InvokeAsync(RestoreFromTray);
+    }
+
+    private void OnTrayExitClick(object? sender, EventArgs e)
+    {
+        _explicitExitRequested = true;
+        _ = Dispatcher.InvokeAsync(Close);
     }
 }

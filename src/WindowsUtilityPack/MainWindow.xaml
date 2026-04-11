@@ -14,6 +14,7 @@
         UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
         PreviewKeyDown="OnPreviewKeyDown"
+        StateChanged="OnWindowStateChanged"
         Closing="OnWindowClosing"
         Closed="OnWindowClosed">
 
@@ -67,6 +68,12 @@
 
                 <!-- Corner controls (right-aligned) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource IconButtonStyle}"
+                        Command="{Binding PopOutCurrentToolCommand}"
+                        Content="&#xE946;"
+                        ToolTip="Open current tool in a new window"
+                        Margin="0,0,8,0"
+                        AutomationProperties.Name="Open current tool in detached window"/>
                     <Button Style="{StaticResource ThemeToggleButtonStyle}"
                             Command="{Binding ToggleThemeCommand}"
                             FontFamily="Segoe MDL2 Assets"

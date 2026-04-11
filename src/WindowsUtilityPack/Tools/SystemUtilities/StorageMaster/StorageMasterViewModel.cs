@@ -66,6 +66,39 @@ public class DuplicateGroupViewModel : ViewModelBase
     public DuplicateGroup Group { get; }
     public string Header =>
         $"{Group.Files.Count} copies  .  {Group.FileSizeFormatted} each  .  {Group.WastedFormatted} wasted";
+    public string ConfidenceText => Group.Confidence switch
+    {
+        DuplicateConfidence.FullHash => "Verified full hash match",
+        DuplicateConfidence.QuickHash => "Quick hash match",
+        DuplicateConfidence.SizeOnly => "Size-only match",
+        _ => "Unknown confidence",
+    };
+    public string PreviewSummary
+    {
+        get
+        {
+            var folders = Group.Files
+                .Select(f => System.IO.Path.GetDirectoryName(f.FullPath) ?? "(unknown)")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(3);
+
+            return $"Locations: {string.Join(" | ", folders)}";
+        }
+    }
+    public string AgeSpreadSummary
+    {
+        get
+        {
+            if (Group.Files.Count == 0)
+            {
+                return "No file age information available.";
+            }
+
+            var oldest = Group.Files.Min(f => f.CreatedAt);
+            var newest = Group.Files.Max(f => f.CreatedAt);
+            return $"Oldest: {oldest:yyyy-MM-dd}  Newest: {newest:yyyy-MM-dd}";
+        }
+    }
     public ObservableCollection<DuplicateFileEntryViewModel> Files { get; }
 
     public DuplicateGroupViewModel(DuplicateGroup group)
@@ -86,6 +119,7 @@ public class DuplicateFileEntryViewModel : ViewModelBase
     public string Name  => File.Name;
     public string Path  => File.FullPath;
     public string Size  => File.DisplaySize;
+    public string CreatedAt => File.CreatedAt.ToString("yyyy-MM-dd HH:mm");
     public bool IsMarkedForDeletion
     {
         get => _isMarkedForDeletion;
@@ -158,6 +192,7 @@ public class StorageMasterViewModel : ViewModelBase
     private readonly IScanEngine                   _scanEngine;
     private readonly IDuplicateDetectionService    _duplicateService;
     private readonly ICleanupRecommendationService _cleanupService;
+    private readonly ICleanupAutomationPolicyService _cleanupPolicyService;
     private readonly ISnapshotService              _snapshotService;
     private readonly IReportService                _reportService;
     private readonly IElevationService             _elevationService;
@@ -191,6 +226,12 @@ public class StorageMasterViewModel : ViewModelBase
     private bool   _cleanupSortDescending = true;
     private bool   _isFilteredResultsTruncated;
     private int    _totalFilteredCount;
+    private CleanupAutomationPolicyMode _selectedCleanupPolicyMode = CleanupAutomationPolicyMode.Balanced;
+    private bool _includeMediumRiskInPolicy;
+    private bool _includeHighRiskInPolicy;
+    private bool _includeDuplicatesInPolicy = true;
+    private string _policyMinimumSavingsMb = "1";
+    private string _policyPreviewSummary = "No cleanup policy preview yet.";
 
     // Live-update interim counters (updated from progress callback during scan)
     private long _interimBytes;
@@ -342,6 +383,44 @@ public class StorageMasterViewModel : ViewModelBase
     public string FilteredResultsSummary =>
         BuildFilteredResultsSummary(FilteredFiles.Count, TotalFilteredCount);
 
+    public IReadOnlyList<CleanupAutomationPolicyMode> CleanupPolicyModes { get; } = Enum.GetValues<CleanupAutomationPolicyMode>();
+
+    public CleanupAutomationPolicyMode SelectedCleanupPolicyMode
+    {
+        get => _selectedCleanupPolicyMode;
+        set => SetProperty(ref _selectedCleanupPolicyMode, value);
+    }
+
+    public bool IncludeMediumRiskInPolicy
+    {
+        get => _includeMediumRiskInPolicy;
+        set => SetProperty(ref _includeMediumRiskInPolicy, value);
+    }
+
+    public bool IncludeHighRiskInPolicy
+    {
+        get => _includeHighRiskInPolicy;
+        set => SetProperty(ref _includeHighRiskInPolicy, value);
+    }
+
+    public bool IncludeDuplicatesInPolicy
+    {
+        get => _includeDuplicatesInPolicy;
+        set => SetProperty(ref _includeDuplicatesInPolicy, value);
+    }
+
+    public string PolicyMinimumSavingsMb
+    {
+        get => _policyMinimumSavingsMb;
+        set => SetProperty(ref _policyMinimumSavingsMb, value);
+    }
+
+    public string PolicyPreviewSummary
+    {
+        get => _policyPreviewSummary;
+        set => SetProperty(ref _policyPreviewSummary, value);
+    }
+
     internal static string BuildFilteredResultsSummary(int displayedCount, int totalCount)
     {
         if (totalCount > displayedCount)
@@ -372,11 +451,15 @@ public class StorageMasterViewModel : ViewModelBase
     public RelayCommand      DeselectAllCleanupCommand    { get; }
     public RelayCommand      RefreshDrivesCommand         { get; }
     public AsyncRelayCommand CompareSnapshotsCommand      { get; }
+    public RelayCommand      PreviewCleanupPolicyCommand  { get; }
+    public RelayCommand      ApplyCleanupPolicyCommand    { get; }
+    public AsyncRelayCommand ExecuteCleanupPolicyRecycleCommand { get; }
 
     public StorageMasterViewModel(
         IScanEngine                   scanEngine,
         IDuplicateDetectionService    duplicateService,
         ICleanupRecommendationService cleanupService,
+        ICleanupAutomationPolicyService cleanupPolicyService,
         ISnapshotService              snapshotService,
         IReportService                reportService,
         IElevationService             elevationService,
@@ -389,6 +472,7 @@ public class StorageMasterViewModel : ViewModelBase
         _scanEngine       = scanEngine;
         _duplicateService = duplicateService;
         _cleanupService   = cleanupService;
+        _cleanupPolicyService = cleanupPolicyService;
         _snapshotService  = snapshotService;
         _reportService    = reportService;
         _elevationService = elevationService;
@@ -418,6 +502,9 @@ public class StorageMasterViewModel : ViewModelBase
         DeselectAllCleanupCommand     = new RelayCommand(_ => SetAllCleanupSelection(false));
         RefreshDrivesCommand          = new RelayCommand(_ => RefreshDrives());
         CompareSnapshotsCommand       = new AsyncRelayCommand(_ => CompareSnapshotsAsync(),      _ => SelectedSnapshot != null && ComparisonBaseline != null);
+        PreviewCleanupPolicyCommand   = new RelayCommand(_ => PreviewCleanupPolicy(),             _ => CleanupItems.Count > 0);
+        ApplyCleanupPolicyCommand     = new RelayCommand(_ => ApplyCleanupPolicySelection(),      _ => CleanupItems.Count > 0);
+        ExecuteCleanupPolicyRecycleCommand = new AsyncRelayCommand(_ => ExecuteCleanupPolicyRecycleAsync(), _ => CleanupItems.Count > 0);
 
         RefreshDrives();
         _ = LoadSnapshotsAsync();
@@ -631,6 +718,7 @@ public class StorageMasterViewModel : ViewModelBase
             var recs = await _cleanupService.AnalyseAsync(_scanRoot, dupes, CancellationToken.None);
             foreach (var rec in recs) CleanupItems.Add(new CleanupItemViewModel(rec));
             ScanStatusText   = $"Cleanup analysis complete - {recs.Count} recommendations, up to {StorageItem.FormatBytes(recs.Sum(r => r.PotentialSavingsBytes))} recoverable";
+            PreviewCleanupPolicy();
             NotifyScanMetrics();
             SelectedTabIndex = 4;
         }
@@ -763,6 +851,54 @@ public class StorageMasterViewModel : ViewModelBase
     {
         foreach (var item in CleanupItems) item.IsSelected = selected;
         NotifyScanMetrics();
+    }
+
+    private void PreviewCleanupPolicy()
+    {
+        var plan = BuildCleanupPolicyPlan();
+        PolicyPreviewSummary =
+            $"Policy selects {plan.SelectedCount:N0} of {plan.TotalRecommendations:N0} recommendations " +
+            $"for estimated savings of {plan.EstimatedSavingsFormatted}.";
+        ScanStatusText = PolicyPreviewSummary;
+    }
+
+    private void ApplyCleanupPolicySelection()
+    {
+        var plan = BuildCleanupPolicyPlan();
+        var selectedPaths = new HashSet<string>(
+            plan.Selected.Select(r => r.Item.FullPath),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in CleanupItems)
+        {
+            item.IsSelected = selectedPaths.Contains(item.Recommendation.Item.FullPath);
+        }
+
+        PolicyPreviewSummary =
+            $"Applied policy selection: {plan.SelectedCount:N0} items selected ({plan.EstimatedSavingsFormatted}).";
+        ScanStatusText = PolicyPreviewSummary;
+        NotifyScanMetrics();
+    }
+
+    private async Task ExecuteCleanupPolicyRecycleAsync()
+    {
+        ApplyCleanupPolicySelection();
+        await DeleteCleanupItemsAsync(permanent: false);
+    }
+
+    private CleanupAutomationPolicyPlan BuildCleanupPolicyPlan()
+    {
+        _ = long.TryParse(PolicyMinimumSavingsMb, out var minMb);
+        var options = new CleanupAutomationPolicyOptions
+        {
+            Mode = SelectedCleanupPolicyMode,
+            IncludeMediumRisk = IncludeMediumRiskInPolicy,
+            IncludeHighRisk = IncludeHighRiskInPolicy,
+            IncludeDuplicateRecommendations = IncludeDuplicatesInPolicy,
+            MinimumSavingsBytes = Math.Max(0, minMb) * 1024L * 1024L,
+        };
+
+        return _cleanupPolicyService.BuildPlan(CleanupItems.Select(c => c.Recommendation).ToList(), options);
     }
 
     private async Task ElevateAsync()

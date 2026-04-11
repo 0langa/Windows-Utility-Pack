@@ -274,9 +274,17 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService, ID
 
         IsQueueRunning = false;
 
-        if (_queueCts is not null)
+        var queueCts = _queueCts;
+        if (queueCts is not null)
         {
-            _queueCts.Cancel();
+            try
+            {
+                queueCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Queue loop may already have disposed the CTS during teardown.
+            }
         }
 
         foreach (var handle in _activeJobs.Values)

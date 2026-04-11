@@ -6,6 +6,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -21,33 +22,81 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
-            <DataGrid ItemsSource="{Binding RuleItems}"
-                      SelectedItem="{Binding SelectedRule, Mode=TwoWay}"
-                      AutoGenerateColumns="False"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      IsReadOnly="False"
-                      GridLinesVisibility="Horizontal"
-                      RowHeaderWidth="0">
-                <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, Mode=TwoWay}" Width="80"/>
-                    <DataGridTextColumn Header="Name" Binding="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="220"/>
-                    <DataGridComboBoxColumn Header="Trigger"
-                                            Width="180"
-                                            SelectedItemBinding="{Binding TriggerType, Mode=TwoWay}"
-                                            ItemsSource="{Binding DataContext.TriggerTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                    <DataGridTextColumn Header="Threshold" Binding="{Binding Threshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
-                    <DataGridTextColumn Header="Cooldown (min)" Binding="{Binding CooldownMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130"/>
-                    <DataGridComboBoxColumn Header="Action"
-                                            Width="170"
-                                            SelectedItemBinding="{Binding ActionType, Mode=TwoWay}"
-                                            ItemsSource="{Binding DataContext.ActionTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                </DataGrid.Columns>
-            </DataGrid>
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="Templates and Dry-Run" Style="{StaticResource SectionHeadingTextStyle}" Margin="0,0,0,8"/>
+                <WrapPanel>
+                    <ComboBox Width="250"
+                              Margin="0,0,8,8"
+                              ItemsSource="{Binding Templates}"
+                              SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}"
+                              DisplayMemberPath="Name"/>
+                    <Button Content="Add From Template"
+                            Margin="0,0,12,8"
+                            Command="{Binding AddFromTemplateCommand}"
+                            Style="{StaticResource SecondaryActionButtonStyle}"/>
+
+                    <TextBlock Text="Disk Free (GB)" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBox Width="70" Margin="0,0,8,8" Text="{Binding SimulationDiskFreeGb, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="CPU (%)" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBox Width="60" Margin="0,0,8,8" Text="{Binding SimulationCpuPercent, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="RAM (%)" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBox Width="60" Margin="0,0,8,8" Text="{Binding SimulationRamPercent, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Content="Run Dry-Run" Margin="0,0,0,8" Command="{Binding RunDryRunCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                </WrapPanel>
+            </StackPanel>
         </Border>
 
-        <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
+        <Grid Grid.Row="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+                <DataGrid ItemsSource="{Binding RuleItems}"
+                          SelectedItem="{Binding SelectedRule, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="False"
+                          GridLinesVisibility="Horizontal"
+                          RowHeaderWidth="0">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, Mode=TwoWay}" Width="80"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="220"/>
+                        <DataGridComboBoxColumn Header="Trigger"
+                                                Width="180"
+                                                SelectedItemBinding="{Binding TriggerType, Mode=TwoWay}"
+                                                ItemsSource="{Binding DataContext.TriggerTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <DataGridTextColumn Header="Threshold" Binding="{Binding Threshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
+                        <DataGridTextColumn Header="Cooldown (min)" Binding="{Binding CooldownMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130"/>
+                        <DataGridComboBoxColumn Header="Action"
+                                                Width="170"
+                                                SelectedItemBinding="{Binding ActionType, Mode=TwoWay}"
+                                                ItemsSource="{Binding DataContext.ActionTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}">
+                <DataGrid ItemsSource="{Binding SimulationResults}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="True"
+                          GridLinesVisibility="Horizontal"
+                          RowHeaderWidth="0">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="Triggered" Binding="{Binding Triggered}" Width="90"/>
+                        <DataGridTextColumn Header="Rule" Binding="{Binding RuleName}" Width="220"/>
+                        <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="4" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
             <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>

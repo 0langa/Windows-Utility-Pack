@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using System.Text.Json;
 
 namespace WindowsUtilityPack.Services;
 
@@ -27,6 +28,16 @@ public interface IHotkeyService
 
     (bool Success, string Error) SaveBindings(IReadOnlyList<HotkeyBindingSetting> bindings);
 
+    /// <summary>
+    /// Exports current hotkey configuration as JSON.
+    /// </summary>
+    string ExportProfileJson();
+
+    /// <summary>
+    /// Imports hotkey configuration from a JSON payload.
+    /// </summary>
+    (bool Success, string Error, int ImportedCount) ImportProfileJson(string json);
+
     bool TryMatch(Key key, ModifierKeys modifiers, out ShellHotkeyAction action);
 }
 
@@ -35,6 +46,12 @@ public interface IHotkeyService
 /// </summary>
 public sealed class HotkeyService : IHotkeyService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
+    };
+
     private readonly ISettingsService _settings;
     private readonly object _sync = new();
     private List<HotkeyBindingSetting>? _cachedBindings;
@@ -104,6 +121,66 @@ public sealed class HotkeyService : IHotkeyService
         }
 
         return (true, string.Empty);
+    }
+
+    public string ExportProfileJson()
+    {
+        var profile = new HotkeyProfileDocument
+        {
+            Version = 1,
+            ExportedUtc = DateTime.UtcNow,
+            HotkeysEnabled = HotkeysEnabled,
+            Bindings = GetBindings().Select(Clone).ToList(),
+        };
+
+        return JsonSerializer.Serialize(profile, JsonOptions);
+    }
+
+    public (bool Success, string Error, int ImportedCount) ImportProfileJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return (false, "Profile JSON is required.", 0);
+        }
+
+        try
+        {
+            var profile = JsonSerializer.Deserialize<HotkeyProfileDocument>(json, JsonOptions);
+            if (profile is null)
+            {
+                return (false, "Profile JSON is invalid.", 0);
+            }
+
+            var bindings = (profile.Bindings ?? [])
+                .Select(Clone)
+                .ToList();
+
+            if (bindings.Count == 0)
+            {
+                return (false, "Profile does not contain any bindings.", 0);
+            }
+
+            var validation = Validate(bindings);
+            if (!validation.Success)
+            {
+                return (false, validation.Error, 0);
+            }
+
+            lock (_sync)
+            {
+                var settings = _settings.Load();
+                settings.HotkeysEnabled = profile.HotkeysEnabled;
+                settings.HotkeyBindings = bindings;
+                _settings.Save(settings);
+                _cachedBindings = bindings;
+            }
+
+            return (true, string.Empty, bindings.Count);
+        }
+        catch (JsonException)
+        {
+            return (false, "Profile JSON could not be parsed.", 0);
+        }
     }
 
     public bool TryMatch(Key key, ModifierKeys modifiers, out ShellHotkeyAction action)
@@ -215,4 +292,15 @@ public sealed class HotkeyService : IHotkeyService
             Gesture = value.Gesture,
             Enabled = value.Enabled,
         };
+
+    private sealed class HotkeyProfileDocument
+    {
+        public int Version { get; init; } = 1;
+
+        public DateTime ExportedUtc { get; init; }
+
+        public bool HotkeysEnabled { get; init; } = true;
+
+        public List<HotkeyBindingSetting> Bindings { get; init; } = [];
+    }
 }

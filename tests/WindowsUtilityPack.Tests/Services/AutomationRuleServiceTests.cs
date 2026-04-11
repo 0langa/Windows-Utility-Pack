@@ -74,6 +74,62 @@ public class AutomationRuleServiceTests
         }
     }
 
+    [Fact]
+    public void CreateRuleFromTemplate_ReturnsExpectedRule()
+    {
+        var path = GetTempDatabasePath();
+        try
+        {
+            var service = new AutomationRuleService(new AppDataStoreService(path));
+
+            var rule = service.CreateRuleFromTemplate("cpu-sustained");
+
+            Assert.Equal(AutomationTriggerType.HighCpuPercent, rule.TriggerType);
+            Assert.Equal(85, rule.Threshold);
+            Assert.True(rule.Enabled);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public async Task DryRunAsync_ReportsTriggeredRules()
+    {
+        var path = GetTempDatabasePath();
+        try
+        {
+            var service = new AutomationRuleService(new AppDataStoreService(path));
+            _ = await service.SaveRuleAsync(new AutomationRule
+            {
+                Name = "High RAM",
+                TriggerType = AutomationTriggerType.HighRamPercent,
+                Threshold = 80,
+                CooldownMinutes = 15,
+                Enabled = true,
+                ActionType = AutomationActionType.ShowNotification,
+                CreatedUtc = DateTime.UtcNow,
+                UpdatedUtc = DateTime.UtcNow,
+            });
+
+            var results = await service.DryRunAsync(new AutomationVitalsSnapshot
+            {
+                DiskFreeGb = 100,
+                CpuPercent = 20,
+                RamUsedPercent = 92,
+            });
+
+            var result = Assert.Single(results);
+            Assert.True(result.Triggered);
+            Assert.Contains("would trigger", result.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
     private static void SetPrivateProperty<T>(object target, string propertyName, T value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);

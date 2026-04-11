@@ -39,6 +39,7 @@ using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
 using WindowsUtilityPack.Tools.NetworkInternet.PortScanner;
 using WindowsUtilityPack.Tools.NetworkInternet.SshRemoteTool;
 using WindowsUtilityPack.Tools.SecurityPrivacy.CertificateInspector;
+using WindowsUtilityPack.Tools.SecurityPrivacy.CertificateManager;
 using WindowsUtilityPack.Tools.SecurityPrivacy.HashGenerator;
 using WindowsUtilityPack.Tools.SecurityPrivacy.LocalSecretVault;
 using WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
@@ -88,6 +89,8 @@ public partial class App : Application
     public static IProcessExplorerService ProcessExplorerService { get; private set; } = null!;
     public static IRegistryEditorService RegistryEditorService { get; private set; } = null!;
     public static ITaskSchedulerService TaskSchedulerService { get; private set; } = null!;
+    public static IToolWindowHostService ToolWindowHostService { get; private set; } = null!;
+    public static ICleanupAutomationPolicyService CleanupAutomationPolicyService { get; private set; } = null!;
 
     private readonly SemaphoreSlim _automationEvalGate = new(1, 1);
 
@@ -121,6 +124,7 @@ public partial class App : Application
 
     public static IQrCodeService QrCodeService { get; private set; } = null!;
     public static IQrCodeFileDialogService QrCodeFileDialogService { get; private set; } = null!;
+    public static ICertificateManagerService CertificateManagerService { get; private set; } = null!;
 
     public static IStructuredDataValidationService StructuredDataValidationService { get; private set; } = null!;
     public static IFileSplitJoinService FileSplitJoinService { get; private set; } = null!;
@@ -160,6 +164,8 @@ public partial class App : Application
         ProcessExplorerService = new ProcessExplorerService();
         RegistryEditorService = new RegistryEditorService();
         TaskSchedulerService = new TaskSchedulerService();
+        ToolWindowHostService = new ToolWindowHostService();
+        CleanupAutomationPolicyService = new CleanupAutomationPolicyService();
 
         VitalsService.Updated += OnVitalsUpdatedForAutomation;
 
@@ -213,6 +219,7 @@ public partial class App : Application
 
         QrCodeService = new QrCodeService();
         QrCodeFileDialogService = new QrCodeFileDialogService();
+        CertificateManagerService = new CertificateManagerService();
 
         StructuredDataValidationService = new StructuredDataValidationService();
         FileSplitJoinService = new FileSplitJoinService();
@@ -339,6 +346,7 @@ public partial class App : Application
                 ScanEngine,
                 DuplicateDetectionService,
                 CleanupRecommendationService,
+                CleanupAutomationPolicyService,
                 SnapshotService,
                 ReportService,
                 ElevationService,
@@ -568,6 +576,16 @@ public partial class App : Application
             IconGlyph = "\uEB95",
             Description = "Inspect certificates from URL, file, or pasted PEM",
             Factory = () => new CertificateInspectorViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "certificate-manager",
+            Name = "Certificate Manager",
+            Category = "Security & Privacy",
+            IconGlyph = "\uEB95",
+            Description = "Browse certificate stores and copy certificate details or PEM content",
+            Factory = () => new CertificateManagerViewModel(CertificateManagerService, ClipboardService, UserDialogService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition

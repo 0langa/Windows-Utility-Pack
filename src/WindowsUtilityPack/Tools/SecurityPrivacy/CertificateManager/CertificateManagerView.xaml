@@ -1,0 +1,58 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.SecurityPrivacy.CertificateManager.CertificateManagerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Certificate Manager" Style="{StaticResource PrimaryHeadingTextStyle}" Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <ComboBox Grid.Column="0" Margin="0,0,8,0" ItemsSource="{Binding StoreLocations}" SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"/>
+                <ComboBox Grid.Column="1" Margin="0,0,8,0" ItemsSource="{Binding StoreNames}" SelectedItem="{Binding SelectedStoreName, Mode=TwoWay}"/>
+                <TextBox Grid.Column="2" Margin="0,0,8,0" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                <Button Grid.Column="3" Margin="0,0,8,0" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Grid.Column="4" Margin="0,0,8,0" Content="Copy Details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Grid.Column="5" Content="Copy PEM" Command="{Binding CopyPemCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
+            <DataGrid ItemsSource="{Binding Certificates}"
+                      SelectedItem="{Binding SelectedCertificate, Mode=TwoWay}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      RowHeaderWidth="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Subject" Binding="{Binding Subject}" Width="*"/>
+                    <DataGridTextColumn Header="Issuer" Binding="{Binding Issuer}" Width="260"/>
+                    <DataGridTextColumn Header="Thumbprint" Binding="{Binding Thumbprint}" Width="230"/>
+                    <DataGridTextColumn Header="Valid From" Binding="{Binding NotBefore}" Width="160"/>
+                    <DataGridTextColumn Header="Valid To" Binding="{Binding NotAfter}" Width="160"/>
+                    <DataGridCheckBoxColumn Header="Private Key" Binding="{Binding HasPrivateKey}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
+            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+        </Border>
+    </Grid>
+</UserControl>

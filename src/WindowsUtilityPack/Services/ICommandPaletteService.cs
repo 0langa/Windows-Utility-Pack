@@ -40,6 +40,16 @@ public sealed class CommandPaletteService : ICommandPaletteService
             Kind = CommandPaletteItemKind.ShellAction,
             Keywords = ["preferences", "theme", "options"],
         },
+        new CommandPaletteItem
+        {
+            Id = "shell:popout-current-tool",
+            Title = "Open Current Tool In New Window",
+            Subtitle = "Detach the current tool into a separate window",
+            Category = "Shell",
+            CommandKey = "popout-current-tool",
+            Kind = CommandPaletteItemKind.ShellAction,
+            Keywords = ["detach", "window", "popout", "multitask"],
+        },
     ];
 
     /// <inheritdoc />

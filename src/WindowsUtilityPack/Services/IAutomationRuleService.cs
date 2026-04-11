@@ -15,6 +15,12 @@ public interface IAutomationRuleService
     Task<bool> DeleteRuleAsync(long id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<AutomationRuleAlert>> EvaluateAsync(SystemVitalsService vitals, CancellationToken cancellationToken = default);
+
+    IReadOnlyList<AutomationRuleTemplate> GetTemplates();
+
+    AutomationRule CreateRuleFromTemplate(string templateKey);
+
+    Task<IReadOnlyList<AutomationRuleSimulationResult>> DryRunAsync(AutomationVitalsSnapshot snapshot, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -22,6 +28,37 @@ public interface IAutomationRuleService
 /// </summary>
 public sealed class AutomationRuleService : IAutomationRuleService
 {
+    private static readonly IReadOnlyList<AutomationRuleTemplate> Templates =
+    [
+        new AutomationRuleTemplate
+        {
+            Key = "disk-critical",
+            Name = "Disk space critical",
+            Description = "Trigger when free disk space drops to 5 GB or less.",
+            TriggerType = AutomationTriggerType.LowDiskFreeGb,
+            Threshold = 5,
+            CooldownMinutes = 30,
+        },
+        new AutomationRuleTemplate
+        {
+            Key = "cpu-sustained",
+            Name = "CPU sustained high",
+            Description = "Trigger when CPU usage reaches 85% or higher.",
+            TriggerType = AutomationTriggerType.HighCpuPercent,
+            Threshold = 85,
+            CooldownMinutes = 15,
+        },
+        new AutomationRuleTemplate
+        {
+            Key = "ram-pressure",
+            Name = "Memory pressure",
+            Description = "Trigger when RAM usage reaches 90% or higher.",
+            TriggerType = AutomationTriggerType.HighRamPercent,
+            Threshold = 90,
+            CooldownMinutes = 20,
+        },
+    ];
+
     private readonly IAppDataStoreService _store;
     private readonly ConcurrentDictionary<long, DateTime> _lastTriggeredUtc = new();
 
@@ -172,6 +209,66 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
         return alerts;
     }
 
+    public IReadOnlyList<AutomationRuleTemplate> GetTemplates()
+        => Templates;
+
+    public AutomationRule CreateRuleFromTemplate(string templateKey)
+    {
+        var template = Templates.FirstOrDefault(t => t.Key.Equals(templateKey, StringComparison.OrdinalIgnoreCase));
+        if (template is null)
+        {
+            throw new InvalidOperationException("Unknown automation template key.");
+        }
+
+        return new AutomationRule
+        {
+            Name = template.Name,
+            TriggerType = template.TriggerType,
+            Threshold = template.Threshold,
+            CooldownMinutes = template.CooldownMinutes,
+            Enabled = true,
+            ActionType = AutomationActionType.ShowNotification,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
+        };
+    }
+
+    public async Task<IReadOnlyList<AutomationRuleSimulationResult>> DryRunAsync(AutomationVitalsSnapshot snapshot, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        var rules = await GetRulesAsync(cancellationToken).ConfigureAwait(false);
+        var results = new List<AutomationRuleSimulationResult>(rules.Count);
+
+        foreach (var rule in rules)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var triggered = IsTriggered(rule, snapshot.DiskFreeGb, snapshot.CpuPercent, snapshot.RamUsedPercent);
+            var detail = BuildSimulationDetail(rule, snapshot, triggered);
+
+            results.Add(new AutomationRuleSimulationResult
+            {
+                RuleName = rule.Name,
+                Triggered = triggered,
+                Detail = detail,
+            });
+        }
+
+        return results;
+    }
+
+    private static bool IsTriggered(AutomationRule rule, double diskFreeGb, float cpuPercent, float ramUsedPercent)
+    {
+        return rule.TriggerType switch
+        {
+            AutomationTriggerType.LowDiskFreeGb => diskFreeGb >= 0 && diskFreeGb <= rule.Threshold,
+            AutomationTriggerType.HighCpuPercent => cpuPercent >= 0 && cpuPercent >= rule.Threshold,
+            AutomationTriggerType.HighRamPercent => ramUsedPercent >= 0 && ramUsedPercent >= rule.Threshold,
+            _ => false,
+        };
+    }
+
     private static string BuildMessage(AutomationRule rule, SystemVitalsService vitals)
     {
         return rule.TriggerType switch
@@ -186,6 +283,24 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
                 $"Rule '{rule.Name}' triggered: RAM usage is {vitals.RamUsedPercent:F0}% (threshold: {rule.Threshold:F0}%).",
 
             _ => $"Rule '{rule.Name}' triggered.",
+        };
+    }
+
+    private static string BuildSimulationDetail(AutomationRule rule, AutomationVitalsSnapshot snapshot, bool triggered)
+    {
+        var stateText = triggered ? "would trigger" : "would not trigger";
+        return rule.TriggerType switch
+        {
+            AutomationTriggerType.LowDiskFreeGb =>
+                $"{stateText}: disk free {snapshot.DiskFreeGb:F1} GB vs threshold {rule.Threshold:F1} GB.",
+
+            AutomationTriggerType.HighCpuPercent =>
+                $"{stateText}: CPU {snapshot.CpuPercent:F0}% vs threshold {rule.Threshold:F0}%.",
+
+            AutomationTriggerType.HighRamPercent =>
+                $"{stateText}: RAM {snapshot.RamUsedPercent:F0}% vs threshold {rule.Threshold:F0}%.",
+
+            _ => $"{stateText}.",
         };
     }
 

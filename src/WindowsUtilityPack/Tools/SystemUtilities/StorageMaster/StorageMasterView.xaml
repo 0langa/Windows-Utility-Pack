@@ -414,32 +414,43 @@
                                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,8">
                                         <Expander Header="{Binding Header}" IsExpanded="False"
                                                   Foreground="{DynamicResource PrimaryTextBrush}">
-                                            <ItemsControl ItemsSource="{Binding Files}" Margin="0,8,0,0">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Grid Margin="0,3">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                                <ColumnDefinition Width="90"/>
-                                                                <ColumnDefinition Width="80"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <CheckBox IsChecked="{Binding IsMarkedForDeletion}"
-                                                                      Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="1" Text="{Binding Badge}" FontSize="11"
-                                                                       VerticalAlignment="Center"
-                                                                       Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                                            <TextBlock Grid.Column="2" Text="{Binding Size}" FontSize="12"
-                                                                       Foreground="{DynamicResource PrimaryTextBrush}"
-                                                                       VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="3" Text="{Binding Path}" FontSize="11"
-                                                                       Foreground="{DynamicResource SecondaryTextBrush}"
-                                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                                                                       ToolTip="{Binding Path}"/>
-                                                        </Grid>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
+                                            <StackPanel Margin="0,8,0,0">
+                                                <StackPanel Margin="0,0,0,8">
+                                                    <TextBlock Text="{Binding ConfidenceText}" FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
+                                                    <TextBlock Text="{Binding PreviewSummary}" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                                    <TextBlock Text="{Binding AgeSpreadSummary}" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                                </StackPanel>
+                                                <ItemsControl ItemsSource="{Binding Files}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,3">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="90"/>
+                                                                    <ColumnDefinition Width="80"/>
+                                                                    <ColumnDefinition Width="130"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <CheckBox IsChecked="{Binding IsMarkedForDeletion}"
+                                                                          Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                                <TextBlock Grid.Column="1" Text="{Binding Badge}" FontSize="11"
+                                                                           VerticalAlignment="Center"
+                                                                           Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                                                <TextBlock Grid.Column="2" Text="{Binding Size}" FontSize="12"
+                                                                           Foreground="{DynamicResource PrimaryTextBrush}"
+                                                                           VerticalAlignment="Center"/>
+                                                                <TextBlock Grid.Column="3" Text="{Binding CreatedAt}" FontSize="11"
+                                                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                                                           VerticalAlignment="Center"/>
+                                                                <TextBlock Grid.Column="4" Text="{Binding Path}" FontSize="11"
+                                                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                                           ToolTip="{Binding Path}"/>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
                                         </Expander>
                                     </Border>
                                 </DataTemplate>
@@ -464,6 +475,18 @@
                             <StackPanel Orientation="Horizontal">
                                 <Button Content="Analyse" Style="{StaticResource PrimaryActionButtonStyle}"
                                         Command="{Binding AnalyseCleanupCommand}" Margin="0,0,8,0"/>
+                                <ComboBox Width="130"
+                                      Margin="0,0,6,0"
+                                      ItemsSource="{Binding CleanupPolicyModes}"
+                                      SelectedItem="{Binding SelectedCleanupPolicyMode, Mode=TwoWay}"/>
+                                <CheckBox Content="Medium risk" IsChecked="{Binding IncludeMediumRiskInPolicy}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <CheckBox Content="High risk" IsChecked="{Binding IncludeHighRiskInPolicy}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <CheckBox Content="Duplicates" IsChecked="{Binding IncludeDuplicatesInPolicy}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Min MB" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBox Width="50" Text="{Binding PolicyMinimumSavingsMb, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+                                <Button Content="Preview Policy" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PreviewCleanupPolicyCommand}" Margin="0,0,4,0"/>
+                                <Button Content="Apply Policy" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ApplyCleanupPolicyCommand}" Margin="0,0,8,0"/>
+                                <Button Content="Run Policy (Recycle)" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ExecuteCleanupPolicyRecycleCommand}" Margin="0,0,12,0"/>
                                 <Button Content="Select All" Style="{StaticResource SecondaryActionButtonStyle}"
                                         Command="{Binding SelectAllCleanupCommand}" Margin="0,0,4,0"/>
                                 <Button Content="Select None" Style="{StaticResource SecondaryActionButtonStyle}"
@@ -477,6 +500,9 @@
                                         </MultiBinding>
                                     </TextBlock.Text>
                                 </TextBlock>
+                                <TextBlock VerticalAlignment="Center" Margin="12,0,0,0"
+                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"
+                                           Text="{Binding PolicyPreviewSummary}"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <Button Content="Send to Recycle Bin" Style="{StaticResource SecondaryActionButtonStyle}"
