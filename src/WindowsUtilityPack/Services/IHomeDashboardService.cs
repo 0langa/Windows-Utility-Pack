@@ -31,4 +31,26 @@ public interface IHomeDashboardService
 
     /// <summary>Raised after favorites or recents change so the UI can refresh.</summary>
     event EventHandler? Changed;
+
+    // ── Launch count tracking ─────────────────────────────────────────────
+
+    /// <summary>Increments the cumulative launch count for the given tool key.</summary>
+    void IncrementLaunchCount(string toolKey);
+
+    /// <summary>Returns the total launch count for a tool key (0 if never launched).</summary>
+    int GetLaunchCount(string toolKey);
+
+    /// <summary>Returns all recorded launch counts as a read-only snapshot.</summary>
+    IReadOnlyDictionary<string, int> GetAllLaunchCounts();
+
+    // ── Recent search history ─────────────────────────────────────────────
+
+    /// <summary>Returns recent homepage search queries (newest first, capped at 8).</summary>
+    IReadOnlyList<string> GetRecentSearches();
+
+    /// <summary>Records a search query. Deduplicates and caps the list at 8 entries.</summary>
+    void AddRecentSearch(string query);
+
+    /// <summary>Clears all saved search history.</summary>
+    void ClearRecentSearches();
 }

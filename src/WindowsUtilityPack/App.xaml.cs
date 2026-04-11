@@ -60,6 +60,7 @@ public partial class App : Application
     public static IUserDialogService UserDialogService { get; private set; } = null!;
     public static IClipboardService ClipboardService { get; private set; } = null!;
     public static IHomeDashboardService HomeDashboardService { get; private set; } = null!;
+    public static SystemVitalsService VitalsService { get; private set; } = null!;
 
     public static IFileDialogService FileDialogService { get; private set; } = null!;
     public static ITextFormatConversionService TextFormatConversionService { get; private set; } = null!;
@@ -112,6 +113,7 @@ public partial class App : Application
         FolderPickerService = new FolderPickerService();
         UserDialogService = new UserDialogService();
         ClipboardService = new ClipboardService();
+        VitalsService = new SystemVitalsService();
 
         FileDialogService = new FileDialogService();
         TextFormatConversionService = new TextFormatConversionService();
@@ -184,6 +186,7 @@ public partial class App : Application
                 if (tool.Name.Replace(" ", "").Equals(typeName, StringComparison.OrdinalIgnoreCase))
                 {
                     HomeDashboardService.RecordToolLaunch(tool.Key);
+                    HomeDashboardService.IncrementLaunchCount(tool.Key);
                     break;
                 }
             }
@@ -198,6 +201,7 @@ public partial class App : Application
         (ThemeService as IDisposable)?.Dispose();
         (NavigationService as IDisposable)?.Dispose();
         (DownloadCoordinatorService as IDisposable)?.Dispose();
+        VitalsService.Dispose();
         base.OnExit(e);
     }
 
@@ -225,7 +229,13 @@ public partial class App : Application
             Icon = "🏠",
             IconGlyph = "\uE80F",
             Description = "Application dashboard",
-            Factory = () => new HomeViewModel(NavigationService, HomeDashboardService),
+            Factory = () => new HomeViewModel(
+                NavigationService,
+                HomeDashboardService,
+                SettingsService,
+                ClipboardService,
+                UserDialogService),
+            
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -306,6 +316,7 @@ public partial class App : Application
             Category = "File & Data Tools",
             IconGlyph = "\uE9D9",
             Description = "Compute and verify MD5, SHA-256, and SHA-512 file hashes",
+            Keywords = ["checksum", "sha", "md5", "verify"],
             Factory = () => new FileHashCalculatorViewModel(ClipboardService),
         });
 
@@ -396,6 +407,7 @@ public partial class App : Application
             Category = "Network & Internet",
             IconGlyph = "\uE774",
             Description = "Query A, AAAA, CNAME, MX and TXT DNS records",
+            Keywords = ["domain", "resolver", "records", "a", "aaaa", "mx", "txt"],
             Factory = () => new DnsLookupViewModel(ClipboardService),
         });
 
@@ -483,6 +495,8 @@ public partial class App : Application
             Category = "Developer & Productivity",
             IconGlyph = "\uED14",
             Description = "Generate, style, and export QR codes for URLs",
+            Keywords = ["qrcode", "barcode", "url", "share"],
+            DateAdded = new DateTime(2026, 3, 28),
             Factory = () => new QrCodeGeneratorViewModel(
                 QrCodeService,
                 QrCodeFileDialogService,
@@ -518,6 +532,7 @@ public partial class App : Application
             Category = "Developer & Productivity",
             IconGlyph = "\uE9CE",
             Description = "Generate UUIDs and ULIDs with bulk copy support",
+            Keywords = ["guid", "identifier", "ids", "ulid"],
             Factory = () => new UuidGeneratorViewModel(ClipboardService, UlidGenerator),
         });
 
@@ -548,6 +563,8 @@ public partial class App : Application
             Category = "Developer & Productivity",
             IconGlyph = "\uE943",
             Description = "Validate and prettify JSON and YAML payloads",
+            Keywords = ["schema", "lint", "format", "prettify", "parser"],
+            DateAdded = new DateTime(2026, 3, 30),
             Factory = () => new JsonYamlValidatorViewModel(StructuredDataValidationService, ClipboardService),
         });
 
@@ -558,6 +575,8 @@ public partial class App : Application
             Category = "Image Tools",
             IconGlyph = "\uE91B",
             Description = "Batch resize and compress JPG, PNG, WEBP, BMP and TIFF",
+            Keywords = ["resize", "compress", "optimize", "jpg", "png", "webp"],
+            DateAdded = new DateTime(2026, 3, 25),
             Factory = () => new ImageResizerViewModel(ImageProcessingService, FolderPickerService, ClipboardService),
         });
 
@@ -568,6 +587,8 @@ public partial class App : Application
             Category = "Image Tools",
             IconGlyph = "\uEC17",
             Description = "Batch convert image formats with quality controls",
+            Keywords = ["convert", "jpg", "png", "webp", "bmp", "tiff"],
+            DateAdded = new DateTime(2026, 3, 25),
             Factory = () => new ImageFormatConverterViewModel(ImageProcessingService, FolderPickerService, ClipboardService),
         });
 
@@ -578,6 +599,8 @@ public partial class App : Application
             Category = "Image Tools",
             IconGlyph = "\uE722",
             Description = "Capture screenshots and apply rectangles, arrows, text, blur, or redaction",
+            Keywords = ["capture", "markup", "redact", "blur", "annotate"],
+            DateAdded = new DateTime(2026, 3, 25),
             Factory = () => new ScreenshotAnnotatorViewModel(ImageProcessingService, ClipboardService),
         });
 

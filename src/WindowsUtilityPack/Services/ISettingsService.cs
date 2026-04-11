@@ -47,6 +47,29 @@ public class AppSettings
     /// Capped at <see cref="IHomeDashboardService.MaxRecentTools"/> entries.
     /// </summary>
     public List<string> RecentToolKeys { get; set; } = [];
+
+    // ── Homepage view preferences ─────────────────────────────────────────
+
+    /// <summary>Whether the All Tools grid uses compact row layout (true) or rich card grid (false).</summary>
+    public bool HomeViewIsCompact { get; set; } = false;
+
+    /// <summary>Whether the Favourites section is expanded on the homepage.</summary>
+    public bool FavoritesExpanded { get; set; } = true;
+
+    /// <summary>Whether the Recently Used section is expanded on the homepage.</summary>
+    public bool RecentsExpanded { get; set; } = true;
+
+    /// <summary>Whether the Browse by Category section is expanded on the homepage.</summary>
+    public bool CategoryBrowserExpanded { get; set; } = true;
+
+    /// <summary>Last N search queries for the homepage search dropdown (newest first).</summary>
+    public List<string> HomeRecentSearches { get; set; } = [];
+
+    /// <summary>
+    /// Cumulative launch count per tool key.
+    /// Used for the usage-frequency indicator on tool cards.
+    /// </summary>
+    public Dictionary<string, int> ToolLaunchCounts { get; set; } = [];
 }
 
 /// <summary>

@@ -37,4 +37,17 @@ public class ToolDefinition
     /// Using a factory (rather than a singleton) ensures the tool always starts with clean state.
     /// </summary>
     public required Func<ViewModelBase> Factory { get; init; }
+
+    /// <summary>
+    /// Optional synonym/keyword tags used by homepage search to surface this tool beyond its
+    /// name and description (e.g. "md5", "sha", "checksum" for the hash calculator).
+    /// </summary>
+    public IReadOnlyList<string> Keywords { get; init; } = [];
+
+    /// <summary>
+    /// Optional date this tool was added to the application.
+    /// When set, the homepage shows a "New" badge for 30 days after this date.
+    /// Leave null for all tools present before this feature was introduced.
+    /// </summary>
+    public DateTime? DateAdded { get; init; }
 }

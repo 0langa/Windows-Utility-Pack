@@ -13,6 +13,10 @@ public sealed class HomeDashboardService : IHomeDashboardService
     private readonly ISettingsService _settings;
     private readonly List<string> _favoriteKeys;
     private readonly List<string> _recentKeys;
+    private readonly Dictionary<string, int> _launchCounts;
+    private readonly List<string> _recentSearches;
+
+    private const int MaxRecentSearches = 8;
 
     /// <inheritdoc />
     public int MaxRecentTools => 10;
@@ -28,6 +32,8 @@ public sealed class HomeDashboardService : IHomeDashboardService
         var appSettings = settings.Load();
         _favoriteKeys = new List<string>(appSettings.FavoriteToolKeys ?? []);
         _recentKeys = new List<string>(appSettings.RecentToolKeys ?? []);
+        _launchCounts = new Dictionary<string, int>(appSettings.ToolLaunchCounts ?? [], StringComparer.OrdinalIgnoreCase);
+        _recentSearches = new List<string>(appSettings.HomeRecentSearches ?? []);
 
         // Prune keys that no longer exist in the registry.
         _favoriteKeys.RemoveAll(k => ToolRegistry.GetByKey(k) is null);
@@ -104,6 +110,55 @@ public sealed class HomeDashboardService : IHomeDashboardService
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    // ── Launch count tracking ─────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public void IncrementLaunchCount(string toolKey)
+    {
+        if (string.IsNullOrEmpty(toolKey) || toolKey.Equals("home", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _launchCounts[toolKey] = _launchCounts.TryGetValue(toolKey, out var current) ? current + 1 : 1;
+        PersistCountsOnly();
+    }
+
+    /// <inheritdoc />
+    public int GetLaunchCount(string toolKey)
+        => _launchCounts.TryGetValue(toolKey, out var count) ? count : 0;
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, int> GetAllLaunchCounts()
+        => _launchCounts;
+
+    // ── Recent search history ─────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetRecentSearches()
+        => _recentSearches;
+
+    /// <inheritdoc />
+    public void AddRecentSearch(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return;
+        query = query.Trim();
+
+        _recentSearches.RemoveAll(s => s.Equals(query, StringComparison.OrdinalIgnoreCase));
+        _recentSearches.Insert(0, query);
+        while (_recentSearches.Count > MaxRecentSearches)
+            _recentSearches.RemoveAt(_recentSearches.Count - 1);
+
+        PersistSearchesOnly();
+    }
+
+    /// <inheritdoc />
+    public void ClearRecentSearches()
+    {
+        _recentSearches.Clear();
+        PersistSearchesOnly();
+    }
+
+    // ── Persistence ───────────────────────────────────────────────────────
+
     private void Persist()
     {
         try
@@ -111,12 +166,36 @@ public sealed class HomeDashboardService : IHomeDashboardService
             var appSettings = _settings.Load();
             appSettings.FavoriteToolKeys = new List<string>(_favoriteKeys);
             appSettings.RecentToolKeys = new List<string>(_recentKeys);
+            appSettings.ToolLaunchCounts = new Dictionary<string, int>(_launchCounts);
+            appSettings.HomeRecentSearches = new List<string>(_recentSearches);
             _settings.Save(appSettings);
         }
         catch (Exception ex)
         {
             try { App.TryGetLoggingService()?.LogError("Failed to persist home dashboard state", ex); } catch { }
         }
+    }
+
+    private void PersistCountsOnly()
+    {
+        try
+        {
+            var appSettings = _settings.Load();
+            appSettings.ToolLaunchCounts = new Dictionary<string, int>(_launchCounts);
+            _settings.Save(appSettings);
+        }
+        catch { }
+    }
+
+    private void PersistSearchesOnly()
+    {
+        try
+        {
+            var appSettings = _settings.Load();
+            appSettings.HomeRecentSearches = new List<string>(_recentSearches);
+            _settings.Save(appSettings);
+        }
+        catch { }
     }
 
     private static List<ToolDefinition> ResolveKeys(List<string> keys)
