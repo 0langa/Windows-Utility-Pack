@@ -1,8 +1,8 @@
 # Windows Utility Pack
 
-Windows Utility Pack is a Windows desktop toolbox built with WPF and .NET 10 that brings system utilities, file tooling, security helpers, network diagnostics, developer utilities, and image workflows into a single local-first application.
+Local-first Windows toolbox for system utilities, file workflows, security helpers, network diagnostics, developer tools, and image processing.
 
-The current codebase ships a unified shell, a personalized home dashboard, 32 integrated tools across six categories, persisted settings, multiple themes, a benchmark project, and an actively maintained test suite.
+Built with WPF and .NET 10, the current codebase ships a unified shell, a personalized home dashboard, 32 integrated tools across six categories, persisted settings, multiple themes, a benchmark project, and an actively maintained test suite.
 
 ## Overview
 
