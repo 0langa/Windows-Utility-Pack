@@ -297,10 +297,10 @@ internal interface IGlobalHotkeyNativeApi
 
 internal sealed class GlobalHotkeyNativeApi : IGlobalHotkeyNativeApi
 {
-    [DllImport("user32.dll", SetLastError = true)]
+  [DllImport("user32.dll", SetLastError = true, EntryPoint = "RegisterHotKey")]
     private static extern bool NativeRegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll", SetLastError = true, EntryPoint = "UnregisterHotKey")]
     private static extern bool NativeUnregisterHotKey(IntPtr hWnd, int id);
 
     public bool RegisterHotKey(IntPtr windowHandle, int id, uint modifiers, uint virtualKey)
