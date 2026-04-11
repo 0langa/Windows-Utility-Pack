@@ -91,6 +91,8 @@ public partial class App : Application
     public static ITaskSchedulerService TaskSchedulerService { get; private set; } = null!;
     public static IToolWindowHostService ToolWindowHostService { get; private set; } = null!;
     public static ICleanupAutomationPolicyService CleanupAutomationPolicyService { get; private set; } = null!;
+    public static IStartupDiagnosticsService StartupDiagnosticsService { get; private set; } = null!;
+    public static ISystemInfoReportService SystemInfoReportService { get; private set; } = null!;
 
     private readonly SemaphoreSlim _automationEvalGate = new(1, 1);
 
@@ -166,6 +168,8 @@ public partial class App : Application
         TaskSchedulerService = new TaskSchedulerService();
         ToolWindowHostService = new ToolWindowHostService();
         CleanupAutomationPolicyService = new CleanupAutomationPolicyService();
+        StartupDiagnosticsService = new StartupDiagnosticsService();
+        SystemInfoReportService = new SystemInfoReportService();
 
         VitalsService.Updated += OnVitalsUpdatedForAutomation;
 
@@ -364,7 +368,7 @@ public partial class App : Application
             Category = "System Utilities",
             IconGlyph = "\uE7B7",
             Description = "Manage startup entries from user and machine locations",
-            Factory = () => new StartupManagerViewModel(),
+            Factory = () => new StartupManagerViewModel(ClipboardService, StartupDiagnosticsService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -374,7 +378,7 @@ public partial class App : Application
             Category = "System Utilities",
             IconGlyph = "\uE946",
             Description = "View hardware, OS, runtime and drive summaries",
-            Factory = () => new SystemInfoViewModel(ClipboardService),
+            Factory = () => new SystemInfoViewModel(ClipboardService, SystemInfoReportService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition

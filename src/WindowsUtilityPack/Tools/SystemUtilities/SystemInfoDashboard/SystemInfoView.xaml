@@ -32,9 +32,17 @@
                 <Button Grid.Column="1" Content="Refresh"
                         Style="{StaticResource SecondaryActionButtonStyle}"
                         Command="{Binding LoadCommand}" Margin="0,0,8,0"/>
-                <Button Grid.Column="2" Content="Copy All"
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="Export JSON"
+                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Command="{Binding ExportJsonCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Copy Diagnostics"
+                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Command="{Binding CopyDiagnosticsCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Copy All"
                         Style="{StaticResource PrimaryActionButtonStyle}"
                         Command="{Binding CopyAllCommand}"/>
+                </StackPanel>
             </Grid>
 
             <!-- Loading indicator -->
@@ -76,9 +84,17 @@
                             <TextBlock Text="Build" Style="{StaticResource InfoLabelStyle}"/>
                             <TextBlock Text="{Binding OsBuild}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Description" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding OsDescription}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Architecture" Style="{StaticResource InfoLabelStyle}"/>
                             <TextBlock Text="{Binding Architecture}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Process Arch" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding ProcessArchitecture}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -140,12 +156,24 @@
                             <TextBlock Text="{Binding RamAvailable}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Managed Memory" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding ManagedMemory}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text=".NET Version" Style="{StaticResource InfoLabelStyle}"/>
                             <TextBlock Text="{Binding DotNetVersion}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="GPU" Style="{StaticResource InfoLabelStyle}"/>
                             <TextBlock Text="{Binding GpuName}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Uptime" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding Uptime}" Style="{StaticResource InfoValueStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Snapshot UTC" Style="{StaticResource InfoLabelStyle}"/>
+                            <TextBlock Text="{Binding SnapshotUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <TextBlock Text="Drives" Style="{StaticResource InfoLabelStyle}"/>

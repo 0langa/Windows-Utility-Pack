@@ -58,6 +58,8 @@
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="Source"  Binding="{Binding Source}"  Width="70"/>
                         <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding IsEnabled}" Width="70"/>
+                        <DataGridCheckBoxColumn Header="Target Exists" Binding="{Binding TargetExists}" Width="95"/>
+                        <DataGridCheckBoxColumn Header="Risk" Binding="{Binding IsPotentiallyRisky}" Width="70"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Border>
@@ -75,9 +77,21 @@
                             Margin="0,0,8,0"/>
                     <Button Content="Refresh"
                             Style="{StaticResource SecondaryActionButtonStyle}"
-                            Command="{Binding RefreshCommand}"/>
+                            Command="{Binding RefreshCommand}" Margin="0,0,8,0"/>
+                        <Button Content="Export CSV"
+                            Style="{StaticResource SecondaryActionButtonStyle}"
+                            Command="{Binding ExportCsvCommand}" Margin="0,0,8,0"/>
+                        <Button Content="Copy Diagnostics"
+                            Style="{StaticResource SecondaryActionButtonStyle}"
+                            Command="{Binding CopyDiagnosticsCommand}"/>
                 </WrapPanel>
             </Border>
+
+                    <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6" Margin="0,0,0,8">
+                    <TextBlock Text="{Binding EntryDiagnosticsSummary}"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           FontSize="12"/>
+                    </Border>
 
             <!-- Status bar -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6">

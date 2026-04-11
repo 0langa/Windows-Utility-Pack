@@ -118,6 +118,11 @@
   - cleanup policy preview/apply flows with risk and minimum-savings controls,
   - one-click policy execution to recycle selected policy-matched items,
   - duplicate group confidence/location/age preview metadata for faster review.
+- Expanded Startup Manager and System Info diagnostics/export depth:
+  - Startup Manager now computes executable-target existence and risk flags,
+  - Startup Manager now supports CSV export and clipboard diagnostics report export,
+  - System Info now includes OS description/process architecture/uptime/managed-memory diagnostics,
+  - System Info now supports JSON diagnostics export and richer diagnostics text reports.
 
 ## Refactors and Integration Work
 
@@ -127,6 +132,7 @@
 - Hardened downloader queue stop/restart flow against cancellation-token disposal races.
 - Extended shell integration with detached tool window command and header action.
 - Added policy-driven cleanup selection orchestration for Storage Master recommendations.
+- Added reusable diagnostics report services for startup entries and system information snapshots.
 
 ## Package Changes
 
@@ -137,19 +143,19 @@
 
 - `dotnet build WindowsUtilityPack.sln` -> success.
 - `dotnet test tests/WindowsUtilityPack.Tests/WindowsUtilityPack.Tests.csproj` -> success.
-- Test summary: 319 passed, 0 failed.
+- Test summary: 324 passed, 0 failed.
 
 ## Remaining Limitations / Next Extensions
 
 This delivery intentionally prioritizes platform foundations and shell integration over a broad, high-risk feature flood.
 
 Remaining roadmap work includes:
-- deeper upgrades for Startup Manager, System Info, Network/Port/HTTP/Vault,
+- deeper upgrades for Network/Port/HTTP/Vault,
 - global hotkey management UI.
 
 ## Recommended Next Slice
 
-1. Deepen Startup Manager and System Info with richer diagnostics and exports.
-2. Expand network/HTTP tools with advanced diagnostics and exportable traces.
-3. Extend global hotkey management with profile scoping per workflow category.
-4. Add Storage Master policy presets import/export for repeatable cleanup workflows.
+1. Expand network/HTTP tools with advanced diagnostics and exportable traces.
+2. Extend global hotkey management with profile scoping per workflow category.
+3. Add Storage Master policy presets import/export for repeatable cleanup workflows.
+4. Add startup/system diagnostics history persistence for longitudinal troubleshooting.
