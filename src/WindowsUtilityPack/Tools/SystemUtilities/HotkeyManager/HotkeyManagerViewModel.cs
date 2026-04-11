@@ -13,11 +13,13 @@ namespace WindowsUtilityPack.Tools.SystemUtilities.HotkeyManager;
 public sealed class HotkeyManagerViewModel : ViewModelBase
 {
     private readonly IHotkeyService _hotkeys;
+    private readonly IGlobalHotkeyService? _globalHotkeys;
     private readonly IUserDialogService _dialogs;
     private string _statusMessage = "Configure keyboard shortcuts for core shell actions.";
     private bool _hotkeysEnabled;
 
     public ObservableCollection<HotkeyBindingSetting> Bindings { get; } = [];
+    public ObservableCollection<HotkeyRegistrationIssue> RegistrationIssues { get; } = [];
 
     public bool HotkeysEnabled
     {
@@ -37,10 +39,11 @@ public sealed class HotkeyManagerViewModel : ViewModelBase
     public RelayCommand ExportProfileCommand { get; }
     public RelayCommand ImportProfileCommand { get; }
 
-    public HotkeyManagerViewModel(IHotkeyService hotkeys, IUserDialogService dialogs)
+    public HotkeyManagerViewModel(IHotkeyService hotkeys, IUserDialogService dialogs, IGlobalHotkeyService? globalHotkeys = null)
     {
         _hotkeys = hotkeys ?? throw new ArgumentNullException(nameof(hotkeys));
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
+        _globalHotkeys = globalHotkeys;
 
         SaveCommand = new RelayCommand(_ => Save());
         ResetDefaultsCommand = new RelayCommand(_ => ResetDefaults());
@@ -65,6 +68,14 @@ public sealed class HotkeyManagerViewModel : ViewModelBase
         }
 
         HotkeysEnabled = _hotkeys.HotkeysEnabled;
+        RegistrationIssues.Clear();
+        if (_globalHotkeys is not null)
+        {
+            foreach (var issue in _globalHotkeys.RegistrationIssues)
+            {
+                RegistrationIssues.Add(issue);
+            }
+        }
         StatusMessage = "Hotkey bindings loaded.";
     }
 
@@ -80,6 +91,8 @@ public sealed class HotkeyManagerViewModel : ViewModelBase
             return;
         }
 
+        _globalHotkeys?.Refresh();
+        Reload();
         StatusMessage = "Hotkey configuration saved.";
         _dialogs.ShowInfo("Hotkeys saved", "Hotkey bindings were saved successfully.");
     }

@@ -6,319 +6,265 @@ using System.Windows.Interop;
 namespace WindowsUtilityPack.Services;
 
 /// <summary>
-/// Event data for a globally-triggered hotkey.
+/// A registered global hotkey entry.
 /// </summary>
-public sealed class GlobalHotkeyEventArgs : EventArgs
+public sealed class GlobalHotkeyRegistration
 {
-    /// <summary>The ID that was passed to <see cref="IGlobalHotkeyService.TryRegister"/>.</summary>
-    public int HotkeyId { get; }
+    public required int Id { get; init; }
 
-    /// <summary>The modifier keys that are part of this binding.</summary>
-    public ModifierKeys Modifiers { get; }
+    public required ShellHotkeyAction Action { get; init; }
 
-    /// <summary>The primary key of this binding.</summary>
-    public Key Key { get; }
+    public required Key Key { get; init; }
 
-    public GlobalHotkeyEventArgs(int id, ModifierKeys modifiers, Key key)
-    {
-        HotkeyId = id;
-        Modifiers = modifiers;
-        Key = key;
-    }
+    public required ModifierKeys Modifiers { get; init; }
+
+    public string DisplayGesture => $"{Modifiers}+{Key}";
 }
 
 /// <summary>
-/// Manages system-wide (global) hotkey registration so features work even
-/// when the main window is minimised to tray.
+/// Diagnostic information for failed global hotkey registrations.
+/// </summary>
+public sealed class HotkeyRegistrationIssue
+{
+    public required string Action { get; init; }
+
+    public required string Gesture { get; init; }
+
+    public required string Message { get; init; }
+}
+
+/// <summary>
+/// Dispatches globally registered shell hotkeys.
 /// </summary>
 public interface IGlobalHotkeyService : IDisposable
 {
-    /// <summary>
-    /// Raised on the UI thread whenever a registered global hotkey is activated.
-    /// </summary>
-    event EventHandler<GlobalHotkeyEventArgs>? HotkeyTriggered;
+    event EventHandler<ShellHotkeyAction>? HotkeyPressed;
 
-    /// <summary>
-    /// Attaches the Win32 WM_HOTKEY message hook to the WPF UI thread.
-    /// Must be called once from the UI thread (e.g., in <c>OnSourceInitialized</c>).
-    /// Safe to call multiple times — subsequent calls are no-ops.
-    /// </summary>
-    void Attach();
+    event EventHandler? RegistrationsChanged;
 
-    /// <summary>
-    /// Attempts to register a global hotkey with the given <paramref name="id"/>.
-    /// If registration fails (e.g., conflict with another app) the error is returned
-    /// rather than thrown.
-    /// </summary>
-    (bool Success, string? Error) TryRegister(int id, ModifierKeys modifiers, Key key);
+    bool IsStarted { get; }
 
-    /// <summary>
-    /// Unregisters the hotkey with the given <paramref name="id"/>.
-    /// Returns <see langword="true"/> if it was registered.
-    /// </summary>
-    bool Unregister(int id);
+    IReadOnlyList<GlobalHotkeyRegistration> ActiveRegistrations { get; }
 
-    /// <summary>
-    /// Unregisters all currently registered hotkeys.
-    /// </summary>
-    void UnregisterAll();
+    IReadOnlyList<HotkeyRegistrationIssue> RegistrationIssues { get; }
 
-    /// <summary>
-    /// Returns <see langword="true"/> if the hotkey with the given ID is currently registered.
-    /// </summary>
-    bool IsRegistered(int id);
+    void Start();
 
-    /// <summary>Number of currently active global hotkey registrations.</summary>
-    int RegisteredCount { get; }
+    void Stop();
 
-    /// <summary>
-    /// Clears all existing registrations and registers every enabled binding
-    /// from <paramref name="hotkeyService"/>.
-    /// Returns the number of successfully registered bindings and any error messages.
-    /// </summary>
-    (int Registered, IReadOnlyList<string> Errors) SyncFromHotkeyService(IHotkeyService hotkeyService);
+    void Refresh();
 }
 
 /// <summary>
-/// Production implementation of <see cref="IGlobalHotkeyService"/> using Win32
-/// <c>RegisterHotKey</c> / <c>UnregisterHotKey</c> and
-/// <see cref="ComponentDispatcher.ThreadPreprocessMessage"/> for message interception.
+/// Win32 RegisterHotKey-backed global hotkey service.
 /// </summary>
 public sealed class GlobalHotkeyService : IGlobalHotkeyService
 {
-    // WM_HOTKEY message constant.
     private const int WmHotkey = 0x0312;
+    private readonly IHotkeyService _hotkeySettings;
+    private readonly ILoggingService? _logging;
+    private readonly IGlobalHotkeyNativeApi _nativeApi;
+    private readonly Dictionary<int, GlobalHotkeyRegistration> _registrations = [];
+    private readonly List<HotkeyRegistrationIssue> _issues = [];
+    private HwndSource? _messageSource;
+    private bool _started;
+    private int _nextRegistrationId = 1;
 
-    // Win32 modifier flag constants.
-    private const uint ModAlt        = 0x0001;
-    private const uint ModControl    = 0x0002;
-    private const uint ModShift      = 0x0004;
-    private const uint ModWin        = 0x0008;
-    private const uint ModNoRepeat   = 0x4000;
+    public event EventHandler<ShellHotkeyAction>? HotkeyPressed;
 
-    // Registered hotkeys: id → (modifiers, key).
-    private readonly Dictionary<int, (ModifierKeys Modifiers, Key Key)> _registered = new();
-    private readonly object _lock = new();
-    private bool _attached;
-    private bool _disposed;
+    public event EventHandler? RegistrationsChanged;
 
-    public event EventHandler<GlobalHotkeyEventArgs>? HotkeyTriggered;
+    public bool IsStarted => _started;
 
-    public int RegisteredCount
+    public IReadOnlyList<GlobalHotkeyRegistration> ActiveRegistrations => _registrations.Values.ToList();
+
+    public IReadOnlyList<HotkeyRegistrationIssue> RegistrationIssues => _issues;
+
+    public GlobalHotkeyService(IHotkeyService hotkeySettings, ILoggingService? logging = null)
+        : this(hotkeySettings, logging, new GlobalHotkeyNativeApi())
     {
-        get
-        {
-            lock (_lock)
-            {
-                return _registered.Count;
-            }
-        }
     }
 
-    /// <inheritdoc/>
-    public void Attach()
+    internal GlobalHotkeyService(IHotkeyService hotkeySettings, ILoggingService? logging, IGlobalHotkeyNativeApi nativeApi)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        _hotkeySettings = hotkeySettings ?? throw new ArgumentNullException(nameof(hotkeySettings));
+        _logging = logging;
+        _nativeApi = nativeApi ?? throw new ArgumentNullException(nameof(nativeApi));
+        _hotkeySettings.BindingsChanged += OnBindingsChanged;
+    }
 
-        if (_attached)
+    public void Start()
+    {
+        if (_started)
         {
             return;
         }
 
-        ComponentDispatcher.ThreadPreprocessMessage += OnThreadPreprocessMessage;
-        _attached = true;
+        EnsureMessageSink();
+        _started = true;
+        Refresh();
     }
 
-    /// <inheritdoc/>
-    public (bool Success, string? Error) TryRegister(int id, ModifierKeys modifiers, Key key)
+    public void Stop()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        lock (_lock)
+        if (!_started)
         {
-            if (_registered.ContainsKey(id))
-            {
-                // Unregister existing before re-registering.
-                NativeUnregisterHotKey(nint.Zero, id);
-                _registered.Remove(id);
-            }
+            return;
         }
-
-        var vk = (uint)KeyInterop.VirtualKeyFromKey(key);
-        var mods = ToWin32Modifiers(modifiers);
-
-        if (!NativeRegisterHotKey(nint.Zero, id, mods, vk))
-        {
-            var error = new Win32Exception(Marshal.GetLastWin32Error()).Message;
-            return (false, $"RegisterHotKey failed for id={id}: {error}");
-        }
-
-        lock (_lock)
-        {
-            _registered[id] = (modifiers, key);
-        }
-
-        return (true, null);
-    }
-
-    /// <inheritdoc/>
-    public bool Unregister(int id)
-    {
-        lock (_lock)
-        {
-            if (!_registered.ContainsKey(id))
-            {
-                return false;
-            }
-
-            NativeUnregisterHotKey(nint.Zero, id);
-            _registered.Remove(id);
-            return true;
-        }
-    }
-
-    /// <inheritdoc/>
-    public void UnregisterAll()
-    {
-        lock (_lock)
-        {
-            foreach (var id in _registered.Keys)
-            {
-                NativeUnregisterHotKey(nint.Zero, id);
-            }
-
-            _registered.Clear();
-        }
-    }
-
-    /// <inheritdoc/>
-    public bool IsRegistered(int id)
-    {
-        lock (_lock)
-        {
-            return _registered.ContainsKey(id);
-        }
-    }
-
-    /// <inheritdoc/>
-    public (int Registered, IReadOnlyList<string> Errors) SyncFromHotkeyService(IHotkeyService hotkeyService)
-    {
-        ArgumentNullException.ThrowIfNull(hotkeyService);
 
         UnregisterAll();
+        _started = false;
+        RegistrationsChanged?.Invoke(this, EventArgs.Empty);
+    }
 
-        if (!hotkeyService.HotkeysEnabled)
+    public void Refresh()
+    {
+        if (!_started)
         {
-            return (0, []);
+            return;
         }
 
-        var registeredCount = 0;
-        var errors = new List<string>();
+        EnsureMessageSink();
+        UnregisterAll();
+        _issues.Clear();
+        _nextRegistrationId = 1;
 
-        foreach (var binding in hotkeyService.GetBindings())
+        if (!_hotkeySettings.HotkeysEnabled || _messageSource is null)
         {
-            if (!binding.Enabled || string.IsNullOrWhiteSpace(binding.Gesture))
-            {
-                continue;
-            }
+            RegistrationsChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
 
+        foreach (var binding in _hotkeySettings.GetBindings().Where(static b => b.Enabled))
+        {
             if (!Enum.TryParse<ShellHotkeyAction>(binding.Action, out var action))
             {
-                errors.Add($"Unknown action: {binding.Action}");
+                _issues.Add(new HotkeyRegistrationIssue
+                {
+                    Action = binding.Action,
+                    Gesture = binding.Gesture,
+                    Message = "Unknown action",
+                });
                 continue;
             }
 
-            if (!TryParseGesture(binding.Gesture, out var key, out var mods))
+            if (!TryParseGesture(binding.Gesture, out var key, out var modifiers))
             {
-                errors.Add($"Unparseable gesture: {binding.Gesture}");
+                _issues.Add(new HotkeyRegistrationIssue
+                {
+                    Action = action.ToString(),
+                    Gesture = binding.Gesture,
+                    Message = "Invalid gesture format",
+                });
                 continue;
             }
 
-            var id = (int)action + 1; // IDs must be > 0 per Win32 spec.
-            var (success, error) = TryRegister(id, mods, key);
-            if (success)
+            var id = _nextRegistrationId++;
+            var ok = _nativeApi.RegisterHotKey(_messageSource.Handle, id, ToNativeModifiers(modifiers), (uint)KeyInterop.VirtualKeyFromKey(key));
+            if (!ok)
             {
-                registeredCount++;
+                var error = new Win32Exception(Marshal.GetLastWin32Error()).Message;
+                _logging?.LogError($"Global hotkey registration failed for {action} ({binding.Gesture}): {error}");
+                _issues.Add(new HotkeyRegistrationIssue
+                {
+                    Action = action.ToString(),
+                    Gesture = binding.Gesture,
+                    Message = $"Registration failed: {error}",
+                });
+                continue;
             }
-            else
+
+            _registrations[id] = new GlobalHotkeyRegistration
             {
-                errors.Add(error ?? $"Failed to register {binding.Action}");
-            }
+                Id = id,
+                Action = action,
+                Key = key,
+                Modifiers = modifiers,
+            };
         }
 
-        return (registeredCount, errors);
+        RegistrationsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <inheritdoc/>
     public void Dispose()
     {
-        if (_disposed)
+        _hotkeySettings.BindingsChanged -= OnBindingsChanged;
+        Stop();
+        if (_messageSource is not null)
+        {
+            _messageSource.RemoveHook(WndProc);
+            _messageSource.Dispose();
+            _messageSource = null;
+        }
+    }
+
+    private void EnsureMessageSink()
+    {
+        if (_messageSource is not null)
         {
             return;
         }
 
-        _disposed = true;
-
-        if (_attached)
+        var parameters = new HwndSourceParameters("WindowsUtilityPack.HotkeySink")
         {
-            ComponentDispatcher.ThreadPreprocessMessage -= OnThreadPreprocessMessage;
-            _attached = false;
-        }
-
-        UnregisterAll();
+            Width = 0,
+            Height = 0,
+            WindowStyle = unchecked((int)0x800000), // WS_POPUP
+        };
+        _messageSource = new HwndSource(parameters);
+        _messageSource.AddHook(WndProc);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    private void OnBindingsChanged(object? sender, EventArgs e) => Refresh();
 
-    private void OnThreadPreprocessMessage(ref MSG msg, ref bool handled)
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (handled || msg.message != WmHotkey)
+        if (msg != WmHotkey)
+        {
+            return IntPtr.Zero;
+        }
+
+        var id = wParam.ToInt32();
+        if (_registrations.TryGetValue(id, out var registration))
+        {
+            HotkeyPressed?.Invoke(this, registration.Action);
+            handled = true;
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private void UnregisterAll()
+    {
+        if (_messageSource is null)
         {
             return;
         }
 
-        var id = (int)(nint)msg.wParam;
-        (ModifierKeys modifiers, Key key) registration;
-
-        lock (_lock)
+        foreach (var registration in _registrations.Values)
         {
-            if (!_registered.TryGetValue(id, out registration))
-            {
-                return;
-            }
+            _nativeApi.UnregisterHotKey(_messageSource.Handle, registration.Id);
         }
 
-        handled = true;
-        HotkeyTriggered?.Invoke(this, new GlobalHotkeyEventArgs(id, registration.Modifiers, registration.Key));
+        _registrations.Clear();
     }
 
-    private static uint ToWin32Modifiers(ModifierKeys modifiers)
-    {
-        uint flags = ModNoRepeat;
-        if ((modifiers & ModifierKeys.Alt) != 0)     flags |= ModAlt;
-        if ((modifiers & ModifierKeys.Control) != 0) flags |= ModControl;
-        if ((modifiers & ModifierKeys.Shift) != 0)   flags |= ModShift;
-        if ((modifiers & ModifierKeys.Windows) != 0) flags |= ModWin;
-        return flags;
-    }
-
-    private static bool TryParseGesture(string gestureText, out Key key, out ModifierKeys modifiers)
+    internal static bool TryParseGesture(string gestureText, out Key key, out ModifierKeys modifiers)
     {
         key = Key.None;
         modifiers = ModifierKeys.None;
-
         try
         {
             var converter = new KeyGestureConverter();
             var converted = converter.ConvertFromString(gestureText);
-            if (converted is not KeyGesture gesture)
+            if (converted is not KeyGesture parsed)
             {
                 return false;
             }
 
-            key = gesture.Key;
-            modifiers = gesture.Modifiers;
-            return true;
+            key = parsed.Key;
+            modifiers = parsed.Modifiers;
+            return key != Key.None;
         }
         catch
         {
@@ -326,18 +272,40 @@ public sealed class GlobalHotkeyService : IGlobalHotkeyService
         }
     }
 
+    private static uint ToNativeModifiers(ModifierKeys modifiers)
+    {
+        const uint ModAlt = 0x0001;
+        const uint ModControl = 0x0002;
+        const uint ModShift = 0x0004;
+        const uint ModWin = 0x0008;
+
+        var value = 0u;
+        if (modifiers.HasFlag(ModifierKeys.Alt)) value |= ModAlt;
+        if (modifiers.HasFlag(ModifierKeys.Control)) value |= ModControl;
+        if (modifiers.HasFlag(ModifierKeys.Shift)) value |= ModShift;
+        if (modifiers.HasFlag(ModifierKeys.Windows)) value |= ModWin;
+        return value;
+    }
+}
+
+internal interface IGlobalHotkeyNativeApi
+{
+    bool RegisterHotKey(IntPtr windowHandle, int id, uint modifiers, uint virtualKey);
+
+    bool UnregisterHotKey(IntPtr windowHandle, int id);
+}
+
+internal sealed class GlobalHotkeyNativeApi : IGlobalHotkeyNativeApi
+{
     [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool RegisterHotKey(nint hWnd, int id, uint fsModifiers, uint vk);
+    private static extern bool NativeRegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
     [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool UnregisterHotKey(nint hWnd, int id);
+    private static extern bool NativeUnregisterHotKey(IntPtr hWnd, int id);
 
-    // Wrapper aliases to avoid shadowing the interface methods.
-    private static bool NativeRegisterHotKey(nint hWnd, int id, uint fsModifiers, uint vk)
-        => RegisterHotKey(hWnd, id, fsModifiers, vk);
+    public bool RegisterHotKey(IntPtr windowHandle, int id, uint modifiers, uint virtualKey)
+        => NativeRegisterHotKey(windowHandle, id, modifiers, virtualKey);
 
-    private static bool NativeUnregisterHotKey(nint hWnd, int id)
-        => UnregisterHotKey(hWnd, id);
+    public bool UnregisterHotKey(IntPtr windowHandle, int id)
+        => NativeUnregisterHotKey(windowHandle, id);
 }

@@ -18,6 +18,7 @@ public class CommandPaletteServiceTests
         Assert.Contains(items, i => i.CommandKey == "open-settings");
         Assert.Contains(items, i => i.CommandKey == "home");
         Assert.Contains(items, i => i.CommandKey == "popout-current-tool");
+        Assert.Contains(items, i => i.CommandKey == "quick-screenshot");
     }
 
     [Fact]
@@ -246,5 +247,20 @@ public class CommandPaletteServiceTests
 
         Assert.Equal("\uE713", item.IconGlyph);
         Assert.Equal("⚙️",     item.Icon);
+    }
+
+    // ── RecordExecution ───────────────────────────────────────────────────────
+
+    [Fact]
+    public void Search_BoostsRecentlyExecutedItems()
+    {
+        var service = new CommandPaletteService();
+        service.RecordExecution("shell:quick-screenshot");
+        service.RecordExecution("shell:quick-screenshot");
+
+        var items = service.Search("screenshot", limit: 5);
+
+        Assert.NotEmpty(items);
+        Assert.Equal("quick-screenshot", items[0].CommandKey);
     }
 }

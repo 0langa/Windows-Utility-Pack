@@ -165,7 +165,7 @@ internal static void RegisterTools()
             Category = "System Utilities",
             IconGlyph = "\uE765",
             Description = "Configure keyboard shortcuts and detect hotkey collisions",
-            Factory = () => new HotkeyManagerViewModel(HotkeyService, UserDialogService),
+            Factory = () => new HotkeyManagerViewModel(HotkeyService, UserDialogService, GlobalHotkeyService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -600,7 +600,7 @@ internal static void RegisterTools()
             Description = "Capture screenshots and apply rectangles, arrows, text, blur, or redaction",
             Keywords = ["capture", "markup", "redact", "blur", "annotate"],
             DateAdded = new DateTime(2026, 3, 25),
-            Factory = () => new ScreenshotAnnotatorViewModel(ImageProcessingService, ClipboardService),
+            Factory = () => new ScreenshotAnnotatorViewModel(ImageProcessingService, ClipboardService, QuickCaptureStateService),
         });
 
         ToolRegistry.RegisterAll(NavigationService);

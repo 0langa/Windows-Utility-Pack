@@ -59,7 +59,7 @@ public sealed class TrayModeCoordinatorTests
     public void ShouldInterceptClose_ReturnsFalse_WhenExplicitExitRequested()
     {
         var coordinator = new TrayModeCoordinator();
-        var settings    = new AppSettings { TrayModeEnabled = true };
+        var settings    = new AppSettings { TrayModeEnabled = true, CloseToTray = true };
 
         Assert.False(coordinator.ShouldInterceptClose(settings, explicitExitRequested: true));
     }
@@ -68,7 +68,16 @@ public sealed class TrayModeCoordinatorTests
     public void ShouldInterceptClose_ReturnsFalse_WhenTrayModeDisabled()
     {
         var coordinator = new TrayModeCoordinator();
-        var settings    = new AppSettings { TrayModeEnabled = false };
+        var settings    = new AppSettings { TrayModeEnabled = false, CloseToTray = true };
+
+        Assert.False(coordinator.ShouldInterceptClose(settings, explicitExitRequested: false));
+    }
+
+    [Fact]
+    public void ShouldInterceptClose_ReturnsFalse_WhenCloseToTrayDisabled()
+    {
+        var coordinator = new TrayModeCoordinator();
+        var settings    = new AppSettings { TrayModeEnabled = true, CloseToTray = false };
 
         Assert.False(coordinator.ShouldInterceptClose(settings, explicitExitRequested: false));
     }
@@ -109,6 +118,17 @@ public sealed class TrayModeCoordinatorTests
         var settings    = new AppSettings { TrayModeEnabled = false, TrayAlertsEnabled = true };
 
         Assert.False(coordinator.ShouldShowTrayAlert(settings, isWindowHidden: true));
+    }
+
+    // ── ShouldStartMinimizedToTray ────────────────────────────────────────────
+
+    [Fact]
+    public void ShouldStartMinimizedToTray_ReturnsTrue_WhenConfigured()
+    {
+        var coordinator = new TrayModeCoordinator();
+        var settings    = new AppSettings { TrayModeEnabled = true, StartMinimizedToTray = true };
+
+        Assert.True(coordinator.ShouldStartMinimizedToTray(settings));
     }
 
     // ── ShouldShowTaskCompletionAlert ─────────────────────────────────────────

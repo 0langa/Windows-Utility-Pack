@@ -1,9 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Interop;
-using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
-using WindowsUtilityPack.Tools;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack;
@@ -11,19 +8,19 @@ namespace WindowsUtilityPack;
 /// <summary>
 /// Code-behind for the application shell window.
 ///
-/// Responsibilities (UI-only):
+/// The window is deliberately thin — all business logic lives in
+/// <see cref="MainWindowViewModel"/>.  This file only handles:
 /// <list type="bullet">
-///   <item>Constructing and wiring MainWindowViewModel.</item>
-///   <item>Restoring/persisting saved window geometry.</item>
-///   <item>Bridging tray-icon events (show/hide/exit) to window state.</item>
-///   <item>Attaching the global hotkey hook after window source is initialised.</item>
-///   <item>Routing global hotkey events to ViewModel commands.</item>
+///   <item>Constructing the ViewModel with the required services.</item>
+///   <item>Restoring saved window geometry from settings.</item>
+///   <item>Persisting window state (size, position, theme) when the window closes.</item>
 /// </list>
-/// All business logic stays in ViewModels and Services.
 /// </summary>
 public partial class MainWindow : Window
 {
     private readonly ITrayModeCoordinator _trayCoordinator = new TrayModeCoordinator();
+    private readonly ITrayIconService _trayIconService;
+    private readonly IGlobalHotkeyService _globalHotkeys;
     private bool _isHiddenToTray;
     private bool _explicitExitRequested;
 
@@ -39,20 +36,20 @@ public partial class MainWindow : Window
             App.ActivityLogService,
             App.ToolWindowHostService);
         DataContext = vm;
+        vm.ShellActionRequested += OnShellActionRequested;
 
-        // Wire tray-service events.
-        App.TrayService.ShowRequested      += OnTrayShowRequested;
-        App.TrayService.ExitRequested      += OnTrayExitRequested;
-        App.TrayService.QuickActionRequested += OnTrayQuickActionRequested;
+        _trayIconService = App.TrayIconService;
+        _trayIconService.Initialize();
+        _trayIconService.ActionInvoked += OnTrayActionInvoked;
+        _trayIconService.DoubleClicked += OnTrayOpenDoubleClick;
 
-        // Wire notification and background-task balloon tips.
+        _globalHotkeys = App.GlobalHotkeyService;
+        _globalHotkeys.HotkeyPressed += OnGlobalHotkeyPressed;
+        _globalHotkeys.RegistrationsChanged += OnGlobalHotkeyRegistrationsChanged;
+
         App.NotificationService.NotificationRequested += OnNotificationRequested;
-        App.BackgroundTaskService.TaskChanged          += OnBackgroundTaskChanged;
+        App.BackgroundTaskService.TaskChanged += OnBackgroundTaskChanged;
 
-        // Wire global hotkey events.
-        App.GlobalHotkeyService.HotkeyTriggered += OnGlobalHotkeyTriggered;
-
-        // Restore window geometry.
         var settings = App.TryGetSettingsService()?.Load() ?? new AppSettings();
         if (settings.RememberWindowPosition)
         {
@@ -61,39 +58,68 @@ public partial class MainWindow : Window
             Width  = settings.WindowWidth;
             Height = settings.WindowHeight;
         }
+        _trayIconService.UpdateHotkeysEnabled(App.HotkeyService.HotkeysEnabled);
 
-        App.NavigationService.NavigateTo(settings.StartupPage);
+        Loaded += OnLoaded;
+
+        App.NavigationService.NavigateTo("home");
     }
 
-    // ── Window lifecycle ──────────────────────────────────────────────────────
-
-    protected override void OnSourceInitialized(EventArgs e)
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        base.OnSourceInitialized(e);
-
-        // Attach the global hotkey hook now that the window's HWND is available.
-        App.GlobalHotkeyService.Attach();
-        var (registered, errors) = App.GlobalHotkeyService.SyncFromHotkeyService(App.HotkeyService);
-
-        if (errors.Count > 0)
+        if (DataContext is not MainWindowViewModel vm)
         {
-            App.TryGetLoggingService()?.LogInfo(
-                $"Global hotkeys: {registered} registered, {errors.Count} failed — " +
-                string.Join("; ", errors));
+            return;
         }
 
-        // Initialise the tray icon with the top-5 most-used tools as quick actions.
-        App.TrayService.Initialize(BuildQuickActions());
+        if (e.Key == Key.Escape && vm.IsCommandPaletteOpen)
+        {
+            vm.CloseCommandPaletteCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
 
-        // Keep quick actions in sync when the user opens tools.
-        App.NavigationService.Navigated += OnNavigatedForTrayRefresh;
+        if (e.Key == Key.Enter && vm.IsCommandPaletteOpen)
+        {
+            vm.ExecuteCommandPaletteItemCommand.Execute(vm.SelectedCommandPaletteItem);
+            e.Handled = true;
+            return;
+        }
+
+        if (vm.IsCommandPaletteOpen && e.Key == Key.Down)
+        {
+            SelectNextPaletteItem(vm, +1);
+            e.Handled = true;
+            return;
+        }
+
+        if (vm.IsCommandPaletteOpen && e.Key == Key.Up)
+        {
+            SelectNextPaletteItem(vm, -1);
+            e.Handled = true;
+            return;
+        }
+    }
+
+    private static void SelectNextPaletteItem(MainWindowViewModel vm, int direction)
+    {
+        var items = vm.CommandPaletteItems;
+        if (items.Count == 0) return;
+
+        var current = vm.SelectedCommandPaletteItem;
+        var idx     = current is null ? -1 : items.IndexOf(current);
+        var next    = Math.Clamp(idx + direction, 0, items.Count - 1);
+        vm.SelectedCommandPaletteItem = items[next];
     }
 
     private void OnWindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
     {
         var settingsService = App.TryGetSettingsService();
-        var themeService    = App.TryGetThemeService();
-        if (settingsService is null || themeService is null) return;
+        var themeService = App.TryGetThemeService();
+        if (settingsService is null || themeService is null)
+        {
+            return;
+        }
 
         var settings = settingsService.Load();
 
@@ -119,25 +145,89 @@ public partial class MainWindow : Window
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
-        if (WindowState != WindowState.Minimized) return;
+        if (WindowState != WindowState.Minimized)
+        {
+            return;
+        }
 
         var settings = App.TryGetSettingsService()?.Load() ?? new AppSettings();
-        if (_trayCoordinator.ShouldHideOnMinimize(settings))
+        if (!_trayCoordinator.ShouldHideOnMinimize(settings))
         {
-            HideToTray("Minimised to system tray.");
+            return;
         }
+
+        HideToTray("Minimized to system tray.");
+    }
+
+    private void HideToTray(string balloonText)
+    {
+        _isHiddenToTray = true;
+        ShowInTaskbar = false;
+        Hide();
+
+        if (_trayCoordinator.ShouldShowTrayAlert(App.TryGetSettingsService()?.Load() ?? new AppSettings(), _isHiddenToTray))
+        {
+            _trayIconService.ShowBalloon("Windows Utility Pack", balloonText, System.Windows.Forms.ToolTipIcon.Info);
+        }
+    }
+
+    private void RestoreFromTray()
+    {
+        _isHiddenToTray = false;
+        ShowInTaskbar = true;
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private void OnNotificationRequested(object? sender, NotificationEventArgs e)
+    {
+        if (!_trayCoordinator.ShouldShowTrayAlert(App.TryGetSettingsService()?.Load() ?? new AppSettings(), _isHiddenToTray))
+        {
+            return;
+        }
+
+        var icon = e.Type switch
+        {
+            NotificationType.Error => System.Windows.Forms.ToolTipIcon.Error,
+            NotificationType.Success => System.Windows.Forms.ToolTipIcon.Info,
+            _ => System.Windows.Forms.ToolTipIcon.Info,
+        };
+
+        _ = Dispatcher.InvokeAsync(() => _trayIconService.ShowBalloon("Windows Utility Pack", e.Message, icon));
+    }
+
+    private void OnBackgroundTaskChanged(object? sender, Models.BackgroundTaskInfo e)
+    {
+        if (!_trayCoordinator.ShouldShowTrayAlert(App.TryGetSettingsService()?.Load() ?? new AppSettings(), _isHiddenToTray))
+        {
+            return;
+        }
+
+        if (!_trayCoordinator.ShouldShowTaskCompletionAlert(e))
+        {
+            return;
+        }
+
+        var message = _trayCoordinator.BuildTaskAlertMessage(e);
+        var icon = e.State == Models.BackgroundTaskState.Failed ? System.Windows.Forms.ToolTipIcon.Error : System.Windows.Forms.ToolTipIcon.Info;
+        _ = Dispatcher.InvokeAsync(() => _trayIconService.ShowBalloon("Background Task", message, icon));
     }
 
     private void OnWindowClosed(object? sender, EventArgs e)
     {
-        // Detach all event listeners.
-        App.NavigationService.Navigated             -= OnNavigatedForTrayRefresh;
-        App.TrayService.ShowRequested               -= OnTrayShowRequested;
-        App.TrayService.ExitRequested               -= OnTrayExitRequested;
-        App.TrayService.QuickActionRequested        -= OnTrayQuickActionRequested;
+        Loaded -= OnLoaded;
         App.NotificationService.NotificationRequested -= OnNotificationRequested;
-        App.BackgroundTaskService.TaskChanged         -= OnBackgroundTaskChanged;
-        App.GlobalHotkeyService.HotkeyTriggered      -= OnGlobalHotkeyTriggered;
+        App.BackgroundTaskService.TaskChanged -= OnBackgroundTaskChanged;
+        _trayIconService.ActionInvoked -= OnTrayActionInvoked;
+        _trayIconService.DoubleClicked -= OnTrayOpenDoubleClick;
+        _globalHotkeys.HotkeyPressed -= OnGlobalHotkeyPressed;
+        _globalHotkeys.RegistrationsChanged -= OnGlobalHotkeyRegistrationsChanged;
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.ShellActionRequested -= OnShellActionRequested;
+        }
 
         if (DataContext is IDisposable disposable)
         {
@@ -145,206 +235,172 @@ public partial class MainWindow : Window
         }
     }
 
-    // ── Keyboard routing ──────────────────────────────────────────────────────
-
-    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    private void OnTrayOpenDoubleClick(object? sender, EventArgs e)
     {
-        if (DataContext is not MainWindowViewModel vm) return;
+        _ = Dispatcher.InvokeAsync(RestoreFromTray);
+    }
 
-        // Command-palette shortcuts handled here for in-window keys.
-        if (vm.IsCommandPaletteOpen)
+    private void OnGlobalHotkeyPressed(object? sender, ShellHotkeyAction action)
+    {
+        _ = Dispatcher.InvokeAsync(() => ExecuteShellActionAsync(action));
+    }
+
+    private void OnShellActionRequested(object? sender, ShellHotkeyAction action)
+    {
+        _ = Dispatcher.InvokeAsync(() => ExecuteShellActionAsync(action));
+    }
+
+    private void OnTrayActionInvoked(object? sender, TrayMenuAction action)
+    {
+        _ = Dispatcher.InvokeAsync(async () =>
         {
-            switch (e.Key)
+            switch (action)
             {
-                case Key.Escape:
-                    vm.CloseCommandPaletteCommand.Execute(null);
-                    e.Handled = true;
-                    return;
+                case TrayMenuAction.OpenMainWindow:
+                    RestoreFromTray();
+                    break;
 
-                case Key.Enter:
-                    vm.ExecuteCommandPaletteItemCommand.Execute(vm.SelectedCommandPaletteItem);
-                    e.Handled = true;
-                    return;
+                case TrayMenuAction.OpenCommandPalette:
+                    await ExecuteShellActionAsync(ShellHotkeyAction.OpenCommandPalette);
+                    break;
 
-                case Key.Down:
-                    SelectNextPaletteItem(vm, +1);
-                    e.Handled = true;
-                    return;
+                case TrayMenuAction.QuickScreenshot:
+                    await ExecuteShellActionAsync(ShellHotkeyAction.QuickScreenshot);
+                    break;
 
-                case Key.Up:
-                    SelectNextPaletteItem(vm, -1);
-                    e.Handled = true;
-                    return;
+                case TrayMenuAction.OpenScreenshotAnnotator:
+                    await ExecuteShellActionAsync(ShellHotkeyAction.OpenScreenshotAnnotator);
+                    break;
+
+                case TrayMenuAction.OpenClipboardManager:
+                    RestoreFromTray();
+                    App.NavigationService.NavigateTo("clipboard-manager");
+                    break;
+
+                case TrayMenuAction.ToggleHotkeys:
+                    App.HotkeyService.HotkeysEnabled = !App.HotkeyService.HotkeysEnabled;
+                    _trayIconService.UpdateHotkeysEnabled(App.HotkeyService.HotkeysEnabled);
+                    break;
+
+                case TrayMenuAction.Exit:
+                    _explicitExitRequested = true;
+                    Close();
+                    break;
             }
-        }
-
-        // Shell hotkeys (in-app, so they still work when the window is focused).
-        var key       = e.Key == Key.System ? e.SystemKey : e.Key;
-        var modifiers = Keyboard.Modifiers;
-
-        if (!App.HotkeyService.TryMatch(key, modifiers, out var action)) return;
-
-        DispatchShellAction(vm, action);
-        e.Handled = true;
-    }
-
-    // ── Tray event handlers ───────────────────────────────────────────────────
-
-    private void OnTrayShowRequested(object? sender, EventArgs e)
-        => Dispatcher.InvokeAsync(RestoreFromTray);
-
-    private void OnTrayExitRequested(object? sender, EventArgs e)
-    {
-        _explicitExitRequested = true;
-        _ = Dispatcher.InvokeAsync(Close);
-    }
-
-    private void OnTrayQuickActionRequested(object? sender, string toolKey)
-    {
-        _ = Dispatcher.InvokeAsync(() =>
-        {
-            RestoreFromTray();
-            App.NavigationService.NavigateTo(toolKey);
         });
     }
 
-    // ── Global hotkey handler ─────────────────────────────────────────────────
-
-    private void OnGlobalHotkeyTriggered(object? sender, GlobalHotkeyEventArgs e)
+    private void OnGlobalHotkeyRegistrationsChanged(object? sender, EventArgs e)
     {
-        if (DataContext is not MainWindowViewModel vm) return;
-
-        // Global hotkeys arrive on the UI thread (ComponentDispatcher).
-        var action = (ShellHotkeyAction)(e.HotkeyId - 1);
-        DispatchShellAction(vm, action);
+        _trayIconService.UpdateHotkeysEnabled(App.HotkeyService.HotkeysEnabled);
     }
 
-    // ── Notification / task balloon tips ─────────────────────────────────────
-
-    private void OnNotificationRequested(object? sender, NotificationEventArgs e)
+    private async Task ExecuteShellActionAsync(ShellHotkeyAction action)
     {
-        var settings = App.TryGetSettingsService()?.Load() ?? new AppSettings();
-        if (!_trayCoordinator.ShouldShowTrayAlert(settings, _isHiddenToTray)) return;
-
-        var icon = e.Type switch
+        var vm = DataContext as MainWindowViewModel;
+        if (vm is null)
         {
-            NotificationType.Error   => TrayBalloonIcon.Error,
-            NotificationType.Success => TrayBalloonIcon.Info,
-            _                        => TrayBalloonIcon.Info,
-        };
-
-        _ = Dispatcher.InvokeAsync(() =>
-            App.TrayService.ShowBalloon("Windows Utility Pack", e.Message, icon));
-    }
-
-    private void OnBackgroundTaskChanged(object? sender, BackgroundTaskInfo taskInfo)
-    {
-        var settings = App.TryGetSettingsService()?.Load() ?? new AppSettings();
-        if (!_trayCoordinator.ShouldShowTrayAlert(settings, _isHiddenToTray)) return;
-        if (!_trayCoordinator.ShouldShowTaskCompletionAlert(taskInfo)) return;
-
-        var message = _trayCoordinator.BuildTaskAlertMessage(taskInfo);
-        var icon    = taskInfo.State == BackgroundTaskState.Failed
-            ? TrayBalloonIcon.Error
-            : TrayBalloonIcon.Info;
-
-        _ = Dispatcher.InvokeAsync(() =>
-            App.TrayService.ShowBalloon("Background Task", message, icon));
-    }
-
-    // ── Navigation tracking for tray quick-action refresh ────────────────────
-
-    private void OnNavigatedForTrayRefresh(object? sender, Type vmType)
-        => App.TrayService.UpdateQuickActions(BuildQuickActions());
-
-    // ── Private helpers ───────────────────────────────────────────────────────
-
-    private void HideToTray(string balloonText)
-    {
-        _isHiddenToTray = true;
-        ShowInTaskbar   = false;
-        Hide();
-
-        var settings = App.TryGetSettingsService()?.Load() ?? new AppSettings();
-        if (_trayCoordinator.ShouldShowTrayAlert(settings, _isHiddenToTray))
-        {
-            App.TrayService.ShowBalloon("Windows Utility Pack", balloonText);
+            return;
         }
-    }
 
-    private void RestoreFromTray()
-    {
-        _isHiddenToTray = false;
-        ShowInTaskbar   = true;
-        Show();
-        WindowState = WindowState.Normal;
-        Activate();
-    }
+        var settings = App.SettingsService.Load();
 
-    private void DispatchShellAction(MainWindowViewModel vm, ShellHotkeyAction action)
-    {
         switch (action)
         {
             case ShellHotkeyAction.OpenCommandPalette:
-                if (!vm.IsCommandPaletteOpen)
+                if (settings.RestoreMainWindowOnGlobalAction)
                 {
                     RestoreFromTray();
-                    vm.OpenCommandPaletteCommand.Execute(null);
-                    CommandPaletteQueryBox.Focus();
+                }
+
+                vm.OpenCommandPaletteFromShell();
+                CommandPaletteQueryBox.Focus();
+                break;
+
+            case ShellHotkeyAction.QuickScreenshot:
+                var result = await App.QuickScreenshotService.CaptureAsync(settings, CancellationToken.None).ConfigureAwait(true);
+                if (!result.Success)
+                {
+                    vm.StatusMessage = result.Message;
+                    _trayIconService.ShowBalloon("Quick Screenshot", result.Message, System.Windows.Forms.ToolTipIcon.Error);
+                    return;
+                }
+
+                App.QuickCaptureStateService.LastCapturePath = result.FilePath;
+                vm.StatusMessage = result.Message;
+                _trayIconService.ShowBalloon("Quick Screenshot", result.Message, System.Windows.Forms.ToolTipIcon.Info);
+
+                if (settings.QuickScreenshotBehavior == QuickScreenshotBehavior.CaptureToFileAndOpenAnnotator)
+                {
+                    if (settings.RestoreMainWindowOnGlobalAction)
+                    {
+                        RestoreFromTray();
+                    }
+                    App.NavigationService.NavigateTo("screenshot-annotator");
+                }
+                break;
+
+            case ShellHotkeyAction.OpenScreenshotAnnotator:
+                if (settings.RestoreMainWindowOnGlobalAction)
+                {
+                    RestoreFromTray();
+                }
+                App.NavigationService.NavigateTo("screenshot-annotator");
+                break;
+
+            case ShellHotkeyAction.ToggleMainWindow:
+                if (_isHiddenToTray || !IsVisible)
+                {
+                    RestoreFromTray();
+                }
+                else
+                {
+                    HideToTray("Running in system tray.");
                 }
                 break;
 
             case ShellHotkeyAction.OpenSettings:
-                RestoreFromTray();
                 vm.OpenSettingsCommand.Execute(null);
                 break;
 
             case ShellHotkeyAction.NavigateHome:
-                RestoreFromTray();
+                if (settings.RestoreMainWindowOnGlobalAction)
+                {
+                    RestoreFromTray();
+                }
                 vm.NavigateHomeCommand.Execute(null);
                 break;
 
             case ShellHotkeyAction.OpenActivityLog:
-                RestoreFromTray();
+                if (settings.RestoreMainWindowOnGlobalAction)
+                {
+                    RestoreFromTray();
+                }
                 App.NavigationService.NavigateTo("activity-log");
                 break;
 
             case ShellHotkeyAction.OpenTaskMonitor:
-                RestoreFromTray();
+                if (settings.RestoreMainWindowOnGlobalAction)
+                {
+                    RestoreFromTray();
+                }
                 App.NavigationService.NavigateTo("background-task-monitor");
                 break;
         }
     }
 
-    /// <summary>
-    /// Builds quick-action items from the top-5 most-launched tools.
-    /// Falls back to the first 5 registered tools when no launch data exists.
-    /// </summary>
-    private static IReadOnlyList<TrayQuickAction> BuildQuickActions()
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        const int MaxItems = 5;
-
-        var allLaunchCounts = App.HomeDashboardService.GetAllLaunchCounts();
-        var candidates = ToolRegistry.GetDisplayTools();
-
-        var ordered = candidates
-            .OrderByDescending(t => allLaunchCounts.GetValueOrDefault(t.Key, 0))
-            .ThenBy(t => t.Name)
-            .Take(MaxItems)
-            .Select(t => new TrayQuickAction { Key = t.Key, Label = t.Name })
-            .ToList();
-
-        return ordered;
+        var settings = App.SettingsService.Load();
+        if (_trayCoordinator.ShouldStartMinimizedToTray(settings))
+        {
+            HideToTray("Running in system tray.");
+        }
     }
 
-    private static void SelectNextPaletteItem(MainWindowViewModel vm, int direction)
+    private void OnTrayExitClick(object? sender, EventArgs e)
     {
-        var items = vm.CommandPaletteItems;
-        if (items.Count == 0) return;
-
-        var current = vm.SelectedCommandPaletteItem;
-        var idx     = current is null ? -1 : items.IndexOf(current);
-        var next    = Math.Clamp(idx + direction, 0, items.Count - 1);
-        vm.SelectedCommandPaletteItem = items[next];
+        _explicitExitRequested = true;
+        _ = Dispatcher.InvokeAsync(Close);
     }
 }

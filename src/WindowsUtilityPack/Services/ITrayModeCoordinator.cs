@@ -7,6 +7,8 @@ namespace WindowsUtilityPack.Services;
 /// </summary>
 public interface ITrayModeCoordinator
 {
+    bool ShouldStartMinimizedToTray(AppSettings settings);
+
     bool ShouldHideOnMinimize(AppSettings settings);
 
     bool ShouldInterceptClose(AppSettings settings, bool explicitExitRequested);
@@ -23,11 +25,14 @@ public interface ITrayModeCoordinator
 /// </summary>
 public sealed class TrayModeCoordinator : ITrayModeCoordinator
 {
+    public bool ShouldStartMinimizedToTray(AppSettings settings)
+        => settings.TrayModeEnabled && settings.StartMinimizedToTray;
+
     public bool ShouldHideOnMinimize(AppSettings settings)
         => settings.TrayModeEnabled && settings.MinimizeToTray;
 
     public bool ShouldInterceptClose(AppSettings settings, bool explicitExitRequested)
-        => settings.TrayModeEnabled && !explicitExitRequested;
+        => settings.TrayModeEnabled && settings.CloseToTray && !explicitExitRequested;
 
     public bool ShouldShowTrayAlert(AppSettings settings, bool isWindowHidden)
         => settings.TrayModeEnabled && settings.TrayAlertsEnabled && isWindowHidden;

@@ -30,6 +30,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private string _commandPaletteQuery = string.Empty;
     private CommandPaletteItem? _selectedCommandPaletteItem;
     private string _currentToolKey = "home";
+    public event EventHandler<ShellHotkeyAction>? ShellActionRequested;
 
     public AppTheme EffectiveTheme
     {
@@ -314,6 +315,22 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 {
                     PopOutCurrentTool();
                 }
+                else if (item.CommandKey.Equals("quick-screenshot", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShellActionRequested?.Invoke(this, ShellHotkeyAction.QuickScreenshot);
+                }
+                else if (item.CommandKey.Equals("open-screenshot-annotator", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShellActionRequested?.Invoke(this, ShellHotkeyAction.OpenScreenshotAnnotator);
+                }
+                else if (item.CommandKey.Equals("toggle-main-window", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShellActionRequested?.Invoke(this, ShellHotkeyAction.ToggleMainWindow);
+                }
+                else if (item.CommandKey.Equals("open-clipboard-manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    _navigation.NavigateTo("clipboard-manager");
+                }
                 break;
         }
 
@@ -323,9 +340,12 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 .LogAsync("CommandPalette", "Execute", item.Id)
                 .ConfigureAwait(true);
         }
+        _commandPalette?.RecordExecution(item.Id);
 
         CloseCommandPalette();
     }
+
+    public void OpenCommandPaletteFromShell() => OpenCommandPalette();
 
     private void PopOutCurrentTool()
     {

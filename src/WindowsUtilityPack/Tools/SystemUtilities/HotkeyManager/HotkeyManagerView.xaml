@@ -28,20 +28,49 @@
         </Border>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
-            <DataGrid ItemsSource="{Binding Bindings}"
-                      AutoGenerateColumns="False"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      IsReadOnly="False"
-                      HeadersVisibility="Column"
-                      GridLinesVisibility="Horizontal"
-                      RowHeaderWidth="0">
-                <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, Mode=TwoWay}" Width="90"/>
-                    <DataGridTextColumn Header="Action" Binding="{Binding Action}" IsReadOnly="True" Width="220"/>
-                    <DataGridTextColumn Header="Gesture" Binding="{Binding Gesture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="260"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DataGrid ItemsSource="{Binding Bindings}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="False"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          RowHeaderWidth="0">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, Mode=TwoWay}" Width="90"/>
+                        <DataGridTextColumn Header="Action" Binding="{Binding Action}" IsReadOnly="True" Width="220"/>
+                        <DataGridTextColumn Header="Gesture" Binding="{Binding Gesture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="260"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Border Grid.Row="1"
+                        Margin="0,10,0,0"
+                        Padding="10,8"
+                        Background="{DynamicResource WarningSurfaceBrush}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RegistrationIssues.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <ItemsControl ItemsSource="{Binding RegistrationIssues}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Foreground="{DynamicResource WarningBrush}"
+                                           Text="{Binding Message}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </Grid>
         </Border>
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">

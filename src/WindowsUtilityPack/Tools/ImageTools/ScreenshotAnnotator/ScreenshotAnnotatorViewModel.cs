@@ -38,6 +38,7 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 {
     private readonly IImageProcessingService _imageProcessingService;
     private readonly IClipboardService _clipboardService;
+    private readonly IQuickCaptureStateService? _quickCaptureState;
 
     private string _imagePath = string.Empty;
     private string _outputPath = string.Empty;
@@ -179,10 +180,14 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     public RelayCommand CopyOutputPathCommand { get; }
     public RelayCommand OpenOutputFolderCommand { get; }
 
-    public ScreenshotAnnotatorViewModel(IImageProcessingService imageProcessingService, IClipboardService clipboardService)
+    public ScreenshotAnnotatorViewModel(
+        IImageProcessingService imageProcessingService,
+        IClipboardService clipboardService,
+        IQuickCaptureStateService? quickCaptureState = null)
     {
         _imageProcessingService = imageProcessingService;
         _clipboardService = clipboardService;
+        _quickCaptureState = quickCaptureState;
 
         CaptureScreenshotCommand = new AsyncRelayCommand(_ => CaptureScreenshotAsync(), _ => !IsBusy);
         LoadImageCommand = new RelayCommand(_ => LoadImageFromDisk());
@@ -195,6 +200,8 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         SaveAnnotatedImageCommand = new AsyncRelayCommand(_ => SaveAnnotatedAsync(), _ => !IsBusy);
         CopyOutputPathCommand = new RelayCommand(_ => _clipboardService.SetText(OutputPath), _ => !string.IsNullOrWhiteSpace(OutputPath));
         OpenOutputFolderCommand = new RelayCommand(_ => OpenOutputFolder(), _ => !string.IsNullOrWhiteSpace(OutputPath));
+
+        TryLoadLastQuickCapture();
     }
 
     private async Task CaptureScreenshotAsync()
@@ -437,6 +444,26 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         bitmap.EndInit();
         bitmap.Freeze();
         PreviewImage = bitmap;
+    }
+
+    private void TryLoadLastQuickCapture()
+    {
+        if (_quickCaptureState is null || string.IsNullOrWhiteSpace(_quickCaptureState.LastCapturePath))
+        {
+            return;
+        }
+
+        if (!File.Exists(_quickCaptureState.LastCapturePath))
+        {
+            return;
+        }
+
+        ImagePath = _quickCaptureState.LastCapturePath;
+        var directory = Path.GetDirectoryName(ImagePath) ?? Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var name = Path.GetFileNameWithoutExtension(ImagePath);
+        OutputPath = Path.Combine(directory, $"{name}_annotated.png");
+        LoadPreview(ImagePath);
+        StatusMessage = "Loaded latest quick screenshot for annotation.";
     }
 
     private void OpenOutputFolder()

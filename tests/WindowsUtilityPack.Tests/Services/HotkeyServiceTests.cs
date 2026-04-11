@@ -19,6 +19,20 @@ public class HotkeyServiceTests
 
         Assert.NotEmpty(bindings);
         Assert.Contains(bindings, b => b.Action == ShellHotkeyAction.OpenCommandPalette.ToString());
+        Assert.Contains(bindings, b => b.Action == ShellHotkeyAction.QuickScreenshot.ToString());
+    }
+
+    [Fact]
+    public void HotkeysEnabled_RaisesBindingsChanged()
+    {
+        var settings = new StubSettingsService();
+        var service = new HotkeyService(settings);
+        var raised = false;
+        service.BindingsChanged += (_, _) => raised = true;
+
+        service.HotkeysEnabled = false;
+
+        Assert.True(raised);
     }
 
     [Fact]

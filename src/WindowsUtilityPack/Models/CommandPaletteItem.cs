@@ -38,4 +38,7 @@ public sealed class CommandPaletteItem
     /// Emoji icon used as a fallback when <see cref="IconGlyph"/> is empty.
     /// </summary>
     public string Icon { get; init; } = string.Empty;
+
+    /// <summary>Human-readable keyboard shortcut shown in the palette (e.g. "Ctrl+K").</summary>
+    public string ShortcutHint { get; init; } = string.Empty;
 }
