@@ -8,6 +8,8 @@ public enum AutomationTriggerType
     LowDiskFreeGb,
     HighCpuPercent,
     HighRamPercent,
+    HighDiskUsagePercent, // triggers when a drive's used-space percentage exceeds a threshold
+    ProcessCountExceedsLimit, // triggers when the number of running processes exceeds a count
 }
 
 /// <summary>
@@ -16,6 +18,9 @@ public enum AutomationTriggerType
 public enum AutomationActionType
 {
     ShowNotification,
+    LaunchTool,    // navigate the app to a specified tool by tool ID
+    RunCleanup,    // trigger the Disk Cleaner or equivalent cleanup tool
+    KillProcess,   // kill a running process by name, with optional resource threshold
 }
 
 /// <summary>

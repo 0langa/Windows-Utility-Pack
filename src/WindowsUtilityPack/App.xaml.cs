@@ -233,11 +233,15 @@ public partial class App : Application
         };
 
         LoggingService.LogInfo("Application started.");
+
+        // Start background automation rule evaluation loop
+        (BackgroundTaskService as WindowsUtilityPack.Services.BackgroundTaskService)?.StartAutomationRuleLoop();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         LoggingService.LogInfo("Application exiting.");
+        try { (BackgroundTaskService as WindowsUtilityPack.Services.BackgroundTaskService)?.StopAutomationRuleLoop(); } catch { }
         VitalsService.Updated -= OnVitalsUpdatedForAutomation;
         (ThemeService as IDisposable)?.Dispose();
         (NavigationService as IDisposable)?.Dispose();

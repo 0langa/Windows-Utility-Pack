@@ -28,6 +28,78 @@ public interface IAutomationRuleService
 /// </summary>
 public sealed class AutomationRuleService : IAutomationRuleService
 {
+    /// <summary>
+    /// Dispatches the specified automation action.
+    /// </summary>
+    public static async Task DispatchActionAsync(AutomationRule rule, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            switch (rule.ActionType)
+            {
+                case AutomationActionType.LaunchTool:
+                    // Use rule.Name as tool key (or extend rule model for a ToolKey property if needed)
+                    var toolKey = rule.Name; // This assumes rule.Name is the tool key; adjust as needed
+                    var def = WindowsUtilityPack.Tools.ToolRegistry.GetByKey(toolKey);
+                    if (def != null)
+                    {
+                        App.NavigationService.NavigateTo(toolKey);
+                        App.LoggingService.LogInfo($"Automation: Launched tool '{toolKey}'");
+                    }
+                    else
+                    {
+                        App.LoggingService.LogWarning($"Automation: Tool key '{toolKey}' not found for LaunchTool action.");
+                    }
+                    break;
+                case AutomationActionType.RunCleanup:
+                    // Trigger a cleanup analysis and log (actual cleanup may require user confirmation)
+                    try
+                    {
+                        // This is a placeholder; real cleanup would require more plumbing
+                        var drives = System.IO.DriveInfo.GetDrives();
+                        foreach (var drive in drives)
+                        {
+                            if (!drive.IsReady) continue;
+                            var root = new WindowsUtilityPack.Models.StorageItem { Name = drive.Name, FullPath = drive.RootDirectory.FullName, IsDirectory = true };
+                            var recs = await App.CleanupRecommendationService.AnalyseAsync(root, null, cancellationToken);
+                            App.LoggingService.LogInfo($"Automation: RunCleanup found {recs.Count} recommendations on {drive.Name}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        App.LoggingService.LogError("Automation: RunCleanup failed", ex);
+                    }
+                    break;
+                case AutomationActionType.KillProcess:
+                    // Use rule.Name as process name (or extend rule model for a ProcessName property if needed)
+                    var processName = rule.Name;
+                    var processes = await App.ProcessExplorerService.GetProcessesAsync(processName, cancellationToken);
+                    if (processes.Count == 0)
+                    {
+                        App.LoggingService.LogWarning($"Automation: No process found with name '{processName}' for KillProcess action.");
+                        break;
+                    }
+                    foreach (var proc in processes)
+                    {
+                        // Optionally check CPU/memory thresholds here if rule.Threshold is used for that
+                        var killed = await App.ProcessExplorerService.TryTerminateAsync(proc.ProcessId, cancellationToken);
+                        if (killed)
+                            App.LoggingService.LogInfo($"Automation: Killed process {proc.Name} (PID {proc.ProcessId})");
+                        else
+                            App.LoggingService.LogWarning($"Automation: Failed to kill process {proc.Name} (PID {proc.ProcessId})");
+                    }
+                    break;
+                case AutomationActionType.ShowNotification:
+                default:
+                    // Already handled elsewhere
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            App.LoggingService.LogError($"Automation: Action dispatch failed for rule '{rule.Name}'", ex);
+        }
+    }
     private static readonly IReadOnlyList<AutomationRuleTemplate> Templates =
     [
         new AutomationRuleTemplate
@@ -174,15 +246,32 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
         var now = DateTime.UtcNow;
         var alerts = new List<AutomationRuleAlert>();
 
+        // Gather additional info for new triggers
+        double diskUsagePercent = -1;
+        int processCount = -1;
+        try
+        {
+            if (vitals.DiskTotalGb > 0)
+                diskUsagePercent = 100.0 - (vitals.DiskFreeGb / vitals.DiskTotalGb * 100.0);
+        }
+        catch { }
+        try
+        {
+            processCount = System.Diagnostics.Process.GetProcesses().Length;
+        }
+        catch { }
+
         foreach (var rule in rules.Where(r => r.Enabled))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var isTriggered = rule.TriggerType switch
+            bool isTriggered = rule.TriggerType switch
             {
                 AutomationTriggerType.LowDiskFreeGb => vitals.DiskFreeGb >= 0 && vitals.DiskFreeGb <= rule.Threshold,
                 AutomationTriggerType.HighCpuPercent => vitals.CpuPercent >= 0 && vitals.CpuPercent >= rule.Threshold,
                 AutomationTriggerType.HighRamPercent => vitals.RamUsedPercent >= 0 && vitals.RamUsedPercent >= rule.Threshold,
+                AutomationTriggerType.HighDiskUsagePercent => diskUsagePercent >= 0 && diskUsagePercent >= rule.Threshold,
+                AutomationTriggerType.ProcessCountExceedsLimit => processCount >= 0 && processCount > rule.Threshold,
                 _ => false,
             };
 

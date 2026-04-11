@@ -8,6 +8,56 @@ namespace WindowsUtilityPack.Services;
 /// </summary>
 public sealed class BackgroundTaskService : IBackgroundTaskService
 {
+    // Automation rule evaluation loop
+    private CancellationTokenSource? _automationLoopCts;
+    private Task? _automationLoopTask;
+    private int _automationPollSeconds = 60;
+
+    /// <summary>
+    /// Starts the background automation rule evaluation loop.
+    /// </summary>
+    public void StartAutomationRuleLoop(int? pollSeconds = null)
+    {
+        if (_automationLoopTask is { IsCompleted: false })
+            return;
+        _automationPollSeconds = pollSeconds ?? 60;
+        _automationLoopCts = new CancellationTokenSource();
+        _automationLoopTask = Task.Run(() => AutomationLoopAsync(_automationLoopCts.Token));
+    }
+
+    /// <summary>
+    /// Stops the background automation rule evaluation loop.
+    /// </summary>
+    public void StopAutomationRuleLoop()
+    {
+        _automationLoopCts?.Cancel();
+        _automationLoopTask = null;
+    }
+
+    private async Task AutomationLoopAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                var alerts = await App.AutomationRuleService.EvaluateAsync(App.VitalsService, cancellationToken);
+                foreach (var alert in alerts)
+                {
+                    // Dispatch the real action for each triggered rule
+                    await AutomationRuleService.DispatchActionAsync(alert.Rule, cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal on shutdown
+            }
+            catch (Exception ex)
+            {
+                App.LoggingService.LogError("Automation rule background loop error", ex);
+            }
+            await Task.Delay(TimeSpan.FromSeconds(_automationPollSeconds), cancellationToken).ContinueWith(_ => { });
+        }
+    }
     private const int MaxFinishedHistory = 200;
 
     private readonly ConcurrentDictionary<Guid, TaskEnvelope> _active = new();
