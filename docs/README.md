@@ -2,6 +2,12 @@
 
 Last updated: 2026-04-11
 
+## Audit Reports
+
+| File | Purpose |
+|---|---|
+| [REPOSITORY_AUDIT_REPORT.md](REPOSITORY_AUDIT_REPORT.md) | **Latest full audit (2026-04-11)** — 39 findings across safety, UX, theme, async, and testing. Start here for the current hardening roadmap. |
+
 ## Current Reference Docs
 
 | File | Purpose |
