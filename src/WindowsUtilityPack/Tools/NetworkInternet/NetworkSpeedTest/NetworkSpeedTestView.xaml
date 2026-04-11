@@ -30,6 +30,10 @@
                                    HorizontalAlignment="Center" FontSize="13" Margin="0,0,0,6"/>
                         <TextBlock Text="{Binding Latency}" FontSize="28" FontWeight="Bold"
                                    Foreground="{DynamicResource PrimaryTextBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding LatencyJitter, StringFormat=Jitter: {0}}" Margin="0,6,0,0"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" FontSize="12"/>
+                        <TextBlock Text="{Binding PacketLoss, StringFormat=Loss: {0}}" Margin="0,2,0,0"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" FontSize="12"/>
                     </StackPanel>
                     <!-- Upload -->
                     <StackPanel Grid.Column="2" HorizontalAlignment="Center">
@@ -46,6 +50,18 @@
             <!-- Server URL + Controls -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
                 <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Profile" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding Profiles}"
+                                  SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsTesting, Converter={StaticResource BoolNegationConverter}}"/>
+                    </Grid>
                     <TextBlock Text="Test Server URL" Foreground="{DynamicResource SecondaryTextBrush}"
                                FontSize="12" Margin="0,0,0,6"/>
                     <Grid Margin="0,0,0,10">
@@ -73,6 +89,10 @@
                     <TextBlock Text="{Binding StatusMessage}"
                                Foreground="{DynamicResource SecondaryTextBrush}"
                                FontSize="12" Margin="0,8,0,0"/>
+                    <TextBlock Text="{Binding MethodologySummary}"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               TextWrapping="Wrap"
+                               FontSize="11" Margin="0,6,0,0"/>
                 </StackPanel>
             </Border>
 
@@ -92,10 +112,13 @@
                               BorderThickness="0"
                               CanUserResizeRows="False">
                         <DataGrid.Columns>
+                            <DataGridTextColumn Header="Profile" Binding="{Binding Profile}" Width="2*"/>
                             <DataGridTextColumn Header="Time"     Binding="{Binding Timestamp}" MinWidth="80" Width="Auto"/>
                             <DataGridTextColumn Header="Download" Binding="{Binding Download}"  Width="*"/>
                             <DataGridTextColumn Header="Upload"   Binding="{Binding Upload}"    Width="*"/>
                             <DataGridTextColumn Header="Latency"  Binding="{Binding Latency}"   MinWidth="80" Width="Auto"/>
+                            <DataGridTextColumn Header="Jitter"   Binding="{Binding Jitter}"    MinWidth="70" Width="Auto"/>
+                            <DataGridTextColumn Header="Loss"     Binding="{Binding PacketLoss}" MinWidth="60" Width="Auto"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </StackPanel>

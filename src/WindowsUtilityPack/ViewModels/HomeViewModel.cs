@@ -39,6 +39,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
     private bool _isSearchFocused;
     private IReadOnlyList<ToolDefinition> _searchResults = [];
     private IReadOnlyList<string> _recentSearches = [];
+    private IReadOnlyList<ToolDefinition> _recommendedTools = [];
     private CategoryItem? _selectedCategory;
     private IReadOnlyList<ToolDefinition> _selectedCategoryTools = [];
     private IReadOnlyList<HomeCategorySummary> _categorySummaries = [];
@@ -128,6 +129,14 @@ public class HomeViewModel : ViewModelBase, IDisposable
         get => _recentSearches;
         private set => SetProperty(ref _recentSearches, value);
     }
+
+    public IReadOnlyList<ToolDefinition> RecommendedTools
+    {
+        get => _recommendedTools;
+        private set => SetProperty(ref _recommendedTools, value);
+    }
+
+    public bool HasRecommendations => RecommendedTools.Count > 0;
 
     public bool HasSearchQuery => !string.IsNullOrWhiteSpace(_searchQuery);
 
@@ -444,6 +453,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
         RefreshPersonalisation();
         RecentSearches = _dashboard.GetRecentSearches();
         RefreshCategorySummaries();
+        RefreshRecommendations();
     }
 
     private void RefreshPersonalisation()
@@ -453,6 +463,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
         ToolLaunchCounts = _dashboard.GetAllLaunchCounts();
         OnPropertyChanged(nameof(HasFavorites));
         OnPropertyChanged(nameof(HasRecents));
+        RefreshRecommendations();
+        OnPropertyChanged(nameof(HasRecommendations));
     }
 
     private void RefreshCategorySummaries()
@@ -481,6 +493,24 @@ public class HomeViewModel : ViewModelBase, IDisposable
         }
 
         CategorySummaries = summaries;
+    }
+
+    private void RefreshRecommendations()
+    {
+        var favoriteKeys = FavoriteTools.Select(tool => tool.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var recentKeys = RecentTools.Select(tool => tool.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var recommended = AllTools
+            .Where(tool =>
+                !tool.Key.Equals("home", StringComparison.OrdinalIgnoreCase)
+                && !favoriteKeys.Contains(tool.Key)
+                && !recentKeys.Contains(tool.Key))
+            .OrderByDescending(tool => ToolLaunchCounts.TryGetValue(tool.Key, out var count) ? count : 0)
+            .ThenBy(tool => tool.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(8)
+            .ToList();
+
+        RecommendedTools = recommended;
     }
 
     private void UpdateSearchResults()

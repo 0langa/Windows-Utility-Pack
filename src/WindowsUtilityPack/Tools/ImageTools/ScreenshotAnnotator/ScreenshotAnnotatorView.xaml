@@ -23,6 +23,7 @@
                     <Button Content="Load Image" Command="{Binding LoadImageCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
                     <Button Content="Save Annotated" Command="{Binding SaveAnnotatedImageCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
                     <Button Content="Copy Output Path" Command="{Binding CopyOutputPathCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <Button Content="Open Output Folder" Command="{Binding OpenOutputFolderCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
                 </StackPanel>
                 <Button Content="Browse Output..." Command="{Binding BrowseOutputCommand}" DockPanel.Dock="Right" Style="{StaticResource SecondaryActionButtonStyle}"/>
             </DockPanel>
@@ -110,6 +111,8 @@
                         </Grid.RowDefinitions>
                         <StackPanel Orientation="Horizontal" Grid.Row="0">
                             <Button Content="Add Annotation" Command="{Binding AddAnnotationCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Apply to Selected" Command="{Binding ApplyEditorToSelectedCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Duplicate Selected" Command="{Binding DuplicateSelectedAnnotationCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
                             <Button Content="Remove Selected" Command="{Binding RemoveSelectedAnnotationCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
                             <Button Content="Clear" Command="{Binding ClearAnnotationsCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                         </StackPanel>
@@ -140,4 +143,3 @@
         </Border>
     </Grid>
 </UserControl>
-

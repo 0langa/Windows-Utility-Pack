@@ -132,6 +132,33 @@
                         </ItemsControl>
                     </StackPanel>
                 </StackPanel>
+                <StackPanel Margin="0,0,0,12" Visibility="{Binding HasRecommendations, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" Foreground="{DynamicResource AccentBrush}"/>
+                        <TextBlock Text="Recommended Next Tools" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
+                        <TextBlock Text="Based on your usage patterns" DockPanel.Dock="Right" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding RecommendedTools}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Width="300" Margin="0,0,10,10" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
+                                <Button.ContextMenu><ContextMenu>
+                                    <MenuItem Header="Open" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                    <MenuItem Header="Add/Remove Favorite" Command="{Binding DataContext.ToggleFavoriteCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                    <MenuItem Header="Copy tool name" Command="{Binding DataContext.CopyToolNameCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                    <MenuItem Header="View description" Command="{Binding DataContext.ViewDescriptionCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                </ContextMenu></Button.ContextMenu>
+                                <DockPanel>
+                                    <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" Margin="0,0,10,0" Foreground="{DynamicResource AccentBrush}"/>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Button>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
                 <StackPanel Margin="0,0,0,12">
                     <DockPanel Margin="0,0,0,8"><TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" Foreground="{DynamicResource AccentBrush}"/><TextBlock Text="Browse by Category" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/><Button Content="Toggle" Style="{StaticResource SectionActionLinkStyle}" Command="{Binding ToggleCategoryBrowserExpandedCommand}" DockPanel.Dock="Right"/></DockPanel>
                     <StackPanel Visibility="{Binding CategoryBrowserExpanded, Converter={StaticResource BoolToVisibilityConverter}}">

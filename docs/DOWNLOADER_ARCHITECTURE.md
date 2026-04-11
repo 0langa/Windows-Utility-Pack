@@ -54,10 +54,32 @@ The old Downloader implementation was replaced by a service-oriented architectur
 - quick add + immediate download actions
 - mode selection (Quick, Media, Asset Grabber, Site Crawl)
 - queue manager with inspector and batch actions
+- queue search and status filtering for large/busy job sets
 - asset discovery/crawl panel with filtering and staged selection
 - history tab with redownload action
 - grouped settings + scheduler + diagnostics export
 - event stream panel for live observability
+
+Help/tutorial content is centralized via:
+
+- `DownloaderHelpContentProvider`: single source for help topic list + detailed workflow guidance text.
+- `DownloaderViewModel`: binds help topics from provider and supports searching by both topic title and full help content.
+
+Queue/discovery presentation helpers:
+
+- `DownloaderJobFilterMatcher`: testable queue-search/status filtering logic used by the Queue Manager view.
+- `DownloaderWorkflowPredictor`: centralized workflow prediction for quick/media/discovery URL intent messaging.
+- `BuildRouteReason` (`DownloaderViewModel.HelpAndRouting.cs`): mode-aware route explanation text so the UI can show why a URL was classified a certain way and what operation will happen next.
+
+## Refinement Additions (Phase 2+)
+
+- Route transparency:
+  - Quick, Media, Asset Grabber, and Site Crawl now expose explicit route-reason strings in the workspace.
+  - Messaging is mode-aware and prevents “mystery fallback” behavior.
+- Media intent safety:
+  - Media analysis messaging reinforces video-first defaults and explicitly explains when audio-only routing is active.
+- Discovery clarity:
+  - Asset Grabber/Site Crawl now surface routing intent alongside staged-selection summary to keep scan-first/crawl-first behavior obvious before queueing.
 
 ## Settings Model
 

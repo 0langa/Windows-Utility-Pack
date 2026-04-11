@@ -17,10 +17,26 @@ namespace WindowsUtilityPack.Tools.NetworkInternet.NetworkSpeedTest;
 /// <summary>Records a single speed test run result.</summary>
 public class SpeedTestResult
 {
+    public string Profile      { get; set; } = string.Empty;
     public string Timestamp    { get; set; } = string.Empty;
     public string Download     { get; set; } = string.Empty;
     public string Upload       { get; set; } = string.Empty;
     public string Latency      { get; set; } = string.Empty;
+    public string Jitter       { get; set; } = string.Empty;
+    public string PacketLoss   { get; set; } = string.Empty;
+}
+
+/// <summary>Represents a reusable speed test profile preset.</summary>
+public sealed class SpeedTestProfile
+{
+    public required string Name { get; init; }
+    public required string DownloadUrl { get; init; }
+    public required string UploadUrl { get; init; }
+    public required long DownloadBytesHint { get; init; }
+    public required long UploadBytesHint { get; init; }
+    public int PingSamples { get; init; } = 6;
+
+    public override string ToString() => Name;
 }
 
 /// <summary>
@@ -55,6 +71,41 @@ public class NetworkSpeedTestViewModel : ViewModelBase
     private bool   _downloadComplete;
     private bool   _uploadComplete;
     private string _statusMessage   = string.Empty;
+    private string _latencyJitter = "-- ms";
+    private string _packetLoss = "-- %";
+    private string _methodologySummary = string.Empty;
+    private SpeedTestProfile? _selectedProfile;
+
+    public IReadOnlyList<SpeedTestProfile> Profiles { get; } =
+    [
+        new()
+        {
+            Name = "Balanced (Cloudflare 25 MB / 10 MB)",
+            DownloadUrl = "https://speed.cloudflare.com/__down?bytes=25000000",
+            UploadUrl = "https://speed.cloudflare.com/__up",
+            DownloadBytesHint = 25_000_000,
+            UploadBytesHint = 10_000_000,
+            PingSamples = 6,
+        },
+        new()
+        {
+            Name = "Quick Check (Cloudflare 10 MB / 5 MB)",
+            DownloadUrl = "https://speed.cloudflare.com/__down?bytes=10000000",
+            UploadUrl = "https://speed.cloudflare.com/__up",
+            DownloadBytesHint = 10_000_000,
+            UploadBytesHint = 5_000_000,
+            PingSamples = 4,
+        },
+        new()
+        {
+            Name = "High Throughput (Cloudflare 100 MB / 25 MB)",
+            DownloadUrl = "https://speed.cloudflare.com/__down?bytes=100000000",
+            UploadUrl = "https://speed.cloudflare.com/__up",
+            DownloadBytesHint = 100_000_000,
+            UploadBytesHint = 25_000_000,
+            PingSamples = 8,
+        },
+    ];
 
     public string DownloadSpeed
     {
@@ -116,6 +167,39 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         set => SetProperty(ref _statusMessage, value);
     }
 
+    public string LatencyJitter
+    {
+        get => _latencyJitter;
+        set => SetProperty(ref _latencyJitter, value);
+    }
+
+    public string PacketLoss
+    {
+        get => _packetLoss;
+        set => SetProperty(ref _packetLoss, value);
+    }
+
+    public string MethodologySummary
+    {
+        get => _methodologySummary;
+        set => SetProperty(ref _methodologySummary, value);
+    }
+
+    public SpeedTestProfile? SelectedProfile
+    {
+        get => _selectedProfile;
+        set
+        {
+            if (!SetProperty(ref _selectedProfile, value) || value is null)
+            {
+                return;
+            }
+
+            ServerUrl = value.DownloadUrl;
+            MethodologySummary = BuildMethodologySummary(value);
+        }
+    }
+
     public ObservableCollection<SpeedTestResult> History { get; } = [];
 
     public AsyncRelayCommand RunTestCommand    { get; }
@@ -135,6 +219,8 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         RunTestCommand     = new AsyncRelayCommand(_ => RunTestAsync(), _ => !IsTesting);
         StopCommand        = new RelayCommand(_ => _cts?.Cancel(),      _ => IsTesting);
         CopyResultsCommand = new RelayCommand(_ => CopyResults(),       _ => History.Count > 0);
+
+        SelectedProfile = Profiles.FirstOrDefault();
     }
 
     private async Task RunTestAsync()
@@ -148,6 +234,8 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         DownloadSpeed    = "-- Mbps";
         UploadSpeed      = "-- Mbps";
         Latency          = "-- ms";
+        LatencyJitter    = "-- ms";
+        PacketLoss       = "-- %";
         StatusMessage    = "Starting test…";
 
         var ct = _cts.Token;
@@ -175,10 +263,13 @@ public class NetworkSpeedTestViewModel : ViewModelBase
             {
                 History.Insert(0, new SpeedTestResult
                 {
+                    Profile = SelectedProfile?.Name ?? "Custom",
                     Timestamp = DateTime.Now.ToString("HH:mm:ss"),
                     Download  = DownloadSpeed,
                     Upload    = UploadSpeed,
                     Latency   = Latency,
+                    Jitter    = LatencyJitter,
+                    PacketLoss = PacketLoss,
                 });
                 // Keep last 10
                 while (History.Count > 10) History.RemoveAt(History.Count - 1);
@@ -209,7 +300,8 @@ public class NetworkSpeedTestViewModel : ViewModelBase
             var host = uri.Host;
             using var ping = new Ping();
             var results = new List<long>();
-            for (var i = 0; i < 4 && !ct.IsCancellationRequested; i++)
+            var samples = Math.Clamp(SelectedProfile?.PingSamples ?? 6, 2, 20);
+            for (var i = 0; i < samples && !ct.IsCancellationRequested; i++)
             {
                 try
                 {
@@ -221,8 +313,27 @@ public class NetworkSpeedTestViewModel : ViewModelBase
             Latency = results.Count > 0
                 ? $"{results.Average():F0} ms"
                 : "N/A";
+
+            if (results.Count > 1)
+            {
+                var avg = results.Average();
+                var variance = results.Sum(v => Math.Pow(v - avg, 2)) / results.Count;
+                LatencyJitter = $"{Math.Sqrt(variance):F0} ms";
+            }
+            else
+            {
+                LatencyJitter = "N/A";
+            }
+
+            var packetLossPct = 100.0 * Math.Max(0, samples - results.Count) / samples;
+            PacketLoss = $"{packetLossPct:F0}%";
         }
-        catch { Latency = "N/A"; }
+        catch
+        {
+            Latency = "N/A";
+            LatencyJitter = "N/A";
+            PacketLoss = "N/A";
+        }
     }
 
     private async Task MeasureDownloadAsync(CancellationToken ct)
@@ -237,7 +348,7 @@ public class NetworkSpeedTestViewModel : ViewModelBase
             using var response = await _httpClient.GetAsync(ServerUrl, HttpCompletionOption.ResponseHeadersRead, timeoutCts.Token);
             response.EnsureSuccessStatusCode();
             using var stream = await response.Content.ReadAsStreamAsync(timeoutCts.Token);
-            var contentLength  = response.Content.Headers.ContentLength ?? 25_000_000L;
+            var contentLength  = response.Content.Headers.ContentLength ?? (SelectedProfile?.DownloadBytesHint ?? 25_000_000L);
             var buffer         = new byte[65536];
             int read;
 
@@ -273,7 +384,7 @@ public class NetworkSpeedTestViewModel : ViewModelBase
 
     private async Task MeasureUploadAsync(CancellationToken ct)
     {
-        const int uploadSizeBytes = 10_000_000;
+        var uploadSizeBytes = (int)Math.Clamp(SelectedProfile?.UploadBytesHint ?? 10_000_000L, 1_000_000L, 100_000_000L);
         var uploadEndpoint = ResolveUploadEndpoint();
         var sw = Stopwatch.StartNew();
         long uploadedBytes = 0;
@@ -335,6 +446,11 @@ public class NetworkSpeedTestViewModel : ViewModelBase
 
     private string ResolveUploadEndpoint()
     {
+        if (SelectedProfile is not null && Uri.TryCreate(SelectedProfile.UploadUrl, UriKind.Absolute, out _))
+        {
+            return SelectedProfile.UploadUrl;
+        }
+
         if (Uri.TryCreate(ServerUrl, UriKind.Absolute, out var sourceUri)
             && sourceUri.Host.Contains("speed.cloudflare.com", StringComparison.OrdinalIgnoreCase))
         {
@@ -384,11 +500,21 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         if (History.Count == 0) return;
         var latest = History[0];
         var text   = $"Speed Test Results ({latest.Timestamp})\n" +
+                     $"Profile:  {latest.Profile}\n" +
                      $"Download: {latest.Download}\n" +
                      $"Upload:   {latest.Upload}\n" +
-                     $"Latency:  {latest.Latency}\n";
+                     $"Latency:  {latest.Latency}\n" +
+                     $"Jitter:   {latest.Jitter}\n" +
+                     $"Loss:     {latest.PacketLoss}\n";
         _clipboard.SetText(text);
         StatusMessage = "Results copied to clipboard.";
+    }
+
+    private static string BuildMethodologySummary(SpeedTestProfile profile)
+    {
+        var down = profile.DownloadBytesHint / 1_000_000d;
+        var up = profile.UploadBytesHint / 1_000_000d;
+        return $"Method: ICMP latency ({profile.PingSamples} samples), streamed HTTP download (~{down:F0} MB), streamed HTTP upload (~{up:F0} MB).";
     }
 
     private static void RunOnUi(Action action)

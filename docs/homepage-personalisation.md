@@ -29,6 +29,10 @@
     - Add/Remove Favorite
     - Copy tool name
     - View description
+- Recommendation surface:
+  - new “Recommended Next Tools” section driven by local launch-history data
+  - excludes current favorites and recently used tools to reduce duplication
+  - keeps one-click context menu and navigation behavior consistent with other tool cards
 
 ## Metadata Extensions
 - `ToolDefinition` metadata is now actively used for homepage discovery:

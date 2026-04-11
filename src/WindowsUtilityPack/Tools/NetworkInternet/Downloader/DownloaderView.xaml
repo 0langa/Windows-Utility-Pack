@@ -64,6 +64,10 @@
                         <StackPanel>
                             <TextBlock Text="Detected Workflow" FontWeight="SemiBold" Margin="0,0,0,4"/>
                             <TextBlock Text="{Binding QuickDetectionSummary}" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding QuickRoutingReason}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"/>
                             <TextBlock Margin="0,8,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}"
                                        Text="This tab routes to direct/auto engine resolution. Discovery actions are in Asset Grabber and Site Crawl."/>
@@ -79,6 +83,16 @@
                     </Grid.RowDefinitions>
 
                     <WrapPanel Margin="0,0,0,8">
+                        <TextBlock Text="Search" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox Width="220"
+                                 Text="{Binding QueueSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Padding="6,4"
+                                 Margin="0,0,8,0"/>
+                        <TextBlock Text="Status" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox Width="130"
+                                  ItemsSource="{Binding QueueStatusFilters}"
+                                  SelectedItem="{Binding SelectedQueueStatusFilter}"
+                                  Margin="0,0,12,0"/>
                         <Button Content="Start Queue" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding StartQueueCommand}" Margin="0,0,6,0"/>
                         <Button Content="Pause Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PauseQueueCommand}" Margin="0,0,6,0"/>
                         <Button Content="Stop Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding StopQueueCommand}" Margin="0,0,12,0"/>
@@ -107,7 +121,7 @@
 
                         <DataGrid x:Name="QueueGrid"
                                   Grid.Column="0"
-                                  ItemsSource="{Binding Jobs}"
+                                  ItemsSource="{Binding JobsView}"
                                   SelectedItem="{Binding SelectedJob, Mode=TwoWay}"
                                   SelectionMode="Extended"
                                   SelectionUnit="FullRow"
@@ -252,6 +266,10 @@
                         <StackPanel>
                             <TextBlock Text="Effective Media Plan" FontWeight="SemiBold" Margin="0,0,0,4"/>
                             <TextBlock Text="{Binding MediaAnalysisSummary}" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding MediaRoutingReason}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"/>
                             <WrapPanel Margin="0,8,0,0">
                                 <CheckBox Content="Download Subtitles" IsChecked="{Binding Settings.Media.DownloadSubtitles}" Margin="0,0,16,6"/>
                                 <CheckBox Content="Download Thumbnail" IsChecked="{Binding Settings.Media.DownloadThumbnail}" Margin="0,0,16,6"/>
@@ -341,6 +359,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid>
@@ -357,14 +376,24 @@
                         <TextBox Width="240" Text="{Binding AssetSearchText, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" Margin="0,0,8,0"/>
                         <Button Content="Select All" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectAllAssetsCommand}" Margin="0,0,6,0"/>
                         <Button Content="Select Visible" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectVisibleAssetsCommand}" Margin="0,0,6,0"/>
+                        <Button Content="Select Reachable" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectReachableAssetsCommand}" Margin="0,0,6,0"/>
                         <Button Content="Deselect All" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding DeselectAllAssetsCommand}" Margin="0,0,6,0"/>
                         <Button Content="Invert" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding InvertAssetSelectionCommand}" Margin="0,0,12,0"/>
                         <Button Content="Add Selected to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddSelectedAssetsCommand}" Margin="0,0,6,0"/>
                         <Button Content="Download Selected Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadSelectedAssetsNowCommand}" Margin="0,0,6,0"/>
                         <Button Content="Clear Staged" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearDiscoveredAssetsCommand}" Margin="0,0,12,0"/>
-                        <TextBlock Text="{Binding ScanStatus}" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Text="{Binding DiscoverySummary}" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding ScanStatus}" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,8,0"/>
+                        <TextBlock Text="Next: select assets, then Add Selected to Queue or Download Selected Now."
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </WrapPanel>
-                    <DataGrid Grid.Row="2" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False" SelectionMode="Extended">
+                    <TextBlock Grid.Row="2"
+                               Margin="0,0,0,6"
+                               Text="{Binding DiscoveryRoutingReason}"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    <DataGrid Grid.Row="3" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False" SelectionMode="Extended">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Select all" Command="{Binding SelectAllAssetsCommand}"/>
@@ -397,6 +426,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid>
@@ -415,10 +445,18 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Max Depth" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox Width="50" Text="{Binding Settings.Scan.MaxDepth}"/></StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Max Pages" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox Width="70" Text="{Binding Settings.Scan.MaxPages}"/></StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Workers" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox Width="50" Text="{Binding Settings.Scan.CrawlWorkers}"/></StackPanel>
+                        <Button Content="Select Reachable" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectReachableAssetsCommand}" Margin="0,0,6,0"/>
                         <Button Content="Add Selected to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddSelectedAssetsCommand}" Margin="0,0,6,0"/>
                         <Button Content="Download Selected Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadSelectedAssetsNowCommand}"/>
+                        <TextBlock Text="{Binding DiscoverySummary}" VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding ScanStatus}" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </WrapPanel>
-                    <DataGrid Grid.Row="2" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False">
+                    <TextBlock Grid.Row="2"
+                               Margin="0,0,0,6"
+                               Text="{Binding DiscoveryRoutingReason}"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    <DataGrid Grid.Row="3" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Select all" Command="{Binding SelectAllAssetsCommand}"/>

@@ -464,6 +464,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,6" Padding="10,8">
@@ -513,7 +514,29 @@
                             </StackPanel>
                         </Grid>
                     </Border>
-                    <ListView Grid.Row="1" x:Name="CleanupListView"
+                    <Border Grid.Row="1"
+                            Margin="0,0,0,6"
+                            Padding="10,8"
+                            CornerRadius="8"
+                            Background="{DynamicResource WarningSurfaceBrush}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding DestructiveReviewSummary}"
+                                       Foreground="{DynamicResource WarningBrush}"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock Grid.Column="1"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource WarningBrush}"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding HighRiskSelectedCount, StringFormat=High risk: {0}}"
+                                       Visibility="{Binding HasHighRiskCleanupSelection, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        </Grid>
+                    </Border>
+                    <ListView Grid.Row="2" x:Name="CleanupListView"
                               ItemsSource="{Binding CleanupItems}"
                               Background="{DynamicResource AppBackgroundBrush}"
                               Foreground="{DynamicResource PrimaryTextBrush}"

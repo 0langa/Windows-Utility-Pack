@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Text;
 using WindowsUtilityPack.Commands;
@@ -368,8 +369,13 @@ public class StorageMasterViewModel : ViewModelBase
     public int    TotalDirCount      => _scanRoot?.DirectoryCount ?? _interimDirs;
     public long   TotalDuplicateWasted         => DuplicateGroups.Sum(g => g.Group.WastedBytes);
     public long   TotalCleanupSavings          => CleanupItems.Where(i => i.IsSelected).Sum(i => i.Recommendation.PotentialSavingsBytes);
+    public int SelectedCleanupCount            => CleanupItems.Count(i => i.IsSelected);
+    public int HighRiskSelectedCount           => CleanupItems.Count(i => i.IsSelected && i.Recommendation.Risk == CleanupRisk.High);
+    public bool HasHighRiskCleanupSelection    => HighRiskSelectedCount > 0;
     public string TotalDuplicateWastedFormatted => StorageItem.FormatBytes(TotalDuplicateWasted);
     public string TotalCleanupSavingsFormatted  => StorageItem.FormatBytes(TotalCleanupSavings);
+    public string DestructiveReviewSummary =>
+        BuildDestructiveReviewSummary(SelectedCleanupCount, TotalCleanupSavingsFormatted, HighRiskSelectedCount);
     public bool IsFilteredResultsTruncated
     {
         get => _isFilteredResultsTruncated;
@@ -431,6 +437,26 @@ public class StorageMasterViewModel : ViewModelBase
         return $"{displayedCount:N0} files";
     }
 
+    internal static string BuildDestructiveReviewSummary(int selectedCount, string savingsLabel, int highRiskSelectedCount)
+    {
+        if (selectedCount <= 0)
+        {
+            return "No cleanup items selected.";
+        }
+
+        var summary = $"{selectedCount:N0} selected for cleanup, estimated savings {savingsLabel}";
+        if (highRiskSelectedCount > 0)
+        {
+            summary += $" (includes {highRiskSelectedCount:N0} high-risk item(s)).";
+        }
+        else
+        {
+            summary += ".";
+        }
+
+        return summary;
+    }
+
     public AsyncRelayCommand ScanCommand                  { get; }
     public RelayCommand      CancelScanCommand            { get; }
     public RelayCommand      BrowseFolderCommand          { get; }
@@ -481,6 +507,7 @@ public class StorageMasterViewModel : ViewModelBase
         _dialogService    = dialogService;
         _clipboardService = clipboardService;
         _backgroundTaskService = backgroundTaskService;
+        CleanupItems.CollectionChanged += OnCleanupItemsCollectionChanged;
 
         ScanCommand                   = new AsyncRelayCommand(_ => StartScanAsync(),             _ => CanScan);
         CancelScanCommand             = new RelayCommand(_ => CancelScan(),                       _ => _isScanning);
@@ -853,6 +880,35 @@ public class StorageMasterViewModel : ViewModelBase
         NotifyScanMetrics();
     }
 
+    private void OnCleanupItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (var item in e.OldItems.OfType<CleanupItemViewModel>())
+            {
+                item.PropertyChanged -= OnCleanupItemPropertyChanged;
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (var item in e.NewItems.OfType<CleanupItemViewModel>())
+            {
+                item.PropertyChanged += OnCleanupItemPropertyChanged;
+            }
+        }
+
+        NotifyScanMetrics();
+    }
+
+    private void OnCleanupItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(CleanupItemViewModel.IsSelected))
+        {
+            NotifyScanMetrics();
+        }
+    }
+
     private void PreviewCleanupPolicy()
     {
         var plan = BuildCleanupPolicyPlan();
@@ -1007,6 +1063,10 @@ public class StorageMasterViewModel : ViewModelBase
         OnPropertyChanged(nameof(TotalDuplicateWastedFormatted));
         OnPropertyChanged(nameof(TotalCleanupSavings));
         OnPropertyChanged(nameof(TotalCleanupSavingsFormatted));
+        OnPropertyChanged(nameof(SelectedCleanupCount));
+        OnPropertyChanged(nameof(HighRiskSelectedCount));
+        OnPropertyChanged(nameof(HasHighRiskCleanupSelection));
+        OnPropertyChanged(nameof(DestructiveReviewSummary));
     }
 
     private static string BuildComparisonReport(SnapshotComparison c)

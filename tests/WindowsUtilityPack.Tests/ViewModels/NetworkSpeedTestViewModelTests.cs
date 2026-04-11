@@ -9,6 +9,18 @@ namespace WindowsUtilityPack.Tests.ViewModels;
 public class NetworkSpeedTestViewModelTests
 {
     [Fact]
+    public void SelectingProfile_UpdatesServerAndMethodology()
+    {
+        var vm = new NetworkSpeedTestViewModel(new TestClipboardService(), new HttpClient(new StubSpeedHttpMessageHandler()));
+        var quick = vm.Profiles.First(p => p.Name.Contains("Quick Check", StringComparison.OrdinalIgnoreCase));
+
+        vm.SelectedProfile = quick;
+
+        Assert.Equal(quick.DownloadUrl, vm.ServerUrl);
+        Assert.Contains("ICMP latency", vm.MethodologySummary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task RunTest_StreamsUploadAndReportsThroughput()
     {
         var handler = new StubSpeedHttpMessageHandler();
@@ -24,6 +36,8 @@ public class NetworkSpeedTestViewModelTests
         Assert.Equal(100, vm.UploadProgress);
         Assert.Contains("Mbps", vm.UploadSpeed, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Not measured", vm.UploadSpeed, StringComparison.OrdinalIgnoreCase);
+        Assert.False(string.IsNullOrWhiteSpace(vm.PacketLoss));
+        Assert.False(string.IsNullOrWhiteSpace(vm.LatencyJitter));
     }
 
     [Fact]

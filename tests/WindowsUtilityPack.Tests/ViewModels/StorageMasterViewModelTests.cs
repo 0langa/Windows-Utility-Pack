@@ -22,4 +22,21 @@ public class StorageMasterViewModelTests
 
         Assert.Equal("128 files", summary);
     }
+
+    [Fact]
+    public void BuildDestructiveReviewSummary_IncludesHighRiskNotice()
+    {
+        var summary = StorageMasterViewModel.BuildDestructiveReviewSummary(5, "2.3 GB", 2);
+
+        Assert.Contains("5 selected for cleanup", summary);
+        Assert.Contains("2 high-risk item(s)", summary);
+    }
+
+    [Fact]
+    public void BuildDestructiveReviewSummary_HandlesNoSelection()
+    {
+        var summary = StorageMasterViewModel.BuildDestructiveReviewSummary(0, "0 B", 0);
+
+        Assert.Equal("No cleanup items selected.", summary);
+    }
 }

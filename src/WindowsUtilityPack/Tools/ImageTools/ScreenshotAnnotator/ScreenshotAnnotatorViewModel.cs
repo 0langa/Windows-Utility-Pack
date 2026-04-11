@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Diagnostics;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
@@ -65,7 +66,13 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     public string OutputPath
     {
         get => _outputPath;
-        set => SetProperty(ref _outputPath, value);
+        set
+        {
+            if (SetProperty(ref _outputPath, value))
+            {
+                RelayCommand.RaiseCanExecuteChanged();
+            }
+        }
     }
 
     public BitmapImage? PreviewImage
@@ -137,17 +144,40 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     public AnnotationRow? SelectedAnnotation
     {
         get => _selectedAnnotation;
-        set => SetProperty(ref _selectedAnnotation, value);
+        set
+        {
+            if (!SetProperty(ref _selectedAnnotation, value))
+            {
+                return;
+            }
+
+            if (value is not null)
+            {
+                AnnotationType = value.Type;
+                X = value.X;
+                Y = value.Y;
+                Width = value.Width;
+                Height = value.Height;
+                AnnotationText = value.Text;
+                AnnotationColor = value.Color;
+                AnnotationThickness = value.Thickness;
+            }
+
+            RelayCommand.RaiseCanExecuteChanged();
+        }
     }
 
     public AsyncRelayCommand CaptureScreenshotCommand { get; }
     public RelayCommand LoadImageCommand { get; }
     public RelayCommand BrowseOutputCommand { get; }
     public RelayCommand AddAnnotationCommand { get; }
+    public RelayCommand ApplyEditorToSelectedCommand { get; }
+    public RelayCommand DuplicateSelectedAnnotationCommand { get; }
     public RelayCommand RemoveSelectedAnnotationCommand { get; }
     public RelayCommand ClearAnnotationsCommand { get; }
     public AsyncRelayCommand SaveAnnotatedImageCommand { get; }
     public RelayCommand CopyOutputPathCommand { get; }
+    public RelayCommand OpenOutputFolderCommand { get; }
 
     public ScreenshotAnnotatorViewModel(IImageProcessingService imageProcessingService, IClipboardService clipboardService)
     {
@@ -158,10 +188,13 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         LoadImageCommand = new RelayCommand(_ => LoadImageFromDisk());
         BrowseOutputCommand = new RelayCommand(_ => BrowseOutputPath());
         AddAnnotationCommand = new RelayCommand(_ => AddAnnotation());
+        ApplyEditorToSelectedCommand = new RelayCommand(_ => ApplyEditorToSelected(), _ => SelectedAnnotation is not null);
+        DuplicateSelectedAnnotationCommand = new RelayCommand(_ => DuplicateSelected(), _ => SelectedAnnotation is not null);
         RemoveSelectedAnnotationCommand = new RelayCommand(_ => RemoveSelected(), _ => SelectedAnnotation is not null);
-        ClearAnnotationsCommand = new RelayCommand(_ => Annotations.Clear(), _ => Annotations.Count > 0);
+        ClearAnnotationsCommand = new RelayCommand(_ => ClearAllAnnotations(), _ => Annotations.Count > 0);
         SaveAnnotatedImageCommand = new AsyncRelayCommand(_ => SaveAnnotatedAsync(), _ => !IsBusy);
         CopyOutputPathCommand = new RelayCommand(_ => _clipboardService.SetText(OutputPath), _ => !string.IsNullOrWhiteSpace(OutputPath));
+        OpenOutputFolderCommand = new RelayCommand(_ => OpenOutputFolder(), _ => !string.IsNullOrWhiteSpace(OutputPath));
     }
 
     private async Task CaptureScreenshotAsync()
@@ -234,7 +267,7 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 
     private void AddAnnotation()
     {
-        Annotations.Add(new AnnotationRow
+        var annotation = new AnnotationRow
         {
             Type = AnnotationType,
             X = X,
@@ -244,9 +277,12 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
             Text = AnnotationText,
             Color = AnnotationColor,
             Thickness = AnnotationThickness,
-        });
+        };
+        Annotations.Add(annotation);
+        SelectedAnnotation = annotation;
 
         StatusMessage = $"Added {AnnotationType} annotation.";
+        RelayCommand.RaiseCanExecuteChanged();
     }
 
     private void RemoveSelected()
@@ -255,6 +291,58 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
             return;
         Annotations.Remove(SelectedAnnotation);
         SelectedAnnotation = null;
+        StatusMessage = "Selected annotation removed.";
+        RelayCommand.RaiseCanExecuteChanged();
+    }
+
+    private void ApplyEditorToSelected()
+    {
+        if (SelectedAnnotation is null)
+        {
+            return;
+        }
+
+        SelectedAnnotation.Type = AnnotationType;
+        SelectedAnnotation.X = X;
+        SelectedAnnotation.Y = Y;
+        SelectedAnnotation.Width = Width;
+        SelectedAnnotation.Height = Height;
+        SelectedAnnotation.Text = AnnotationText;
+        SelectedAnnotation.Color = AnnotationColor;
+        SelectedAnnotation.Thickness = AnnotationThickness;
+        StatusMessage = "Applied editor values to selected annotation.";
+    }
+
+    private void DuplicateSelected()
+    {
+        if (SelectedAnnotation is null)
+        {
+            return;
+        }
+
+        var duplicate = new AnnotationRow
+        {
+            Type = SelectedAnnotation.Type,
+            X = SelectedAnnotation.X + 12,
+            Y = SelectedAnnotation.Y + 12,
+            Width = SelectedAnnotation.Width,
+            Height = SelectedAnnotation.Height,
+            Text = SelectedAnnotation.Text,
+            Color = SelectedAnnotation.Color,
+            Thickness = SelectedAnnotation.Thickness,
+        };
+
+        Annotations.Add(duplicate);
+        SelectedAnnotation = duplicate;
+        StatusMessage = "Duplicated selected annotation.";
+    }
+
+    private void ClearAllAnnotations()
+    {
+        Annotations.Clear();
+        SelectedAnnotation = null;
+        StatusMessage = "Cleared all annotations.";
+        RelayCommand.RaiseCanExecuteChanged();
     }
 
     private async Task SaveAnnotatedAsync()
@@ -349,5 +437,24 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         bitmap.EndInit();
         bitmap.Freeze();
         PreviewImage = bitmap;
+    }
+
+    private void OpenOutputFolder()
+    {
+        try
+        {
+            var folder = Path.GetDirectoryName(OutputPath);
+            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+            {
+                StatusMessage = "Output folder does not exist.";
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo("explorer.exe", folder) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to open output folder: {ex.Message}";
+        }
     }
 }
