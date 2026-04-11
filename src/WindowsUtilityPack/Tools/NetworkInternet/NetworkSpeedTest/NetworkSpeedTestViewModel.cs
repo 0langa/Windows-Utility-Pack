@@ -1,8 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Net.NetworkInformation;
+using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Windows;
 using WindowsUtilityPack.Commands;
@@ -32,13 +35,14 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         PooledConnectionLifetime = TimeSpan.FromMinutes(10),
     };
 
-    private static readonly HttpClient _httpClient = new(HttpHandler)
+    private static readonly HttpClient SharedHttpClient = new(HttpHandler)
     {
         Timeout = Timeout.InfiniteTimeSpan,
     };
     private const string DefaultUploadUrl = "https://speed.cloudflare.com/__up";
 
     private readonly IClipboardService _clipboard;
+    private readonly HttpClient _httpClient;
     private CancellationTokenSource?   _cts;
 
     private string _downloadSpeed   = "-- Mbps";
@@ -119,8 +123,14 @@ public class NetworkSpeedTestViewModel : ViewModelBase
     public RelayCommand      CopyResultsCommand { get; }
 
     public NetworkSpeedTestViewModel(IClipboardService clipboard)
+        : this(clipboard, SharedHttpClient)
     {
-        _clipboard = clipboard;
+    }
+
+    internal NetworkSpeedTestViewModel(IClipboardService clipboard, HttpClient httpClient)
+    {
+        _clipboard = clipboard ?? throw new ArgumentNullException(nameof(clipboard));
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
         RunTestCommand     = new AsyncRelayCommand(_ => RunTestAsync(), _ => !IsTesting);
         StopCommand        = new RelayCommand(_ => _cts?.Cancel(),      _ => IsTesting);
@@ -161,7 +171,7 @@ public class NetworkSpeedTestViewModel : ViewModelBase
             UploadComplete = true;
 
             // Record result
-            Application.Current.Dispatcher.Invoke(() =>
+            RunOnUi(() =>
             {
                 History.Insert(0, new SpeedTestResult
                 {
@@ -238,7 +248,7 @@ public class NetworkSpeedTestViewModel : ViewModelBase
                 if (elapsed > 0)
                 {
                     var mbps = totalBytes * 8.0 / elapsed / 1_000_000;
-                    Application.Current.Dispatcher.Invoke(() =>
+                    RunOnUi(() =>
                     {
                         DownloadSpeed    = $"{mbps:F1} Mbps";
                         DownloadProgress = Math.Min(100, totalBytes * 100.0 / contentLength);
@@ -263,11 +273,27 @@ public class NetworkSpeedTestViewModel : ViewModelBase
 
     private async Task MeasureUploadAsync(CancellationToken ct)
     {
-        const int uploadSizeBytes = 5_000_000;
-        var payload = new byte[uploadSizeBytes];
-        Random.Shared.NextBytes(payload);
+        const int uploadSizeBytes = 10_000_000;
         var uploadEndpoint = ResolveUploadEndpoint();
         var sw = Stopwatch.StartNew();
+        long uploadedBytes = 0;
+
+        void OnProgress(long bytesWritten)
+        {
+            uploadedBytes = bytesWritten;
+            var elapsedSeconds = sw.Elapsed.TotalSeconds;
+            if (elapsedSeconds <= 0)
+            {
+                return;
+            }
+
+            var mbps = bytesWritten * 8.0 / elapsedSeconds / 1_000_000;
+            RunOnUi(() =>
+            {
+                UploadSpeed = $"{mbps:F1} Mbps";
+                UploadProgress = Math.Min(100, bytesWritten * 100.0 / uploadSizeBytes);
+            });
+        }
 
         try
         {
@@ -275,14 +301,14 @@ public class NetworkSpeedTestViewModel : ViewModelBase
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(60));
             using var request = new HttpRequestMessage(HttpMethod.Post, uploadEndpoint)
             {
-                Content = new ByteArrayContent(payload),
+                // Stream random bytes to measure real request-body throughput
+                // instead of approximating from a single buffered payload round-trip.
+                Content = new UploadMeasurementContent(uploadSizeBytes, 64 * 1024, OnProgress),
             };
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-            UploadProgress = 30;
             using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeoutCts.Token);
             response.EnsureSuccessStatusCode();
-            UploadProgress = 90;
         }
         catch (OperationCanceledException)
         {
@@ -297,7 +323,12 @@ public class NetworkSpeedTestViewModel : ViewModelBase
 
         sw.Stop();
         var elapsedSeconds = sw.Elapsed.TotalSeconds <= 0 ? 0.001 : sw.Elapsed.TotalSeconds;
-        var mbps = uploadSizeBytes * 8.0 / elapsedSeconds / 1_000_000;
+        if (uploadedBytes <= 0)
+        {
+            uploadedBytes = uploadSizeBytes;
+        }
+
+        var mbps = uploadedBytes * 8.0 / elapsedSeconds / 1_000_000;
         UploadSpeed = $"{mbps:F1} Mbps";
         UploadProgress = 100;
     }
@@ -313,6 +344,41 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         return DefaultUploadUrl;
     }
 
+    private sealed class UploadMeasurementContent : HttpContent
+    {
+        private readonly long _totalBytes;
+        private readonly int _chunkSize;
+        private readonly Action<long> _progress;
+
+        public UploadMeasurementContent(long totalBytes, int chunkSize, Action<long> progress)
+        {
+            _totalBytes = totalBytes;
+            _chunkSize = chunkSize;
+            _progress = progress;
+        }
+
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+        {
+            var buffer = new byte[_chunkSize];
+            long written = 0;
+
+            while (written < _totalBytes)
+            {
+                var toWrite = (int)Math.Min(_chunkSize, _totalBytes - written);
+                RandomNumberGenerator.Fill(buffer.AsSpan(0, toWrite));
+                await stream.WriteAsync(buffer.AsMemory(0, toWrite));
+                written += toWrite;
+                _progress(written);
+            }
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = _totalBytes;
+            return true;
+        }
+    }
+
     private void CopyResults()
     {
         if (History.Count == 0) return;
@@ -323,5 +389,17 @@ public class NetworkSpeedTestViewModel : ViewModelBase
                      $"Latency:  {latest.Latency}\n";
         _clipboard.SetText(text);
         StatusMessage = "Results copied to clipboard.";
+    }
+
+    private static void RunOnUi(Action action)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        dispatcher.Invoke(action);
     }
 }

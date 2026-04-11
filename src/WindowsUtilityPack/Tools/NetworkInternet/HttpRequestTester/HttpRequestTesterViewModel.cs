@@ -15,8 +15,9 @@ namespace WindowsUtilityPack.Tools.NetworkInternet.HttpRequestTester;
 /// </summary>
 public class HttpRequestTesterViewModel : ViewModelBase
 {
-    private static readonly HttpClient _httpClient = new();
+    private static readonly HttpClient SharedHttpClient = new();
 
+    private readonly HttpClient _httpClient;
     private readonly IClipboardService _clipboard;
 
     private string _url                = "https://httpbin.org/get";
@@ -109,8 +110,14 @@ public class HttpRequestTesterViewModel : ViewModelBase
     public RelayCommand      ClearCommand        { get; }
 
     public HttpRequestTesterViewModel(IClipboardService clipboard)
+        : this(clipboard, SharedHttpClient)
     {
-        _clipboard = clipboard;
+    }
+
+    internal HttpRequestTesterViewModel(IClipboardService clipboard, HttpClient httpClient)
+    {
+        _clipboard = clipboard ?? throw new ArgumentNullException(nameof(clipboard));
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
         SendCommand         = new AsyncRelayCommand(_ => SendRequestAsync(), _ => !IsSending);
         CopyResponseCommand = new RelayCommand(_ => CopyResponse(),         _ => !string.IsNullOrEmpty(ResponseBody));

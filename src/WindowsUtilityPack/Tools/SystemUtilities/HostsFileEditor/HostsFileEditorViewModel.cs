@@ -25,12 +25,15 @@ public class HostsEntry : ViewModelBase
 
 public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
 {
-    private static readonly string HostsPath =
+    private static readonly string DefaultHostsPath =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
                      @"drivers\etc\hosts");
-    private static readonly string BackupPath =
+    private static readonly string DefaultBackupPath =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "WindowsUtilityPack", "hosts.backup");
+
+    private readonly string _hostsPath;
+    private readonly string _backupPath;
 
     private static readonly string[] BlocklistEntries =
     [
@@ -105,7 +108,15 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
     public AsyncRelayCommand RestoreBackupCommand { get; }
 
     public HostsFileEditorViewModel()
+        : this(null, null, autoLoad: true)
     {
+    }
+
+    internal HostsFileEditorViewModel(string? hostsPath, string? backupPath, bool autoLoad)
+    {
+        _hostsPath = string.IsNullOrWhiteSpace(hostsPath) ? DefaultHostsPath : hostsPath;
+        _backupPath = string.IsNullOrWhiteSpace(backupPath) ? DefaultBackupPath : backupPath;
+
         LoadCommand         = new AsyncRelayCommand(LoadAsync);
         SaveCommand         = new AsyncRelayCommand(SaveAsync);
         AddEntryCommand     = new RelayCommand(AddEntry);
@@ -114,14 +125,17 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         AddBlocklistCommand = new RelayCommand(AddBlocklist);
         RestoreBackupCommand = new AsyncRelayCommand(RestoreBackupAsync);
 
-        LoadCommand.Execute(null);
+        if (autoLoad)
+        {
+            LoadCommand.Execute(null);
+        }
     }
 
     private async Task LoadAsync()
     {
         try
         {
-            var lines = await File.ReadAllLinesAsync(HostsPath);
+            var lines = await File.ReadAllLinesAsync(_hostsPath);
 
             RunOnUi(() =>
             {
@@ -129,7 +143,7 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
                 foreach (var line in lines)
                     ParseAndAdd(line);
                 IsModified    = false;
-                StatusMessage = $"Loaded {Entries.Count} entries from {HostsPath}.";
+                StatusMessage = $"Loaded {Entries.Count} entries from {_hostsPath}.";
             });
         }
         catch (UnauthorizedAccessException)
@@ -211,7 +225,7 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         {
             var backupWarning = await TryCreateBackupAsync();
             var content = BuildFileContent();
-            await File.WriteAllTextAsync(HostsPath, content, Encoding.ASCII);
+            await File.WriteAllTextAsync(_hostsPath, content, Encoding.ASCII);
             IsModified    = false;
             StatusMessage = backupWarning is null
                 ? "Hosts file saved successfully."
@@ -227,20 +241,20 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         }
     }
 
-    private static async Task<string?> TryCreateBackupAsync()
+    private async Task<string?> TryCreateBackupAsync()
     {
         try
         {
-            var backupDir = Path.GetDirectoryName(BackupPath);
+            var backupDir = Path.GetDirectoryName(_backupPath);
             if (!string.IsNullOrWhiteSpace(backupDir))
             {
                 Directory.CreateDirectory(backupDir);
             }
 
-            if (File.Exists(HostsPath))
+            if (File.Exists(_hostsPath))
             {
-                var source = await File.ReadAllTextAsync(HostsPath, Encoding.ASCII);
-                await File.WriteAllTextAsync(BackupPath, source, Encoding.ASCII);
+                var source = await File.ReadAllTextAsync(_hostsPath, Encoding.ASCII);
+                await File.WriteAllTextAsync(_backupPath, source, Encoding.ASCII);
             }
 
             return null;
@@ -255,14 +269,14 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
     {
         try
         {
-            if (!File.Exists(BackupPath))
+            if (!File.Exists(_backupPath))
             {
                 StatusMessage = "No backup found.";
                 return;
             }
 
-            var backupContent = await File.ReadAllTextAsync(BackupPath, Encoding.ASCII);
-            await File.WriteAllTextAsync(HostsPath, backupContent, Encoding.ASCII);
+            var backupContent = await File.ReadAllTextAsync(_backupPath, Encoding.ASCII);
+            await File.WriteAllTextAsync(_hostsPath, backupContent, Encoding.ASCII);
             await LoadAsync();
             StatusMessage = "Hosts file restored from backup.";
         }
