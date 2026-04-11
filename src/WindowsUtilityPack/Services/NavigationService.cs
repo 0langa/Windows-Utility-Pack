@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Windows.Controls;
-using Microsoft.Extensions.DependencyInjection;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Services

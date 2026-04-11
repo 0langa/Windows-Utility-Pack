@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using WindowsUtilityPack.Services.Downloader;
 
 namespace WindowsUtilityPack.Services;

@@ -165,6 +165,7 @@ public class PingToolViewModel : ViewModelBase
         finally
         {
             IsPinging = false;
+            _cts?.Dispose();
             _cts = null;
         }
     }

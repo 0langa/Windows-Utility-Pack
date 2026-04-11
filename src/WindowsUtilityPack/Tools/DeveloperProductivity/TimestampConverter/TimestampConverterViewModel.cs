@@ -127,6 +127,7 @@ public sealed class TimestampConverterViewModel : ViewModelBase
     private async void ScheduleConvert()
     {
         _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
         var cts = new CancellationTokenSource();
         _debounceCts = cts;
 

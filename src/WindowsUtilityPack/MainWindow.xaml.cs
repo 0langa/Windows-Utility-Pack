@@ -1,4 +1,4 @@
-    using System.Windows;
+using System.Windows;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
 

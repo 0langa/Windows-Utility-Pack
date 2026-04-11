@@ -101,6 +101,7 @@ public sealed class Base64EncoderViewModel : ViewModelBase
     {
         if (_updating) return;
         _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
         var cts = new CancellationTokenSource();
         _debounceCts = cts;
         try

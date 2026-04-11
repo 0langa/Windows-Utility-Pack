@@ -137,6 +137,7 @@ public class HashGeneratorViewModel : ViewModelBase
     private void ScheduleAutoCompute()
     {
         _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
         _debounceCts = new CancellationTokenSource();
         var ct = _debounceCts.Token;
         _ = Task.Run(async () =>
