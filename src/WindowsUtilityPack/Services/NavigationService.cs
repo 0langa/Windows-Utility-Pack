@@ -98,7 +98,14 @@ namespace WindowsUtilityPack.Services
             if (CurrentViewModel is not null)
                 _backStack.Push(CurrentViewModel);
 
-            CurrentViewModel = (ViewModelBase)viewModel;
+            if (viewModel is not ViewModelBase vm)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[NavigationService] NavigateTo: expected ViewModelBase but received {viewModel.GetType().Name}.");
+                return;
+            }
+
+            CurrentViewModel = vm;
             Navigated?.Invoke(this, viewModel.GetType());
 
             if (_contentHost is not null)

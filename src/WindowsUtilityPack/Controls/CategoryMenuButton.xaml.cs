@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
 using WindowsUtilityPack.Models;
 
 namespace WindowsUtilityPack.Controls;
@@ -121,11 +122,22 @@ public partial class CategoryMenuButton : UserControl
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
+    /// <summary>Debounce timer that prevents popup flicker when the mouse briefly
+    /// crosses the gap between the button and the dropdown.</summary>
+    private readonly DispatcherTimer _closeTimer;
+
     public CategoryMenuButton()
     {
         // Initialise the collection before InitializeComponent so XAML can bind to it.
         MenuItems = [];
         InitializeComponent();
+
+        _closeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        _closeTimer.Tick += (_, _) =>
+        {
+            _closeTimer.Stop();
+            CloseIfNotActive();
+        };
 
         // Enable keyboard focus for accessibility.
         Focusable = true;
@@ -152,15 +164,24 @@ public partial class CategoryMenuButton : UserControl
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
     {
+        _closeTimer.Stop();
         DropdownPopup.IsOpen = true;
     }
 
     private void OnMouseLeave(object sender, MouseEventArgs e)
-        => Dispatcher.BeginInvoke(CloseIfNotActive, System.Windows.Threading.DispatcherPriority.Input);
+    {
+        _closeTimer.Stop();
+        _closeTimer.Start();
+    }
 
-    // Called when the mouse leaves the popup's content border.
+    private void OnPopupMouseEnter(object sender, MouseEventArgs e)
+        => _closeTimer.Stop();
+
     private void OnPopupMouseLeave(object sender, MouseEventArgs e)
-        => Dispatcher.BeginInvoke(CloseIfNotActive, System.Windows.Threading.DispatcherPriority.Input);
+    {
+        _closeTimer.Stop();
+        _closeTimer.Start();
+    }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {

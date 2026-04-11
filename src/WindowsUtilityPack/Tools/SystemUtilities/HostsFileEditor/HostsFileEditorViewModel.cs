@@ -8,13 +8,19 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.SystemUtilities.HostsFileEditor;
 
-public class HostsEntry
+public class HostsEntry : ViewModelBase
 {
-    public string IpAddress { get; set; } = string.Empty;
-    public string Hostname  { get; set; } = string.Empty;
-    public string Comment   { get; set; } = string.Empty;
-    public bool   IsEnabled { get; set; } = true;
-    public bool   IsComment { get; set; } = false;
+    private string _ipAddress = string.Empty;
+    private string _hostname  = string.Empty;
+    private string _comment   = string.Empty;
+    private bool   _isEnabled = true;
+    private bool   _isComment;
+
+    public string IpAddress { get => _ipAddress; set => SetProperty(ref _ipAddress, value); }
+    public string Hostname  { get => _hostname;  set => SetProperty(ref _hostname,  value); }
+    public string Comment   { get => _comment;   set => SetProperty(ref _comment,   value); }
+    public bool   IsEnabled { get => _isEnabled;  set => SetProperty(ref _isEnabled,  value); }
+    public bool   IsComment { get => _isComment;  set => SetProperty(ref _isComment,  value); }
 }
 
 public class HostsFileEditorViewModel : ViewModelBase
@@ -317,17 +323,6 @@ public class HostsFileEditorViewModel : ViewModelBase
     {
         if (SelectedEntry == null) return;
         SelectedEntry.IsEnabled = !SelectedEntry.IsEnabled;
-
-        // Force list refresh
-        var idx = Entries.IndexOf(SelectedEntry);
-        if (idx >= 0)
-        {
-            var e = SelectedEntry;
-            Entries.RemoveAt(idx);
-            Entries.Insert(idx, e);
-            SelectedEntry = e;
-        }
-
         IsModified    = true;
         StatusMessage = $"Entry '{SelectedEntry.Hostname}' toggled. Remember to Save.";
     }

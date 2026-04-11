@@ -176,10 +176,9 @@ public class MainWindowViewModel : ViewModelBase
 
     private static void OpenSettings()
     {
-        var window = new SettingsWindow
-        {
-            Owner = Application.Current.MainWindow
-        };
+        var window = new SettingsWindow();
+        if (Application.Current.MainWindow is { IsLoaded: true } mainWindow)
+            window.Owner = mainWindow;
         window.ShowDialog();
     }
 }

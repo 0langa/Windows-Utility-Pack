@@ -6,12 +6,17 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.SystemUtilities.StartupManager;
 
-public class StartupEntry
+public class StartupEntry : ViewModelBase
 {
-    public string Name { get; set; } = string.Empty;
-    public string Command { get; set; } = string.Empty;
-    public bool IsEnabled { get; set; }
-    public string Source { get; set; } = string.Empty; // "HKCU" or "HKLM"
+    private string _name = string.Empty;
+    private string _command = string.Empty;
+    private bool   _isEnabled;
+    private string _source = string.Empty;
+
+    public string Name      { get => _name;      set => SetProperty(ref _name, value); }
+    public string Command   { get => _command;   set => SetProperty(ref _command, value); }
+    public bool   IsEnabled { get => _isEnabled;  set => SetProperty(ref _isEnabled, value); }
+    public string Source    { get => _source;    set => SetProperty(ref _source, value); }
 }
 
 public class StartupManagerViewModel : ViewModelBase
@@ -201,15 +206,6 @@ public class StartupManagerViewModel : ViewModelBase
                     entry.IsEnabled = true;
                     StatusMessage   = $"Enabled '{entry.Name}'.";
                 }
-            }
-
-            // Refresh list so IsEnabled column updates
-            var idx = Entries.IndexOf(entry);
-            if (idx >= 0)
-            {
-                Entries.RemoveAt(idx);
-                Entries.Insert(idx, entry);
-                SelectedEntry = entry;
             }
         }
         catch (Exception ex)

@@ -94,40 +94,45 @@
                StaysOpen="True"
                AllowsTransparency="True"
                PopupAnimation="Fade">
-            <Border Background="{DynamicResource PopupBackgroundBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="14"
-                    Padding="8"
-                    Width="320"
-                    Margin="0,8,0,0"
-                    Effect="{StaticResource DropShadowEffect}"
+            <!-- Outer transparent border bridges the 8px visual gap so the mouse
+                 stays "over" the popup while crossing from the button to the content. -->
+            <Border Background="Transparent"
+                    Padding="0,8,0,0"
+                    MouseEnter="OnPopupMouseEnter"
                     MouseLeave="OnPopupMouseLeave">
-                <StackPanel>
-                    <TextBlock Text="{Binding Label, ElementName=Root}"
-                               Style="{StaticResource PanelHeaderTextStyle}"
-                               Margin="4,2,4,8"/>
-                    <ItemsControl ItemsSource="{Binding MenuItems, ElementName=Root}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type self:MenuEntry}">
-                                <Button Tag="{Binding ToolKey}"
-                                        Style="{StaticResource DropdownItemStyle}"
-                                        Click="OnDropdownItemClick">
-                                    <DockPanel LastChildFill="True">
-                                        <TextBlock DockPanel.Dock="Left"
-                                                   Text="&#xE8FD;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   Margin="0,0,8,0"
-                                                   Foreground="{DynamicResource AccentBrush}"/>
-                                        <TextBlock Text="{Binding Label}"
-                                                   Foreground="{DynamicResource PrimaryTextBrush}"
-                                                   TextWrapping="Wrap"/>
-                                    </DockPanel>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
+                <Border Background="{DynamicResource PopupBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="14"
+                        Padding="8"
+                        Width="320"
+                        Effect="{StaticResource DropShadowEffect}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Label, ElementName=Root}"
+                                   Style="{StaticResource PanelHeaderTextStyle}"
+                                   Margin="4,2,4,8"/>
+                        <ItemsControl ItemsSource="{Binding MenuItems, ElementName=Root}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type self:MenuEntry}">
+                                    <Button Tag="{Binding ToolKey}"
+                                            Style="{StaticResource DropdownItemStyle}"
+                                            Click="OnDropdownItemClick">
+                                        <DockPanel LastChildFill="True">
+                                            <TextBlock DockPanel.Dock="Left"
+                                                       Text="&#xE8FD;"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       Margin="0,0,8,0"
+                                                       Foreground="{DynamicResource AccentBrush}"/>
+                                            <TextBlock Text="{Binding Label}"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                                       TextWrapping="Wrap"/>
+                                        </DockPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
             </Border>
         </Popup>
     </Grid>

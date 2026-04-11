@@ -229,6 +229,7 @@ public class PortScannerViewModel : ViewModelBase
         StatusMessage = cancelled
             ? $"Scan stopped. {openCount} open port(s) found."
             : $"Scan complete. {openCount} open port(s) found of {total} scanned.";
+        _cts?.Dispose();
         _cts = null;
     }
 

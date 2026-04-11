@@ -136,6 +136,7 @@ public sealed class DiffToolViewModel : ViewModelBase
     private async void ScheduleComputeDiff()
     {
         _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
         var cts = new CancellationTokenSource();
         _debounceCts = cts;
         try

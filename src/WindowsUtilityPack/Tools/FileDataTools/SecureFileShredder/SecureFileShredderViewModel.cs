@@ -9,12 +9,17 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.FileDataTools.SecureFileShredder;
 
-public class ShredderFileEntry
+public class ShredderFileEntry : ViewModelBase
 {
-    public string FilePath    { get; set; } = string.Empty;
-    public string FileName    { get; set; } = string.Empty;
-    public string SizeDisplay { get; set; } = string.Empty;
-    public string Status      { get; set; } = "Queued"; // Queued, Shredding, Done, Error
+    private string _filePath    = string.Empty;
+    private string _fileName    = string.Empty;
+    private string _sizeDisplay = string.Empty;
+    private string _status      = "Queued";
+
+    public string FilePath    { get => _filePath;    set => SetProperty(ref _filePath, value); }
+    public string FileName    { get => _fileName;    set => SetProperty(ref _fileName, value); }
+    public string SizeDisplay { get => _sizeDisplay; set => SetProperty(ref _sizeDisplay, value); }
+    public string Status      { get => _status;      set => SetProperty(ref _status, value); } // Queued, Shredding, Done, Error
 }
 
 public class SecureFileShredderViewModel : ViewModelBase
@@ -168,7 +173,6 @@ public class SecureFileShredderViewModel : ViewModelBase
                 {
                     entry.Status  = "Shredding";
                     CurrentFile   = entry.FileName;
-                    RefreshEntry(entry);
                 });
 
                 try
@@ -178,7 +182,6 @@ public class SecureFileShredderViewModel : ViewModelBase
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         entry.Status = "Done";
-                        RefreshEntry(entry);
                     });
                 }
                 catch (Exception ex)
@@ -186,7 +189,6 @@ public class SecureFileShredderViewModel : ViewModelBase
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         entry.Status = $"Error: {ex.Message}";
-                        RefreshEntry(entry);
                     });
                 }
 
@@ -252,16 +254,6 @@ public class SecureFileShredderViewModel : ViewModelBase
         }
 
         File.Delete(randomName);
-    }
-
-    private void RefreshEntry(ShredderFileEntry entry)
-    {
-        var idx = Files.IndexOf(entry);
-        if (idx >= 0)
-        {
-            Files.RemoveAt(idx);
-            Files.Insert(idx, entry);
-        }
     }
 
     private static string FormatSize(long bytes)

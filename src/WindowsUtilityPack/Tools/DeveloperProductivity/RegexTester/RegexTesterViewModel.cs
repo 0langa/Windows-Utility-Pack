@@ -115,6 +115,7 @@ public class RegexTesterViewModel : ViewModelBase
     private async void ScheduleRunRegex()
     {
         _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
         var cts = new CancellationTokenSource();
         _debounceCts = cts;
 
