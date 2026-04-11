@@ -132,8 +132,8 @@ public class LocalSecretVaultViewModel : ViewModelBase
     public AsyncRelayCommand UnlockCommand          { get; }
     public RelayCommand      LockCommand            { get; }
     public RelayCommand      AddSecretCommand       { get; }
-    public RelayCommand      SaveSecretCommand      { get; }
-    public RelayCommand      DeleteSecretCommand    { get; }
+    public AsyncRelayCommand  SaveSecretCommand      { get; }
+    public AsyncRelayCommand  DeleteSecretCommand    { get; }
     public RelayCommand      CopyValueCommand       { get; }
     public RelayCommand      ToggleVisibilityCommand { get; }
 
@@ -144,8 +144,8 @@ public class LocalSecretVaultViewModel : ViewModelBase
         UnlockCommand          = new AsyncRelayCommand(_ => UnlockAsync());
         LockCommand            = new RelayCommand(_ => Lock(),                  _ => !IsLocked);
         AddSecretCommand       = new RelayCommand(_ => AddSecret(),             _ => !IsLocked);
-        SaveSecretCommand      = new RelayCommand(_ => SaveSecret(),            _ => !IsLocked);
-        DeleteSecretCommand    = new RelayCommand(_ => DeleteSecret(),          _ => !IsLocked && SelectedSecret != null);
+        SaveSecretCommand      = new AsyncRelayCommand(_ => SaveSecretAsync(),  _ => !IsLocked);
+        DeleteSecretCommand    = new AsyncRelayCommand(_ => DeleteSecretAsync(), _ => !IsLocked && SelectedSecret != null);
         CopyValueCommand       = new RelayCommand(_ => CopyValue(),             _ => !IsLocked && SelectedSecret != null);
         ToggleVisibilityCommand = new RelayCommand(_ => IsValueVisible = !IsValueVisible);
     }
@@ -223,7 +223,7 @@ public class LocalSecretVaultViewModel : ViewModelBase
         StatusMessage = "Fill in the fields and click Save.";
     }
 
-    private void SaveSecret()
+    private async Task SaveSecretAsync()
     {
         if (_derivedKey == null) return;
 
@@ -255,19 +255,33 @@ public class LocalSecretVaultViewModel : ViewModelBase
         }
 
         FilterSecrets();
-        _ = SaveVaultAsync();
-        StatusMessage = "Secret saved.";
+        try
+        {
+            await SaveVaultAsync();
+            StatusMessage = "Secret saved.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Secret saved in memory but vault write failed: {ex.Message}";
+        }
     }
 
-    private void DeleteSecret()
+    private async Task DeleteSecretAsync()
     {
         if (SelectedSecret == null) return;
         _allSecrets.Remove(SelectedSecret);
         Secrets.Remove(SelectedSecret);
         SelectedSecret = null;
         EditName = EditValue = EditCategory = EditNotes = string.Empty;
-        _ = SaveVaultAsync();
-        StatusMessage = "Secret deleted.";
+        try
+        {
+            await SaveVaultAsync();
+            StatusMessage = "Secret deleted.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Secret removed but vault write failed: {ex.Message}";
+        }
     }
 
     private void CopyValue()
@@ -340,9 +354,7 @@ public class LocalSecretVaultViewModel : ViewModelBase
 
     private static byte[] DeriveKey(string password, byte[] salt)
     {
-        using var pbkdf2 = new Rfc2898DeriveBytes(
-            password, salt, Iterations, HashAlgorithmName.SHA256);
-        return pbkdf2.GetBytes(KeySize);
+        return Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, KeySize);
     }
 
     private static byte[] Encrypt(byte[] plaintext, byte[] key)

@@ -147,7 +147,7 @@ public class CertificateInspectorViewModel : ViewModelBase
                 case "File":
                     if (!File.Exists(FilePath))
                         throw new FileNotFoundException("File not found.", FilePath);
-                    cert = new X509Certificate2(FilePath);
+                    cert = X509CertificateLoader.LoadCertificateFromFile(FilePath);
                     break;
 
                 case "PEM":
@@ -158,7 +158,7 @@ public class CertificateInspectorViewModel : ViewModelBase
                         .Where(l => !l.StartsWith("-----"))
                         .Select(l => l.Trim()));
                     var bytes = Convert.FromBase64String(b64);
-                    cert = new X509Certificate2(bytes);
+                    cert = X509CertificateLoader.LoadCertificate(bytes);
                     break;
             }
 

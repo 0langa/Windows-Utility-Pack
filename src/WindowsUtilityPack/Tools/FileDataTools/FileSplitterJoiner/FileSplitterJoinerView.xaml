@@ -81,7 +81,7 @@
                                      Margin="0,8,0,0"
                                      Minimum="0"
                                      Maximum="100"
-                                     Value="{Binding ProgressPercent}"/>
+                                     Value="{Binding ProgressPercent, Mode=OneWay}"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
                         <Button Content="Cancel"

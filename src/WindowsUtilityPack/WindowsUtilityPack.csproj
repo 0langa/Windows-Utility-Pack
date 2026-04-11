@@ -30,7 +30,7 @@
     <PackageReference Include="ReverseMarkdown" Version="5.2.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
-    <PackageReference Include="taglib" Version="2.1.0" />
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
   <ItemGroup>

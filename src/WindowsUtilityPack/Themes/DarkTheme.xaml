@@ -9,6 +9,7 @@
     <SolidColorBrush x:Key="PopupBackgroundBrush"       Color="#2D2D2D"/>
     <SolidColorBrush x:Key="AccentCardBackgroundBrush"  Color="#1A3350"/>
     <SolidColorBrush x:Key="PreviewBackgroundBrush"     Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush"       Color="#383838"/>
 
     <!-- ── Text ── -->
     <SolidColorBrush x:Key="PrimaryTextBrush"    Color="#FFFFFF"/>
@@ -28,6 +29,7 @@
 
     <!-- ── Borders ── -->
     <SolidColorBrush x:Key="BorderBrush"         Color="#3D3D3D"/>
+    <SolidColorBrush x:Key="SubtleBorderBrush"   Color="#333333"/>
 
     <!-- ── Buttons ── -->
     <SolidColorBrush x:Key="CategoryButtonBackgroundBrush" Color="#383838"/>

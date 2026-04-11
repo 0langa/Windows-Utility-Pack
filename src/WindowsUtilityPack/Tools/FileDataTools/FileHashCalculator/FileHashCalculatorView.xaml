@@ -70,7 +70,7 @@
                 <StackPanel>
                     <TextBlock Text="{Binding StatusMessage}"
                                Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,6"/>
-                    <ProgressBar Value="{Binding Progress}" Minimum="0" Maximum="100" Height="8"/>
+                    <ProgressBar Value="{Binding Progress, Mode=OneWay}" Minimum="0" Maximum="100" Height="8"/>
                 </StackPanel>
             </Border>
 

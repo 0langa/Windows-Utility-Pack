@@ -649,7 +649,7 @@ public sealed class DownloaderViewModel : ViewModelBase
     // Fix Issue 10: lets the user abort an in-progress scan or crawl
     public RelayCommand CancelScanCommand { get; }
 
-    public RelayCommand ClearHistoryCommand { get; }
+    public AsyncRelayCommand ClearHistoryCommand { get; }
 
     public AsyncRelayCommand RedownloadHistoryItemCommand { get; }
 
@@ -800,7 +800,7 @@ public sealed class DownloaderViewModel : ViewModelBase
         ClearScheduleCommand = new RelayCommand(_ => ClearSchedule());
         ExportDiagnosticsCommand = new AsyncRelayCommand(_ => ExportDiagnosticsAsync());
         CancelScanCommand = new RelayCommand(_ => _scanCts?.Cancel(), _ => IsScanning);
-        ClearHistoryCommand = new RelayCommand(_ => _ = ClearHistoryAsync());
+        ClearHistoryCommand = new AsyncRelayCommand(_ => ClearHistoryAsync());
         RedownloadHistoryItemCommand = new AsyncRelayCommand(item => RedownloadHistoryItemAsync(item as DownloadHistoryEntry ?? SelectedHistoryEntry));
         OpenHistoryFileCommand = new RelayCommand(_ => OpenHistoryFile(), _ => SelectedHistoryEntry is not null);
         OpenHistoryFolderCommand = new RelayCommand(_ => OpenHistoryFolder(), _ => SelectedHistoryEntry is not null);
