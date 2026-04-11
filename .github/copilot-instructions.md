@@ -2,6 +2,10 @@
 
 This repository is a Windows desktop app built with C# / .NET 10 / WPF / MVVM.
 
+## General Guidelines
+- Agents should use the self-learning and memory-saving capability whenever they think it might be a good idea, not just when explicitly instructed. This encourages proactive adaptation and continuous improvement.
+- Minimize unnecessary confirmation prompts and focus on delivering complete solutions autonomously, completing tasks end-to-end without asking for confirmation at every step.
+
 ## Prompt Optimization First
 - Only run prompt optimization when the original user prompt includes `optimize prompt first` (case-insensitive).
 - When triggered, rewrite the request into a concise execution brief.
@@ -39,3 +43,4 @@ This repository is a Windows desktop app built with C# / .NET 10 / WPF / MVVM.
 - Tests pass (`dotnet test tests/WindowsUtilityPack.Tests/WindowsUtilityPack.Tests.csproj`).
 - New feature is registered in `App.xaml.cs` and mapped in `App.xaml` DataTemplate.
 - User-facing messages are clear and actionable.
+
