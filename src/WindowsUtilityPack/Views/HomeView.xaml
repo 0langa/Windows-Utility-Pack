@@ -50,7 +50,7 @@
                     <TextBox x:Name="SearchBox" Style="{StaticResource SearchBoxStyle}" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" GotKeyboardFocus="SearchBox_OnGotKeyboardFocus" LostKeyboardFocus="SearchBox_OnLostKeyboardFocus"/>
                     <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InputPlaceholderBrush}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0,0,0" IsHitTestVisible="False"/>
                     <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12" Style="{StaticResource SectionActionLinkStyle}" Command="{Binding ClearSearchCommand}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="{Binding HasSearchQuery, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    <Popup IsOpen="{Binding ShowSearchDropdown}" PlacementTarget="{Binding ElementName=SearchBox}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="6">
+                    <Popup IsOpen="{Binding ShowSearchDropdown, Mode=OneWay}" PlacementTarget="{Binding ElementName=SearchBox}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="6">
                         <Border Background="{DynamicResource PopupBackgroundBrush}" BorderBrush="{DynamicResource StrongBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8" Width="{Binding ActualWidth, ElementName=SearchBox}" MaxHeight="260">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel>
