@@ -130,7 +130,14 @@ public class RegexTesterViewModel : ViewModelBase
         }
         catch (Exception)
         {
-            // Swallow unexpected exceptions to prevent async void crash.
+            try
+            {
+                App.TryGetLoggingService()?.LogError("Unexpected error while debouncing regex evaluation");
+            }
+            catch
+            {
+                System.Diagnostics.Debug.WriteLine("[RegexTesterViewModel] Unexpected debounce failure.");
+            }
         }
     }
 

@@ -13,7 +13,6 @@
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
-        PreviewKeyDown="OnPreviewKeyDown"
         StateChanged="OnWindowStateChanged"
         Closing="OnWindowClosing"
         Closed="OnWindowClosed">
@@ -59,7 +58,6 @@
 
     <Window.InputBindings>
         <KeyBinding Gesture="Ctrl+K" Command="{Binding OpenCommandPaletteCommand}"/>
-        <KeyBinding Gesture="Escape" Command="{Binding CloseCommandPaletteCommand}"/>
     </Window.InputBindings>
 
     <Grid Margin="16">

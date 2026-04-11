@@ -31,6 +31,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private CommandPaletteItem? _selectedCommandPaletteItem;
     private string _currentToolKey = "home";
     public event EventHandler<ShellHotkeyAction>? ShellActionRequested;
+    public event EventHandler? CommandPaletteRequested;
 
     public AppTheme EffectiveTheme
     {
@@ -258,16 +259,12 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void OpenCommandPalette()
     {
-        IsCommandPaletteOpen = true;
-        CommandPaletteQuery = string.Empty;
-        RefreshCommandPaletteResults();
+        CommandPaletteRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void CloseCommandPalette()
     {
         IsCommandPaletteOpen = false;
-        CommandPaletteQuery = string.Empty;
-        SelectedCommandPaletteItem = null;
     }
 
     private void RefreshCommandPaletteResults()
@@ -344,8 +341,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         CloseCommandPalette();
     }
-
-    public void OpenCommandPaletteFromShell() => OpenCommandPalette();
 
     private void PopOutCurrentTool()
     {

@@ -16,6 +16,8 @@ namespace WindowsUtilityPack.ViewModels;
 /// </summary>
 public class HomeViewModel : ViewModelBase, IDisposable
 {
+    private const string NoPingHostMessage = "No URL/host detected in clipboard";
+
     private static readonly Dictionary<string, string[]> SearchSynonyms = new(StringComparer.OrdinalIgnoreCase)
     {
         ["guid"] = ["uuid", "ulid"],
@@ -602,6 +604,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
             ClipboardSummary = "Clipboard is empty";
             HasClipboardContent = false;
             _lastDetectedHost = null;
+            QuickPingStatus = NoPingHostMessage;
             return;
         }
 
@@ -612,8 +615,9 @@ public class HomeViewModel : ViewModelBase, IDisposable
         ClipboardSummary = $"{charCount:N0} chars · {type}";
 
         _lastDetectedHost = TryExtractHost(trimmed);
-        if (_lastDetectedHost is not null)
-            QuickPingStatus = $"Ready: {_lastDetectedHost}";
+        QuickPingStatus = _lastDetectedHost is not null
+            ? $"Ready: {_lastDetectedHost}"
+            : NoPingHostMessage;
     }
 
     private static string DetectContentType(string text)
@@ -674,7 +678,17 @@ public class HomeViewModel : ViewModelBase, IDisposable
             appSettings.CategoryBrowserExpanded = _categoryBrowserExpanded;
             _settings.Save(appSettings);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            try
+            {
+                App.TryGetLoggingService()?.LogError("Failed to persist home dashboard view preferences", ex);
+            }
+            catch
+            {
+                System.Diagnostics.Debug.WriteLine($"[HomeViewModel] Failed to persist view preferences: {ex}");
+            }
+        }
     }
 
     private async Task QuickPingHostAsync()

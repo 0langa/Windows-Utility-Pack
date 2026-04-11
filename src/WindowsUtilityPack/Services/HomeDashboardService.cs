@@ -184,7 +184,14 @@ public sealed class HomeDashboardService : IHomeDashboardService
             appSettings.ToolLaunchCounts = new Dictionary<string, int>(_launchCounts);
             _settings.Save(appSettings);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            try
+            {
+                App.TryGetLoggingService()?.LogError("Failed to persist home dashboard launch counts", ex);
+            }
+            catch { }
+        }
     }
 
     private void PersistSearchesOnly()
@@ -195,7 +202,14 @@ public sealed class HomeDashboardService : IHomeDashboardService
             appSettings.HomeRecentSearches = new List<string>(_recentSearches);
             _settings.Save(appSettings);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            try
+            {
+                App.TryGetLoggingService()?.LogError("Failed to persist home dashboard recent searches", ex);
+            }
+            catch { }
+        }
     }
 
     private static List<ToolDefinition> ResolveKeys(List<string> keys)

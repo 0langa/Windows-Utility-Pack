@@ -93,5 +93,4 @@ Both passed in this delivery.
 
 ## Known Limitations
 
-- Command palette still uses shell overlay rather than a detached dedicated palette window. It is globally summonable, but not yet hosted in a separate lightweight top-level window.
 - Quick screenshot output directory is currently settings-backed but does not yet expose a dedicated folder picker in the settings window.

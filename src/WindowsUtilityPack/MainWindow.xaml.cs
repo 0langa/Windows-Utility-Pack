@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private readonly ITrayModeCoordinator _trayCoordinator = new TrayModeCoordinator();
     private readonly ITrayIconService _trayIconService;
     private readonly IGlobalHotkeyService _globalHotkeys;
+    private readonly ICommandPaletteHostService _paletteHost;
     private bool _isHiddenToTray;
     private bool _explicitExitRequested;
 
@@ -37,6 +38,7 @@ public partial class MainWindow : Window
             App.ToolWindowHostService);
         DataContext = vm;
         vm.ShellActionRequested += OnShellActionRequested;
+        vm.CommandPaletteRequested += OnCommandPaletteRequested;
 
         _trayIconService = App.TrayIconService;
         _trayIconService.Initialize();
@@ -46,6 +48,9 @@ public partial class MainWindow : Window
         _globalHotkeys = App.GlobalHotkeyService;
         _globalHotkeys.HotkeyPressed += OnGlobalHotkeyPressed;
         _globalHotkeys.RegistrationsChanged += OnGlobalHotkeyRegistrationsChanged;
+
+        _paletteHost = App.CommandPaletteHostService;
+        _paletteHost.CommandInvoked += OnPaletteCommandInvoked;
 
         App.NotificationService.NotificationRequested += OnNotificationRequested;
         App.BackgroundTaskService.TaskChanged += OnBackgroundTaskChanged;
@@ -223,10 +228,13 @@ public partial class MainWindow : Window
         _trayIconService.DoubleClicked -= OnTrayOpenDoubleClick;
         _globalHotkeys.HotkeyPressed -= OnGlobalHotkeyPressed;
         _globalHotkeys.RegistrationsChanged -= OnGlobalHotkeyRegistrationsChanged;
+        _paletteHost.CommandInvoked -= OnPaletteCommandInvoked;
+        _paletteHost.Close();
 
         if (DataContext is MainWindowViewModel vm)
         {
             vm.ShellActionRequested -= OnShellActionRequested;
+            vm.CommandPaletteRequested -= OnCommandPaletteRequested;
         }
 
         if (DataContext is IDisposable disposable)
@@ -248,6 +256,11 @@ public partial class MainWindow : Window
     private void OnShellActionRequested(object? sender, ShellHotkeyAction action)
     {
         _ = Dispatcher.InvokeAsync(() => ExecuteShellActionAsync(action));
+    }
+
+    private void OnCommandPaletteRequested(object? sender, EventArgs e)
+    {
+        _ = Dispatcher.InvokeAsync(() => _paletteHost.ShowOrActivate());
     }
 
     private void OnTrayActionInvoked(object? sender, TrayMenuAction action)
@@ -295,6 +308,11 @@ public partial class MainWindow : Window
         _trayIconService.UpdateHotkeysEnabled(App.HotkeyService.HotkeysEnabled);
     }
 
+    private void OnPaletteCommandInvoked(object? sender, Models.CommandPaletteItem item)
+    {
+        _ = Dispatcher.InvokeAsync(() => ExecutePaletteItemAsync(item));
+    }
+
     private async Task ExecuteShellActionAsync(ShellHotkeyAction action)
     {
         var vm = DataContext as MainWindowViewModel;
@@ -313,8 +331,7 @@ public partial class MainWindow : Window
                     RestoreFromTray();
                 }
 
-                vm.OpenCommandPaletteFromShell();
-                CommandPaletteQueryBox.Focus();
+                App.CommandPaletteHostService.ShowOrActivate();
                 break;
 
             case ShellHotkeyAction.QuickScreenshot:
@@ -386,6 +403,65 @@ public partial class MainWindow : Window
                 }
                 App.NavigationService.NavigateTo("background-task-monitor");
                 break;
+        }
+    }
+
+    private async Task ExecutePaletteItemAsync(Models.CommandPaletteItem item)
+    {
+        var vm = DataContext as MainWindowViewModel;
+        if (vm is null)
+        {
+            return;
+        }
+
+        if (item.Kind == Models.CommandPaletteItemKind.Tool)
+        {
+            var settings = App.SettingsService.Load();
+            if (settings.RestoreMainWindowOnGlobalAction)
+            {
+                RestoreFromTray();
+            }
+            App.NavigationService.NavigateTo(item.CommandKey);
+        }
+        else
+        {
+            switch (item.CommandKey)
+            {
+                case "open-settings":
+                    vm.OpenSettingsCommand.Execute(null);
+                    break;
+
+                case "home":
+                    await ExecuteShellActionAsync(ShellHotkeyAction.NavigateHome);
+                    break;
+
+                case "popout-current-tool":
+                    vm.PopOutCurrentToolCommand.Execute(null);
+                    break;
+
+                case "quick-screenshot":
+                    await ExecuteShellActionAsync(ShellHotkeyAction.QuickScreenshot);
+                    break;
+
+                case "open-screenshot-annotator":
+                    await ExecuteShellActionAsync(ShellHotkeyAction.OpenScreenshotAnnotator);
+                    break;
+
+                case "toggle-main-window":
+                    await ExecuteShellActionAsync(ShellHotkeyAction.ToggleMainWindow);
+                    break;
+
+                case "open-clipboard-manager":
+                    RestoreFromTray();
+                    App.NavigationService.NavigateTo("clipboard-manager");
+                    break;
+            }
+        }
+
+        App.CommandPaletteService.RecordExecution(item.Id);
+        if (App.ActivityLogService is not null)
+        {
+            await App.ActivityLogService.LogAsync("CommandPalette", "Execute", item.Id).ConfigureAwait(true);
         }
     }
 

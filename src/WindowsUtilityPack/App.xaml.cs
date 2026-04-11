@@ -32,6 +32,7 @@ public partial class App : Application
     public static IActivityLogService ActivityLogService { get; private set; } = null!;
     public static IWorkspaceProfileService WorkspaceProfileService { get; private set; } = null!;
     public static ICommandPaletteService CommandPaletteService { get; private set; } = null!;
+    public static ICommandPaletteHostService CommandPaletteHostService { get; private set; } = null!;
     public static IBackgroundTaskService BackgroundTaskService { get; private set; } = null!;
     public static IClipboardHistoryService ClipboardHistoryService { get; private set; } = null!;
     public static IWorkspaceProfileCoordinator WorkspaceProfileCoordinator { get; private set; } = null!;
@@ -117,6 +118,7 @@ public partial class App : Application
         WorkspaceProfileService = new WorkspaceProfileService(AppDataStoreService);
         WorkspaceProfileCoordinator = new WorkspaceProfileCoordinator(WorkspaceProfileService, SettingsService, ActivityLogService);
         CommandPaletteService = new CommandPaletteService();
+        CommandPaletteHostService = new CommandPaletteHostService(CommandPaletteService);
         BackgroundTaskService = new BackgroundTaskService();
         ClipboardHistoryService = new ClipboardHistoryService(AppDataStoreService);
         WindowsEventLogService = new WindowsEventLogService();
