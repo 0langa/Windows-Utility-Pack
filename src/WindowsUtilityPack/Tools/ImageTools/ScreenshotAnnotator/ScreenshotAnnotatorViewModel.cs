@@ -29,6 +29,21 @@ public sealed class AnnotationRow : ViewModelBase
     public string Text { get => _text; set => SetProperty(ref _text, value); }
     public string Color { get => _color; set => SetProperty(ref _color, value); }
     public float Thickness { get => _thickness; set => SetProperty(ref _thickness, Math.Clamp(value, 1, 20)); }
+
+    public AnnotationRow Clone()
+    {
+        return new AnnotationRow
+        {
+            Type = Type,
+            X = X,
+            Y = Y,
+            Width = Width,
+            Height = Height,
+            Text = Text,
+            Color = Color,
+            Thickness = Thickness,
+        };
+    }
 }
 
 /// <summary>
@@ -36,6 +51,22 @@ public sealed class AnnotationRow : ViewModelBase
 /// </summary>
 public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 {
+    public enum ResizeHandle
+    {
+        TopLeft,
+        TopRight,
+        BottomLeft,
+        BottomRight,
+    }
+
+    private enum InteractionMode
+    {
+        None,
+        Create,
+        Move,
+        Resize,
+    }
+
     private readonly IImageProcessingService _imageProcessingService;
     private readonly IClipboardService _clipboardService;
     private readonly IQuickCaptureStateService? _quickCaptureState;
@@ -43,6 +74,8 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     private string _imagePath = string.Empty;
     private string _outputPath = string.Empty;
     private BitmapImage? _previewImage;
+    private double _previewPixelWidth;
+    private double _previewPixelHeight;
     private string _annotationType = "Rectangle";
     private float _x = 100;
     private float _y = 100;
@@ -54,6 +87,21 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     private bool _isBusy;
     private string _statusMessage = "Capture or load an image, add annotations, and save the result.";
     private AnnotationRow? _selectedAnnotation;
+    private AnnotationRow? _dragPreviewAnnotation;
+    private bool _isInteractiveAnnotationActive;
+    private float _dragStartX;
+    private float _dragStartY;
+    private float _interactionOriginX;
+    private float _interactionOriginY;
+    private float _interactionStartLeft;
+    private float _interactionStartTop;
+    private float _interactionStartWidth;
+    private float _interactionStartHeight;
+    private InteractionMode _interactionMode;
+    private ResizeHandle _resizeHandle;
+    private bool _hasUndoSnapshotForInteraction;
+    private readonly Stack<AnnotationStateSnapshot> _undoStack = new();
+    private readonly Stack<AnnotationStateSnapshot> _redoStack = new();
 
     public ObservableCollection<string> AnnotationTypes { get; } = ["Rectangle", "Arrow", "Text", "Redaction", "Blur"];
     public ObservableCollection<AnnotationRow> Annotations { get; } = [];
@@ -80,6 +128,18 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     {
         get => _previewImage;
         private set => SetProperty(ref _previewImage, value);
+    }
+
+    public double PreviewPixelWidth
+    {
+        get => _previewPixelWidth;
+        private set => SetProperty(ref _previewPixelWidth, value);
+    }
+
+    public double PreviewPixelHeight
+    {
+        get => _previewPixelHeight;
+        private set => SetProperty(ref _previewPixelHeight, value);
     }
 
     public string AnnotationType
@@ -168,6 +228,24 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         }
     }
 
+    public AnnotationRow? DragPreviewAnnotation
+    {
+        get => _dragPreviewAnnotation;
+        private set => SetProperty(ref _dragPreviewAnnotation, value);
+    }
+
+    public bool IsInteractiveAnnotationActive
+    {
+        get => _isInteractiveAnnotationActive;
+        private set => SetProperty(ref _isInteractiveAnnotationActive, value);
+    }
+
+    public bool CanUndo => _undoStack.Count > 0;
+
+    public bool CanRedo => _redoStack.Count > 0;
+
+    public bool CanDrawOnPreview => PreviewPixelWidth > 0 && PreviewPixelHeight > 0 && !IsBusy;
+
     public AsyncRelayCommand CaptureScreenshotCommand { get; }
     public RelayCommand LoadImageCommand { get; }
     public RelayCommand BrowseOutputCommand { get; }
@@ -176,6 +254,8 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     public RelayCommand DuplicateSelectedAnnotationCommand { get; }
     public RelayCommand RemoveSelectedAnnotationCommand { get; }
     public RelayCommand ClearAnnotationsCommand { get; }
+    public RelayCommand UndoCommand { get; }
+    public RelayCommand RedoCommand { get; }
     public AsyncRelayCommand SaveAnnotatedImageCommand { get; }
     public RelayCommand CopyOutputPathCommand { get; }
     public RelayCommand OpenOutputFolderCommand { get; }
@@ -197,6 +277,8 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         DuplicateSelectedAnnotationCommand = new RelayCommand(_ => DuplicateSelected(), _ => SelectedAnnotation is not null);
         RemoveSelectedAnnotationCommand = new RelayCommand(_ => RemoveSelected(), _ => SelectedAnnotation is not null);
         ClearAnnotationsCommand = new RelayCommand(_ => ClearAllAnnotations(), _ => Annotations.Count > 0);
+        UndoCommand = new RelayCommand(_ => Undo(), _ => CanUndo);
+        RedoCommand = new RelayCommand(_ => Redo(), _ => CanRedo);
         SaveAnnotatedImageCommand = new AsyncRelayCommand(_ => SaveAnnotatedAsync(), _ => !IsBusy);
         CopyOutputPathCommand = new RelayCommand(_ => _clipboardService.SetText(OutputPath), _ => !string.IsNullOrWhiteSpace(OutputPath));
         OpenOutputFolderCommand = new RelayCommand(_ => OpenOutputFolder(), _ => !string.IsNullOrWhiteSpace(OutputPath));
@@ -274,6 +356,7 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 
     private void AddAnnotation()
     {
+        PushUndoSnapshot();
         var annotation = new AnnotationRow
         {
             Type = AnnotationType,
@@ -296,6 +379,7 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     {
         if (SelectedAnnotation is null)
             return;
+        PushUndoSnapshot();
         Annotations.Remove(SelectedAnnotation);
         SelectedAnnotation = null;
         StatusMessage = "Selected annotation removed.";
@@ -309,6 +393,7 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
             return;
         }
 
+        PushUndoSnapshot();
         SelectedAnnotation.Type = AnnotationType;
         SelectedAnnotation.X = X;
         SelectedAnnotation.Y = Y;
@@ -327,6 +412,7 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
             return;
         }
 
+        PushUndoSnapshot();
         var duplicate = new AnnotationRow
         {
             Type = SelectedAnnotation.Type,
@@ -346,10 +432,40 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 
     private void ClearAllAnnotations()
     {
+        if (Annotations.Count == 0)
+        {
+            return;
+        }
+
+        PushUndoSnapshot();
         Annotations.Clear();
         SelectedAnnotation = null;
         StatusMessage = "Cleared all annotations.";
         RelayCommand.RaiseCanExecuteChanged();
+    }
+
+    private void Undo()
+    {
+        if (_undoStack.Count == 0)
+        {
+            return;
+        }
+
+        _redoStack.Push(CreateSnapshot());
+        RestoreSnapshot(_undoStack.Pop());
+        StatusMessage = "Undid annotation change.";
+    }
+
+    private void Redo()
+    {
+        if (_redoStack.Count == 0)
+        {
+            return;
+        }
+
+        _undoStack.Push(CreateSnapshot());
+        RestoreSnapshot(_redoStack.Pop());
+        StatusMessage = "Redid annotation change.";
     }
 
     private async Task SaveAnnotatedAsync()
@@ -444,6 +560,9 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         bitmap.EndInit();
         bitmap.Freeze();
         PreviewImage = bitmap;
+        PreviewPixelWidth = bitmap.PixelWidth;
+        PreviewPixelHeight = bitmap.PixelHeight;
+        OnPropertyChanged(nameof(CanDrawOnPreview));
     }
 
     private void TryLoadLastQuickCapture()
@@ -484,4 +603,329 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
             StatusMessage = $"Failed to open output folder: {ex.Message}";
         }
     }
+
+    private void PushUndoSnapshot()
+    {
+        _undoStack.Push(CreateSnapshot());
+        _redoStack.Clear();
+        NotifyHistoryChanged();
+    }
+
+    private AnnotationStateSnapshot CreateSnapshot()
+    {
+        return new AnnotationStateSnapshot(
+            Annotations.Select(static annotation => annotation.Clone()).ToList(),
+            SelectedAnnotation is null ? -1 : Annotations.IndexOf(SelectedAnnotation));
+    }
+
+    private void RestoreSnapshot(AnnotationStateSnapshot snapshot)
+    {
+        Annotations.Clear();
+        foreach (var annotation in snapshot.Annotations.Select(static item => item.Clone()))
+        {
+            Annotations.Add(annotation);
+        }
+
+        SelectedAnnotation = snapshot.SelectedIndex >= 0 && snapshot.SelectedIndex < Annotations.Count
+            ? Annotations[snapshot.SelectedIndex]
+            : null;
+
+        NotifyHistoryChanged();
+        RelayCommand.RaiseCanExecuteChanged();
+    }
+
+    private void NotifyHistoryChanged()
+    {
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        RelayCommand.RaiseCanExecuteChanged();
+    }
+
+    public bool BeginInteractiveAnnotation(double x, double y)
+    {
+        if (!CanDrawOnPreview)
+        {
+            return false;
+        }
+
+        _interactionMode = InteractionMode.Create;
+        _hasUndoSnapshotForInteraction = false;
+        _dragStartX = ClampToPreview(x, PreviewPixelWidth);
+        _dragStartY = ClampToPreview(y, PreviewPixelHeight);
+        DragPreviewAnnotation = new AnnotationRow
+        {
+            Type = AnnotationType,
+            X = _dragStartX,
+            Y = _dragStartY,
+            Width = 0,
+            Height = 0,
+            Text = AnnotationText,
+            Color = AnnotationColor,
+            Thickness = AnnotationThickness,
+        };
+        IsInteractiveAnnotationActive = true;
+        StatusMessage = $"Drawing {AnnotationType} annotation...";
+        return true;
+    }
+
+    public void UpdateInteractiveAnnotation(double x, double y)
+    {
+        if (!IsInteractiveAnnotationActive || DragPreviewAnnotation is null || _interactionMode != InteractionMode.Create)
+        {
+            return;
+        }
+
+        var currentX = ClampToPreview(x, PreviewPixelWidth);
+        var currentY = ClampToPreview(y, PreviewPixelHeight);
+
+        DragPreviewAnnotation.X = Math.Min(_dragStartX, currentX);
+        DragPreviewAnnotation.Y = Math.Min(_dragStartY, currentY);
+        DragPreviewAnnotation.Width = Math.Abs(currentX - _dragStartX);
+        DragPreviewAnnotation.Height = Math.Abs(currentY - _dragStartY);
+    }
+
+    public bool CommitInteractiveAnnotation()
+    {
+        if (!IsInteractiveAnnotationActive || DragPreviewAnnotation is null || _interactionMode != InteractionMode.Create)
+        {
+            return false;
+        }
+
+        var preview = DragPreviewAnnotation.Clone();
+        CancelInteractiveAnnotation(resetStatus: false);
+
+        if (preview.Width < 4 && preview.Height < 4)
+        {
+            StatusMessage = "Annotation drag was too small to add.";
+            return false;
+        }
+
+        PushUndoSnapshot();
+        Annotations.Add(preview);
+        SelectedAnnotation = preview;
+        StatusMessage = $"Added {preview.Type} annotation from preview drag.";
+        RelayCommand.RaiseCanExecuteChanged();
+        return true;
+    }
+
+    public void CancelInteractiveAnnotation(bool resetStatus = true)
+    {
+        DragPreviewAnnotation = null;
+        IsInteractiveAnnotationActive = false;
+        _interactionMode = InteractionMode.None;
+        _hasUndoSnapshotForInteraction = false;
+
+        if (resetStatus)
+        {
+            StatusMessage = "Annotation drag cancelled.";
+        }
+    }
+
+    private static float ClampToPreview(double value, double max)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value))
+        {
+            return 0;
+        }
+
+        return (float)Math.Clamp(value, 0, max);
+    }
+
+    public bool BeginMoveSelected(double x, double y)
+    {
+        if (!CanDrawOnPreview || SelectedAnnotation is null)
+        {
+            return false;
+        }
+
+        var originX = ClampToPreview(x, PreviewPixelWidth);
+        var originY = ClampToPreview(y, PreviewPixelHeight);
+
+        EnsureUndoSnapshotForInteraction();
+        _interactionMode = InteractionMode.Move;
+        _interactionOriginX = originX;
+        _interactionOriginY = originY;
+
+        _interactionStartLeft = SelectedAnnotation.X;
+        _interactionStartTop = SelectedAnnotation.Y;
+        _interactionStartWidth = SelectedAnnotation.Width;
+        _interactionStartHeight = SelectedAnnotation.Height;
+
+        IsInteractiveAnnotationActive = true;
+        StatusMessage = "Moving annotation...";
+        return true;
+    }
+
+    public bool BeginResizeSelected(ResizeHandle handle, double x, double y)
+    {
+        if (!CanDrawOnPreview || SelectedAnnotation is null)
+        {
+            return false;
+        }
+
+        var originX = ClampToPreview(x, PreviewPixelWidth);
+        var originY = ClampToPreview(y, PreviewPixelHeight);
+
+        EnsureUndoSnapshotForInteraction();
+        _interactionMode = InteractionMode.Resize;
+        _resizeHandle = handle;
+        _interactionOriginX = originX;
+        _interactionOriginY = originY;
+
+        _interactionStartLeft = SelectedAnnotation.X;
+        _interactionStartTop = SelectedAnnotation.Y;
+        _interactionStartWidth = SelectedAnnotation.Width;
+        _interactionStartHeight = SelectedAnnotation.Height;
+
+        IsInteractiveAnnotationActive = true;
+        StatusMessage = "Resizing annotation...";
+        return true;
+    }
+
+    public void UpdateMoveOrResize(double x, double y)
+    {
+        if (!IsInteractiveAnnotationActive || SelectedAnnotation is null)
+        {
+            return;
+        }
+
+        if (_interactionMode == InteractionMode.Move)
+        {
+            var currentX = ClampToPreview(x, PreviewPixelWidth);
+            var currentY = ClampToPreview(y, PreviewPixelHeight);
+
+            var deltaX = currentX - _interactionOriginX;
+            var deltaY = currentY - _interactionOriginY;
+
+            var newLeft = _interactionStartLeft + deltaX;
+            var newTop = _interactionStartTop + deltaY;
+
+            SelectedAnnotation.X = (float)Math.Clamp(newLeft, 0, Math.Max(0, PreviewPixelWidth - SelectedAnnotation.Width));
+            SelectedAnnotation.Y = (float)Math.Clamp(newTop, 0, Math.Max(0, PreviewPixelHeight - SelectedAnnotation.Height));
+            return;
+        }
+
+        if (_interactionMode == InteractionMode.Resize)
+        {
+            var currentX = ClampToPreview(x, PreviewPixelWidth);
+            var currentY = ClampToPreview(y, PreviewPixelHeight);
+
+            var minSize = 4f;
+
+            var left = _interactionStartLeft;
+            var top = _interactionStartTop;
+            var right = _interactionStartLeft + _interactionStartWidth;
+            var bottom = _interactionStartTop + _interactionStartHeight;
+
+            switch (_resizeHandle)
+            {
+                case ResizeHandle.TopLeft:
+                    left = Math.Min(currentX, right - minSize);
+                    top = Math.Min(currentY, bottom - minSize);
+                    break;
+                case ResizeHandle.TopRight:
+                    right = Math.Max(currentX, left + minSize);
+                    top = Math.Min(currentY, bottom - minSize);
+                    break;
+                case ResizeHandle.BottomLeft:
+                    left = Math.Min(currentX, right - minSize);
+                    bottom = Math.Max(currentY, top + minSize);
+                    break;
+                case ResizeHandle.BottomRight:
+                    right = Math.Max(currentX, left + minSize);
+                    bottom = Math.Max(currentY, top + minSize);
+                    break;
+            }
+
+            left = Math.Clamp(left, 0, (float)PreviewPixelWidth);
+            top = Math.Clamp(top, 0, (float)PreviewPixelHeight);
+            right = Math.Clamp(right, 0, (float)PreviewPixelWidth);
+            bottom = Math.Clamp(bottom, 0, (float)PreviewPixelHeight);
+
+            var width = Math.Max(minSize, right - left);
+            var height = Math.Max(minSize, bottom - top);
+
+            SelectedAnnotation.X = (float)left;
+            SelectedAnnotation.Y = (float)top;
+            SelectedAnnotation.Width = (float)width;
+            SelectedAnnotation.Height = (float)height;
+        }
+    }
+
+    public void CommitMoveOrResize()
+    {
+        if (!IsInteractiveAnnotationActive)
+        {
+            return;
+        }
+
+        IsInteractiveAnnotationActive = false;
+        _interactionMode = InteractionMode.None;
+        _hasUndoSnapshotForInteraction = false;
+        StatusMessage = "Annotation updated.";
+        RelayCommand.RaiseCanExecuteChanged();
+    }
+
+    public void CancelMoveOrResize()
+    {
+        if (!IsInteractiveAnnotationActive || _interactionMode is not (InteractionMode.Move or InteractionMode.Resize))
+        {
+            return;
+        }
+
+        // Undo snapshot was taken at interaction start, so undo gives a precise revert.
+        Undo();
+        IsInteractiveAnnotationActive = false;
+        _interactionMode = InteractionMode.None;
+        _hasUndoSnapshotForInteraction = false;
+        StatusMessage = "Annotation change cancelled.";
+    }
+
+    public void DeleteSelectedAnnotation()
+    {
+        if (SelectedAnnotation is null)
+        {
+            return;
+        }
+
+        PushUndoSnapshot();
+        var removed = SelectedAnnotation;
+        Annotations.Remove(removed);
+        SelectedAnnotation = null;
+        StatusMessage = "Deleted selected annotation.";
+        RelayCommand.RaiseCanExecuteChanged();
+    }
+
+    public void NudgeSelectedAnnotation(int deltaX, int deltaY, int step)
+    {
+        if (SelectedAnnotation is null || !CanDrawOnPreview)
+        {
+            return;
+        }
+
+        step = Math.Clamp(step, 1, 100);
+        EnsureUndoSnapshotForInteraction();
+        _interactionMode = InteractionMode.Move;
+
+        var newLeft = SelectedAnnotation.X + deltaX * step;
+        var newTop = SelectedAnnotation.Y + deltaY * step;
+
+        SelectedAnnotation.X = (float)Math.Clamp(newLeft, 0, Math.Max(0, PreviewPixelWidth - SelectedAnnotation.Width));
+        SelectedAnnotation.Y = (float)Math.Clamp(newTop, 0, Math.Max(0, PreviewPixelHeight - SelectedAnnotation.Height));
+
+        CommitMoveOrResize();
+    }
+
+    private void EnsureUndoSnapshotForInteraction()
+    {
+        if (_hasUndoSnapshotForInteraction)
+        {
+            return;
+        }
+
+        PushUndoSnapshot();
+        _hasUndoSnapshotForInteraction = true;
+    }
+
+    private sealed record AnnotationStateSnapshot(IReadOnlyList<AnnotationRow> Annotations, int SelectedIndex);
 }

@@ -1,6 +1,11 @@
 <UserControl x:Class="WindowsUtilityPack.Tools.ImageTools.ScreenshotAnnotator.ScreenshotAnnotatorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:WindowsUtilityPack.Converters"
+             PreviewKeyDown="OnRootPreviewKeyDown">
+    <UserControl.Resources>
+        <converters:ArrowHeadPointsConverter x:Key="ArrowHeadPointsConverter"/>
+    </UserControl.Resources>
     <Grid Margin="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -56,7 +61,154 @@
                     <TextBlock Text="Preview" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
                     <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Background="{DynamicResource PanelBackgroundBrush}">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <Image Source="{Binding PreviewImage}" Stretch="Uniform"/>
+                            <Grid x:Name="PreviewSurface"
+                                  Width="{Binding PreviewPixelWidth}"
+                                  Height="{Binding PreviewPixelHeight}"
+                                  Background="Transparent"
+                                  MouseLeftButtonDown="OnPreviewSurfaceMouseLeftButtonDown"
+                                  MouseMove="OnPreviewSurfaceMouseMove"
+                                  MouseLeftButtonUp="OnPreviewSurfaceMouseLeftButtonUp"
+                                  MouseLeave="OnPreviewSurfaceMouseLeave">
+                                <Image Source="{Binding PreviewImage}" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                                <ItemsControl ItemsSource="{Binding Annotations}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <Canvas/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="OnAnnotationMouseLeftButtonDown"/>
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Width="{Binding Width}" Height="{Binding Height}">
+                                                <Border x:Name="ShapeBorder"
+                                                        Width="{Binding Width}"
+                                                        Height="{Binding Height}"
+                                                        BorderThickness="{Binding Thickness}"
+                                                        BorderBrush="{Binding Color}"
+                                                        Background="#20FFFFFF"/>
+                                                <TextBlock x:Name="ShapeText"
+                                                           Text="{Binding Text}"
+                                                           Foreground="{Binding Color}"
+                                                           FontWeight="SemiBold"
+                                                           Margin="6,4,6,4"
+                                                           TextWrapping="Wrap"
+                                                           Visibility="Collapsed"/>
+                                                <Grid x:Name="ArrowGrid" Visibility="Collapsed">
+                                                    <Line X1="0" Y1="0"
+                                                          X2="{Binding Width}"
+                                                          Y2="{Binding Height}"
+                                                          Stroke="{Binding Color}"
+                                                          StrokeThickness="{Binding Thickness}"/>
+                                                    <Polygon Fill="{Binding Color}">
+                                                        <Polygon.Points>
+                                                            <MultiBinding Converter="{StaticResource ArrowHeadPointsConverter}">
+                                                                <Binding Path="Width"/>
+                                                                <Binding Path="Height"/>
+                                                            </MultiBinding>
+                                                        </Polygon.Points>
+                                                    </Polygon>
+                                                </Grid>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Type}" Value="Text">
+                                                    <Setter TargetName="ShapeBorder" Property="BorderThickness" Value="1"/>
+                                                    <Setter TargetName="ShapeBorder" Property="Background" Value="#22000000"/>
+                                                    <Setter TargetName="ShapeText" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Type}" Value="Redaction">
+                                                    <Setter TargetName="ShapeBorder" Property="Background" Value="#CC000000"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Type}" Value="Blur">
+                                                    <Setter TargetName="ShapeBorder" Property="Background" Value="#88A0A0A0"/>
+                                                    <Setter TargetName="ShapeBorder" Property="BorderBrush" Value="#FFFFFFFF"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Type}" Value="Arrow">
+                                                    <Setter TargetName="ShapeBorder" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="ShapeText" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="ArrowGrid" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ContentControl Content="{Binding DragPreviewAnnotation}" IsHitTestVisible="False">
+                                    <ContentControl.ContentTemplate>
+                                        <DataTemplate>
+                                            <Grid Width="{Binding Width}" Height="{Binding Height}">
+                                                <Grid.RenderTransform>
+                                                    <TranslateTransform X="{Binding X}" Y="{Binding Y}"/>
+                                                </Grid.RenderTransform>
+                                                <Rectangle Stroke="{Binding Color}"
+                                                           StrokeThickness="{Binding Thickness}"
+                                                           StrokeDashArray="4,3"
+                                                           Fill="#12FFFFFF"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ContentControl.ContentTemplate>
+                                </ContentControl>
+
+                                <Canvas IsHitTestVisible="True" Visibility="Visible">
+                                    <Canvas.Style>
+                                        <Style TargetType="Canvas">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedAnnotation}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Canvas.Style>
+
+                                    <!-- Selection outline -->
+                                    <Rectangle Stroke="{DynamicResource AccentBrush}"
+                                               StrokeThickness="1"
+                                               Fill="#00000000"
+                                               Width="{Binding SelectedAnnotation.Width}"
+                                               Height="{Binding SelectedAnnotation.Height}"
+                                               Canvas.Left="{Binding SelectedAnnotation.X}"
+                                               Canvas.Top="{Binding SelectedAnnotation.Y}"/>
+
+                                    <!-- Resize handles -->
+                                    <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
+                                               Canvas.Left="{Binding SelectedAnnotation.X}"
+                                               Canvas.Top="{Binding SelectedAnnotation.Y}"
+                                               Cursor="SizeNWSE"
+                                               MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                               Tag="TopLeft"/>
+                                    <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
+                                               Canvas.Left="{Binding SelectedAnnotation.X}"
+                                               Cursor="SizeNESW"
+                                               MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                               Tag="TopRight">
+                                        <Rectangle.RenderTransform>
+                                            <TranslateTransform X="{Binding SelectedAnnotation.Width}"/>
+                                        </Rectangle.RenderTransform>
+                                    </Rectangle>
+                                    <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
+                                               Canvas.Top="{Binding SelectedAnnotation.Y}"
+                                               Cursor="SizeNESW"
+                                               MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                               Tag="BottomLeft">
+                                        <Rectangle.RenderTransform>
+                                            <TranslateTransform Y="{Binding SelectedAnnotation.Height}"/>
+                                        </Rectangle.RenderTransform>
+                                    </Rectangle>
+                                    <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
+                                               Cursor="SizeNWSE"
+                                               MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                               Tag="BottomRight">
+                                        <Rectangle.RenderTransform>
+                                            <TranslateTransform X="{Binding SelectedAnnotation.Width}" Y="{Binding SelectedAnnotation.Height}"/>
+                                        </Rectangle.RenderTransform>
+                                    </Rectangle>
+                                </Canvas>
+                            </Grid>
                         </ScrollViewer>
                     </Border>
                 </Grid>
@@ -84,6 +236,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <TextBlock Text="Type" Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
@@ -97,10 +250,12 @@
                         <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
                         <TextBlock Text="Height" Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
                         <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
-                        <TextBlock Text="Color" Grid.Row="5" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding AnnotationColor, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
-                        <TextBlock Text="Text" Grid.Row="6" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding AnnotationText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Color" Grid.Row="5" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding AnnotationColor, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Thickness" Grid.Row="6" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding AnnotationThickness, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Text" Grid.Row="7" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding AnnotationText, UpdateSourceTrigger=PropertyChanged}"/>
                     </Grid>
 
                     <Grid Grid.Row="2" Margin="0,10,0,0">
@@ -113,10 +268,12 @@
                             <Button Content="Add Annotation" Command="{Binding AddAnnotationCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
                             <Button Content="Apply to Selected" Command="{Binding ApplyEditorToSelectedCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
                             <Button Content="Duplicate Selected" Command="{Binding DuplicateSelectedAnnotationCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Undo" Command="{Binding UndoCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                            <Button Content="Redo" Command="{Binding RedoCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
                             <Button Content="Remove Selected" Command="{Binding RemoveSelectedAnnotationCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
                             <Button Content="Clear" Command="{Binding ClearAnnotationsCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                         </StackPanel>
-                        <TextBlock Grid.Row="1" Text="Tip: coordinates are pixel positions in the source image." Margin="0,6,0,6" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/>
+                        <TextBlock Grid.Row="1" Text="Tip: coordinates are pixel positions in the source image, and the preview now shows annotation overlays at native image size." Margin="0,6,0,6" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/>
                         <DataGrid Grid.Row="2"
                                   ItemsSource="{Binding Annotations}"
                                   SelectedItem="{Binding SelectedAnnotation, Mode=TwoWay}"
