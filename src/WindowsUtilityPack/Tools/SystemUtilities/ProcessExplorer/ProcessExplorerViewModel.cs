@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Threading;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
@@ -19,6 +20,14 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
     private string _searchQuery = string.Empty;
     private string _statusMessage = "Ready.";
     private bool _isBusy;
+
+    // For live refresh
+    private readonly DispatcherTimer _refreshTimer;
+    private int _refreshIntervalSeconds = 2;
+    private DateTime _lastRefreshTime = DateTime.MinValue;
+    private List<ProcessSnapshot> _previousSnapshots = new();
+    private readonly int _processorCount = Environment.ProcessorCount;
+    private bool _autoRefreshEnabled = true;
 
     public ObservableCollection<ProcessSnapshot> Processes { get; } = [];
 
@@ -46,6 +55,31 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
         set => SetProperty(ref _isBusy, value);
     }
 
+    public int RefreshIntervalSeconds
+    {
+        get => _refreshIntervalSeconds;
+        set
+        {
+            if (value < 1) value = 1;
+            if (SetProperty(ref _refreshIntervalSeconds, value))
+            {
+                _refreshTimer.Interval = TimeSpan.FromSeconds(_refreshIntervalSeconds);
+            }
+        }
+    }
+
+    public bool AutoRefreshEnabled
+    {
+        get => _autoRefreshEnabled;
+        set
+        {
+            if (SetProperty(ref _autoRefreshEnabled, value))
+            {
+                _refreshTimer.IsEnabled = value;
+            }
+        }
+    }
+
     public AsyncRelayCommand RefreshCommand { get; }
     public AsyncRelayCommand TerminateCommand { get; }
     public AsyncRelayCommand CopyDetailsCommand { get; }
@@ -60,6 +94,10 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
         TerminateCommand = new AsyncRelayCommand(_ => TerminateAsync(), _ => SelectedProcess is not null);
         CopyDetailsCommand = new AsyncRelayCommand(_ => CopyDetailsAsync(), _ => SelectedProcess is not null);
 
+        _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(_refreshIntervalSeconds) };
+        _refreshTimer.Tick += async (s, e) => { if (_autoRefreshEnabled) await RefreshAsync(); };
+        _refreshTimer.Start();
+
         _ = RefreshAsync();
     }
 
@@ -68,10 +106,44 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
         IsBusy = true;
         try
         {
-            var rows = await _service.GetProcessesAsync(SearchQuery).ConfigureAwait(true);
+            var now = DateTime.UtcNow;
+            var elapsed = _lastRefreshTime == DateTime.MinValue ? 1.0 : (now - _lastRefreshTime).TotalSeconds;
+            _lastRefreshTime = now;
+
+            var rows = (await _service.GetProcessesAsync(SearchQuery).ConfigureAwait(true)).ToList();
+
+            // Compute CPU% for each process by matching with previous snapshot
+            foreach (var row in rows)
+            {
+                var prev = _previousSnapshots.FirstOrDefault(p => p.ProcessId == row.ProcessId);
+                if (prev != null && elapsed > 0)
+                {
+                    var cpuDelta = row.CpuTimeSeconds - prev.CpuTimeSeconds;
+                    row.CpuPercent = Math.Max(0, Math.Min(100, (cpuDelta / elapsed / _processorCount) * 100));
+                }
+                else
+                {
+                    row.CpuPercent = 0;
+                }
+            }
+
+            _previousSnapshots = rows.Select(p => new ProcessSnapshot
+            {
+                ProcessId = p.ProcessId,
+                Name = p.Name,
+                ExecutablePath = p.ExecutablePath,
+                WorkingSetMb = p.WorkingSetMb,
+                CpuTimeSeconds = p.CpuTimeSeconds,
+                IsResponding = p.IsResponding,
+                StartTimeLocal = p.StartTimeLocal,
+                CpuPercent = p.CpuPercent
+            }).ToList();
+
+            // Sort by CPU% descending, then memory
+            var sorted = rows.OrderByDescending(p => p.CpuPercent).ThenByDescending(p => p.WorkingSetMb).ToList();
 
             Processes.Clear();
-            foreach (var row in rows)
+            foreach (var row in sorted)
             {
                 Processes.Add(row);
             }

@@ -32,28 +32,56 @@
         </Border>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
-            <DataGrid ItemsSource="{Binding Processes}"
-                      SelectedItem="{Binding SelectedProcess, Mode=TwoWay}"
-                      AutoGenerateColumns="False"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      IsReadOnly="True"
-                      GridLinesVisibility="Horizontal"
-                      RowHeaderWidth="0">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="220"/>
-                    <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="90"/>
-                    <DataGridTextColumn Header="Memory (MB)" Binding="{Binding WorkingSetMb, StringFormat=F1}" Width="120"/>
-                    <DataGridTextColumn Header="CPU (s)" Binding="{Binding CpuTimeSeconds, StringFormat=F1}" Width="110"/>
-                    <DataGridCheckBoxColumn Header="Responding" Binding="{Binding IsResponding}" Width="95"/>
-                    <DataGridTextColumn Header="Started" Binding="{Binding StartTimeLocal, StringFormat=G}" Width="150"/>
-                    <DataGridTextColumn Header="Path" Binding="{Binding ExecutablePath}" Width="*"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DataGrid ItemsSource="{Binding Processes}"
+                          SelectedItem="{Binding SelectedProcess, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="True"
+                          GridLinesVisibility="Horizontal"
+                          RowHeaderWidth="0"
+                          CanUserSortColumns="True"
+                          Margin="0,0,0,8">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="220" SortMemberPath="Name"/>
+                        <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="90" SortMemberPath="ProcessId"/>
+                        <DataGridTextColumn Header="Memory (MB)" Binding="{Binding WorkingSetMb, StringFormat=F1}" Width="120" SortMemberPath="WorkingSetMb"/>
+                        <DataGridTextColumn Header="CPU (%)" Binding="{Binding CpuPercent, StringFormat=F1}" Width="110" SortMemberPath="CpuPercent"/>
+                        <DataGridTextColumn Header="CPU (s)" Binding="{Binding CpuTimeSeconds, StringFormat=F1}" Width="110" SortMemberPath="CpuTimeSeconds"/>
+                        <DataGridCheckBoxColumn Header="Responding" Binding="{Binding IsResponding}" Width="95"/>
+                        <DataGridTextColumn Header="Started" Binding="{Binding StartTimeLocal, StringFormat=G}" Width="150"/>
+                        <DataGridTextColumn Header="Path" Binding="{Binding ExecutablePath}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <!-- Process detail panel -->
+                <Border Grid.Row="1" Margin="0,4,0,0" Padding="8" Background="{DynamicResource PanelBackgroundBrush}" CornerRadius="4" Visibility="{Binding SelectedProcess, Converter={StaticResource NullToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="Details" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding SelectedProcess.Name}"/>
+                        <TextBlock Text="PID: {Binding SelectedProcess.ProcessId}"/>
+                        <TextBlock Text="Path: {Binding SelectedProcess.ExecutablePath}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="Memory: {Binding SelectedProcess.WorkingSetMb, StringFormat=F1} MB"/>
+                        <TextBlock Text="CPU: {Binding SelectedProcess.CpuPercent, StringFormat=F1} % ({Binding SelectedProcess.CpuTimeSeconds, StringFormat=F1} s)"/>
+                        <TextBlock Text="Responding: {Binding SelectedProcess.IsResponding}"/>
+                        <TextBlock Text="Started: {Binding SelectedProcess.StartTimeLocal, StringFormat=G}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+                <TextBlock Text="  |  Auto-refresh: " Style="{StaticResource MetadataTextStyle}" Margin="12,0,0,0"/>
+                <CheckBox IsChecked="{Binding AutoRefreshEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
+                <TextBlock Text="  Interval (s): " Style="{StaticResource MetadataTextStyle}" Margin="8,0,0,0"/>
+                <TextBox Text="{Binding RefreshIntervalSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="32" VerticalAlignment="Center"/>
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>
