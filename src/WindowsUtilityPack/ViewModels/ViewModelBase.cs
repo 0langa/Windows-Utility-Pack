@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Collections.Concurrent;
+using System.Windows;
 
 namespace WindowsUtilityPack.ViewModels;
 
@@ -26,7 +27,21 @@ public abstract class ViewModelBase : INotifyPropertyChanged
     /// </summary>
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
-        PropertyChanged?.Invoke(this, GetPropertyChangedEventArgs(propertyName));
+        var handler = PropertyChanged;
+        if (handler is null)
+        {
+            return;
+        }
+
+        var args = GetPropertyChangedEventArgs(propertyName);
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            handler.Invoke(this, args);
+            return;
+        }
+
+        dispatcher.Invoke(() => handler.Invoke(this, args));
     }
 
     /// <summary>

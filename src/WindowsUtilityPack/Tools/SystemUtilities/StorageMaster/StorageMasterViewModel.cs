@@ -153,6 +153,8 @@ public class ExtensionSummaryItem
 /// </summary>
 public class StorageMasterViewModel : ViewModelBase
 {
+    private const int MaxDisplayedFilteredFiles = 2000;
+
     private readonly IScanEngine                   _scanEngine;
     private readonly IDuplicateDetectionService    _duplicateService;
     private readonly ICleanupRecommendationService _cleanupService;
@@ -186,6 +188,8 @@ public class StorageMasterViewModel : ViewModelBase
 
     private string _cleanupSortColumn    = "Savings";
     private bool   _cleanupSortDescending = true;
+    private bool   _isFilteredResultsTruncated;
+    private int    _totalFilteredCount;
 
     // Live-update interim counters (updated from progress callback during scan)
     private long _interimBytes;
@@ -324,6 +328,28 @@ public class StorageMasterViewModel : ViewModelBase
     public long   TotalCleanupSavings          => CleanupItems.Where(i => i.IsSelected).Sum(i => i.Recommendation.PotentialSavingsBytes);
     public string TotalDuplicateWastedFormatted => StorageItem.FormatBytes(TotalDuplicateWasted);
     public string TotalCleanupSavingsFormatted  => StorageItem.FormatBytes(TotalCleanupSavings);
+    public bool IsFilteredResultsTruncated
+    {
+        get => _isFilteredResultsTruncated;
+        private set => SetProperty(ref _isFilteredResultsTruncated, value);
+    }
+    public int TotalFilteredCount
+    {
+        get => _totalFilteredCount;
+        private set => SetProperty(ref _totalFilteredCount, value);
+    }
+    public string FilteredResultsSummary =>
+        BuildFilteredResultsSummary(FilteredFiles.Count, TotalFilteredCount);
+
+    internal static string BuildFilteredResultsSummary(int displayedCount, int totalCount)
+    {
+        if (totalCount > displayedCount)
+        {
+            return $"Showing {displayedCount:N0} of {totalCount:N0} files. Refine filters to narrow results.";
+        }
+
+        return $"{displayedCount:N0} files";
+    }
 
     public AsyncRelayCommand ScanCommand                  { get; }
     public RelayCommand      CancelScanCommand            { get; }
@@ -402,6 +428,8 @@ public class StorageMasterViewModel : ViewModelBase
         HasScanResult     = false;
         ScanProgressValue = 0;
         ScanStatusText    = $"Scanning {SelectedScanPath}...";
+        _scanCts?.Cancel();
+        _scanCts?.Dispose();
         _scanCts = new CancellationTokenSource();
         var options = new ScanOptions
         {
@@ -456,6 +484,8 @@ public class StorageMasterViewModel : ViewModelBase
         ExtensionSummary.Clear();
         ScanSummary     = string.Empty;
         ScanCurrentPath = string.Empty;
+        IsFilteredResultsTruncated = false;
+        TotalFilteredCount = 0;
         _interimBytes   = 0;
         _interimFiles   = 0;
         _interimDirs    = 0;
@@ -503,7 +533,11 @@ public class StorageMasterViewModel : ViewModelBase
             StorageSortField.Extension    => _sortDescending ? source.OrderByDescending(f => f.Extension)    : source.OrderBy(f => f.Extension),
             _                             => _sortDescending ? source.OrderByDescending(f => f.SizeBytes)    : source.OrderBy(f => f.SizeBytes),
         };
-        foreach (var item in source.Take(2000)) FilteredFiles.Add(item);
+        var filtered = source.ToList();
+        TotalFilteredCount = filtered.Count;
+        IsFilteredResultsTruncated = TotalFilteredCount > MaxDisplayedFilteredFiles;
+        foreach (var item in filtered.Take(MaxDisplayedFilteredFiles)) FilteredFiles.Add(item);
+        OnPropertyChanged(nameof(FilteredResultsSummary));
     }
 
     /// <summary>
@@ -666,20 +700,36 @@ public class StorageMasterViewModel : ViewModelBase
           + $"{(permanent ? "WARNING: PERMANENT DELETION - cannot be undone!" : "Items will be sent to the Recycle Bin.")}"))
             return;
         int success = 0, failed = 0;
-        foreach (var item in selected)
+        var deletedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        await Task.Run(() =>
         {
-            try
+            foreach (var item in selected)
             {
-                ShellFileOperations.Delete(
-                    item.Recommendation.Item.FullPath, recycle: !permanent);
-                CleanupItems.Remove(item);
-                success++;
+                try
+                {
+                    ShellFileOperations.Delete(
+                        item.Recommendation.Item.FullPath, recycle: !permanent);
+                    lock (deletedPaths)
+                    {
+                        deletedPaths.Add(item.Recommendation.Item.FullPath);
+                    }
+                    success++;
+                }
+                catch
+                {
+                    failed++;
+                }
             }
-            catch { failed++; }
+        });
+
+        foreach (var item in selected.Where(i => deletedPaths.Contains(i.Recommendation.Item.FullPath)))
+        {
+            CleanupItems.Remove(item);
         }
+
         ScanStatusText = $"Deleted {success} items.{(failed > 0 ? $" {failed} failed." : string.Empty)}";
         NotifyScanMetrics();
-        await Task.CompletedTask;
     }
 
     private void SetAllCleanupSelection(bool selected)

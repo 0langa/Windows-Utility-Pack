@@ -20,6 +20,16 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{StaticResource WarningStatusSurfaceStyle}"
+                    Padding="10,8"
+                    Margin="0,0,0,8"
+                    Visibility="{Binding HklmEntriesSkipped, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Some HKLM startup entries could not be read. Run as Administrator for full visibility."
+                           Foreground="{DynamicResource WarningBrush}"
+                           TextWrapping="Wrap"
+                           FontSize="12"/>
+            </Border>
+
             <!-- DataGrid panel -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="0" Margin="0,0,0,12">
                 <DataGrid ItemsSource="{Binding Entries}"

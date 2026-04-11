@@ -24,7 +24,7 @@ public partial class MainWindow : Window
         var vm = new MainWindowViewModel(App.NavigationService, App.ThemeService, App.NotificationService);
         DataContext = vm;
 
-        var settings = App.SettingsService.Load();
+        var settings = App.TryGetSettingsService()?.Load() ?? new AppSettings();
         if (settings.RememberWindowPosition)
         {
             if (!double.IsNaN(settings.WindowLeft)) Left   = settings.WindowLeft;
@@ -38,8 +38,15 @@ public partial class MainWindow : Window
 
     private void OnWindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
     {
-        var settings = App.SettingsService.Load();
-        settings.Theme = App.ThemeService.CurrentTheme;
+        var settingsService = App.TryGetSettingsService();
+        var themeService = App.TryGetThemeService();
+        if (settingsService is null || themeService is null)
+        {
+            return;
+        }
+
+        var settings = settingsService.Load();
+        settings.Theme = themeService.CurrentTheme;
 
         if (settings.RememberWindowPosition)
         {
@@ -49,6 +56,14 @@ public partial class MainWindow : Window
             settings.WindowHeight = Height;
         }
 
-        App.SettingsService.Save(settings);
+        settingsService.Save(settings);
+    }
+
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        if (DataContext is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
     }
 }

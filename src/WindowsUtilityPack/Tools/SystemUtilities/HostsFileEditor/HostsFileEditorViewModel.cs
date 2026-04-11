@@ -23,7 +23,7 @@ public class HostsEntry : ViewModelBase
     public bool   IsComment { get => _isComment;  set => SetProperty(ref _isComment,  value); }
 }
 
-public class HostsFileEditorViewModel : ViewModelBase
+public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
 {
     private static readonly string HostsPath =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
@@ -123,7 +123,7 @@ public class HostsFileEditorViewModel : ViewModelBase
         {
             var lines = await File.ReadAllLinesAsync(HostsPath);
 
-            Application.Current.Dispatcher.Invoke(() =>
+            RunOnUi(() =>
             {
                 Entries.Clear();
                 foreach (var line in lines)
@@ -209,11 +209,13 @@ public class HostsFileEditorViewModel : ViewModelBase
     {
         try
         {
-            await CreateBackupAsync();
+            var backupWarning = await TryCreateBackupAsync();
             var content = BuildFileContent();
             await File.WriteAllTextAsync(HostsPath, content, Encoding.ASCII);
             IsModified    = false;
-            StatusMessage = "Hosts file saved successfully.";
+            StatusMessage = backupWarning is null
+                ? "Hosts file saved successfully."
+                : $"Hosts file saved successfully. {backupWarning}";
         }
         catch (UnauthorizedAccessException)
         {
@@ -225,16 +227,27 @@ public class HostsFileEditorViewModel : ViewModelBase
         }
     }
 
-    private static async Task CreateBackupAsync()
+    private static async Task<string?> TryCreateBackupAsync()
     {
-        var backupDir = Path.GetDirectoryName(BackupPath);
-        if (!string.IsNullOrWhiteSpace(backupDir))
-            Directory.CreateDirectory(backupDir);
-
-        if (File.Exists(HostsPath))
+        try
         {
-            var source = await File.ReadAllTextAsync(HostsPath, Encoding.ASCII);
-            await File.WriteAllTextAsync(BackupPath, source, Encoding.ASCII);
+            var backupDir = Path.GetDirectoryName(BackupPath);
+            if (!string.IsNullOrWhiteSpace(backupDir))
+            {
+                Directory.CreateDirectory(backupDir);
+            }
+
+            if (File.Exists(HostsPath))
+            {
+                var source = await File.ReadAllTextAsync(HostsPath, Encoding.ASCII);
+                await File.WriteAllTextAsync(BackupPath, source, Encoding.ASCII);
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return $"Backup could not be written ({ex.Message}).";
         }
     }
 
@@ -294,10 +307,32 @@ public class HostsFileEditorViewModel : ViewModelBase
             return;
         }
 
+        var ip = NewIp.Trim();
+        var hostname = NewHostname.Trim();
+        if (!IsIpAddress(ip))
+        {
+            StatusMessage = "Please enter a valid IP address.";
+            return;
+        }
+
+        if (!IsValidHostname(hostname))
+        {
+            StatusMessage = "Please enter a valid hostname.";
+            return;
+        }
+
+        if (Entries.Any(entry => !entry.IsComment
+            && string.Equals(entry.IpAddress, ip, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase)))
+        {
+            StatusMessage = "That hosts entry already exists.";
+            return;
+        }
+
         Entries.Add(new HostsEntry
         {
-            IpAddress = NewIp.Trim(),
-            Hostname  = NewHostname.Trim(),
+            IpAddress = ip,
+            Hostname  = hostname,
             Comment   = NewComment.Trim(),
             IsEnabled = true,
             IsComment = false
@@ -345,5 +380,63 @@ public class HostsFileEditorViewModel : ViewModelBase
         }
         IsModified    = true;
         StatusMessage = "Blocklist presets added. Remember to Save.";
+    }
+
+    public bool CanNavigateAway()
+    {
+        if (!IsModified)
+        {
+            return true;
+        }
+
+        return MessageBox.Show(
+            "You have unsaved changes in Hosts File Editor.\n\nLeave this page and discard changes?",
+            "Unsaved Changes",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning) == MessageBoxResult.Yes;
+    }
+
+    private static bool IsValidHostname(string host)
+    {
+        if (host.Length is < 1 or > 253)
+        {
+            return false;
+        }
+
+        foreach (var label in host.Split('.'))
+        {
+            if (label.Length is < 1 or > 63)
+            {
+                return false;
+            }
+
+            if (!char.IsLetterOrDigit(label[0]) || !char.IsLetterOrDigit(label[^1]))
+            {
+                return false;
+            }
+
+            for (var i = 1; i < label.Length - 1; i++)
+            {
+                var ch = label[i];
+                if (!char.IsLetterOrDigit(ch) && ch != '-')
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static void RunOnUi(Action action)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        dispatcher.Invoke(action);
     }
 }

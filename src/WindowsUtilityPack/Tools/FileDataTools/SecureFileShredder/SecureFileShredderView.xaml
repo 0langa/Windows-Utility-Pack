@@ -9,12 +9,13 @@
                        Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,8"/>
 
             <!-- Warning banner -->
-            <Border Background="#FFEBEE" BorderBrush="#EF9A9A" BorderThickness="1"
+            <Border Background="{DynamicResource ErrorSurfaceBrush}"
+                    BorderBrush="{DynamicResource ErrorBrush}" BorderThickness="1"
                     CornerRadius="4" Padding="12,10" Margin="0,0,0,12">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock FontSize="16" Text="&#9888;" Foreground="#C62828"
+                    <TextBlock FontSize="16" Text="&#9888;" Foreground="{DynamicResource ErrorBrush}"
                                VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock FontWeight="SemiBold" Foreground="#C62828" FontSize="13"
+                    <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource ErrorBrush}" FontSize="13"
                                VerticalAlignment="Center"
                                Text="Warning: Shredded files cannot be recovered. This action is permanent."/>
                 </StackPanel>
@@ -27,7 +28,7 @@
                                Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,8,0"/>
                     <ComboBox SelectedValue="{Binding PassCount}"
                               SelectedValuePath="Tag"
-                              Width="200" Margin="0,0,16,0">
+                              MinWidth="180" MaxWidth="260" Margin="0,0,16,0">
                         <ComboBoxItem Tag="1"  Content="1 pass (Quick)"/>
                         <ComboBoxItem Tag="3"  Content="3 passes (Standard)" IsSelected="True"/>
                         <ComboBoxItem Tag="7"  Content="7 passes (DoD 5220.22-M)"/>

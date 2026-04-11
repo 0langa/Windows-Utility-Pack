@@ -12,10 +12,11 @@ namespace WindowsUtilityPack.ViewModels;
 /// Exposes category navigation data from <see cref="ToolRegistry"/> so the
 /// shell menus are driven by a single source of truth.
 /// </summary>
-public class MainWindowViewModel : ViewModelBase
+public class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly INavigationService _navigation;
     private readonly IThemeService _theme;
+    private readonly INotificationService? _notifications;
     private AppTheme _effectiveTheme = AppTheme.Dark;
     private string _statusMessage = "Ready";
     private string _notificationText = string.Empty;
@@ -108,15 +109,12 @@ public class MainWindowViewModel : ViewModelBase
 
         _navigation.Navigated += OnNavigated;
 
-        _theme.ThemeChanged += (_, _) =>
-        {
-            EffectiveTheme = _theme.EffectiveTheme;
-            OnPropertyChanged(nameof(ThemeSummary));
-        };
+        _theme.ThemeChanged += OnThemeChanged;
 
-        if (notifications is not null)
+        _notifications = notifications;
+        if (_notifications is not null)
         {
-            notifications.NotificationRequested += OnNotificationRequested;
+            _notifications.NotificationRequested += OnNotificationRequested;
         }
 
         ToggleThemeCommand  = new RelayCommand(_ => ToggleTheme());
@@ -154,6 +152,12 @@ public class MainWindowViewModel : ViewModelBase
         IsNotificationVisible = true;
     }
 
+    private void OnThemeChanged(object? sender, AppTheme appTheme)
+    {
+        EffectiveTheme = _theme.EffectiveTheme;
+        OnPropertyChanged(nameof(ThemeSummary));
+    }
+
     private void ToggleTheme()
     {
         var newTheme = _theme.CurrentTheme switch
@@ -180,5 +184,15 @@ public class MainWindowViewModel : ViewModelBase
         if (Application.Current.MainWindow is { IsLoaded: true } mainWindow)
             window.Owner = mainWindow;
         window.ShowDialog();
+    }
+
+    public void Dispose()
+    {
+        _navigation.Navigated -= OnNavigated;
+        _theme.ThemeChanged -= OnThemeChanged;
+        if (_notifications is not null)
+        {
+            _notifications.NotificationRequested -= OnNotificationRequested;
+        }
     }
 }

@@ -15,7 +15,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Host:" Foreground="{DynamicResource SecondaryTextBrush}"
                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -29,15 +29,16 @@
                         <TextBox Grid.Column="3"
                                  Text="{Binding PortRangeText, UpdateSourceTrigger=PropertyChanged}"
                                  IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
+                                 MinWidth="160"
                                  Padding="8,6"
                                  AutomationProperties.Name="Port range"/>
                     </Grid>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="80"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
@@ -47,6 +48,7 @@
                         <TextBox Grid.Column="1"
                                  Text="{Binding TimeoutMs, UpdateSourceTrigger=LostFocus}"
                                  IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
+                                 MinWidth="80"
                                  Padding="8,6" Margin="0,0,12,0"
                                  AutomationProperties.Name="Timeout milliseconds"/>
                         <TextBlock Grid.Column="2" Text="Concurrency:" Foreground="{DynamicResource SecondaryTextBrush}"
@@ -54,6 +56,7 @@
                         <TextBox Grid.Column="3"
                                  Text="{Binding Concurrency, UpdateSourceTrigger=LostFocus}"
                                  IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
+                                 MinWidth="80"
                                  Padding="8,6" Margin="0,0,16,0"
                                  AutomationProperties.Name="Concurrency limit"/>
                         <Button Grid.Column="5" Content="Scan"

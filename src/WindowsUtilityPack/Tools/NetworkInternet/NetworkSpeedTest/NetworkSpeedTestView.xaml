@@ -22,7 +22,7 @@
                         <TextBlock Text="{Binding DownloadSpeed}" FontSize="28" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                         <ProgressBar Value="{Binding DownloadProgress}" Minimum="0" Maximum="100"
-                                     Height="6" Width="120" Margin="0,8,0,0"/>
+                                     Height="6" MinWidth="120" Margin="0,8,0,0" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                     <!-- Latency -->
                     <StackPanel Grid.Column="1" HorizontalAlignment="Center">
@@ -38,7 +38,7 @@
                         <TextBlock Text="{Binding UploadSpeed}" FontSize="28" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                         <ProgressBar Value="{Binding UploadProgress}" Minimum="0" Maximum="100"
-                                     Height="6" Width="120" Margin="0,8,0,0"/>
+                                     Height="6" MinWidth="120" Margin="0,8,0,0" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -92,10 +92,10 @@
                               BorderThickness="0"
                               CanUserResizeRows="False">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Time"     Binding="{Binding Timestamp}" Width="80"/>
+                            <DataGridTextColumn Header="Time"     Binding="{Binding Timestamp}" MinWidth="80" Width="Auto"/>
                             <DataGridTextColumn Header="Download" Binding="{Binding Download}"  Width="*"/>
                             <DataGridTextColumn Header="Upload"   Binding="{Binding Upload}"    Width="*"/>
-                            <DataGridTextColumn Header="Latency"  Binding="{Binding Latency}"   Width="80"/>
+                            <DataGridTextColumn Header="Latency"  Binding="{Binding Latency}"   MinWidth="80" Width="Auto"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </StackPanel>

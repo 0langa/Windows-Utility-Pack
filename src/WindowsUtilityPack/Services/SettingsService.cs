@@ -26,11 +26,18 @@ public class SettingsService : ISettingsService
             if (File.Exists(SettingsPath))
             {
                 var json = File.ReadAllText(SettingsPath);
-                return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+                var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
+                if (settings is not null)
+                {
+                    return settings;
+                }
+
+                throw new JsonException("Settings file deserialized to null.");
             }
         }
         catch (Exception ex)
         {
+            PreserveCorruptSettingsCopy();
             // Log through the static accessor if the logging service is already initialised.
             try { App.LoggingService?.LogError("Failed to load settings", ex); } catch { }
         }
@@ -49,6 +56,33 @@ public class SettingsService : ISettingsService
         catch (Exception ex)
         {
             try { App.LoggingService?.LogError("Failed to save settings", ex); } catch { }
+        }
+    }
+
+    private static void PreserveCorruptSettingsCopy()
+    {
+        if (!File.Exists(SettingsPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var directory = Path.GetDirectoryName(SettingsPath)!;
+            var fileName = Path.GetFileNameWithoutExtension(SettingsPath);
+            var extension = Path.GetExtension(SettingsPath);
+            var backupPath = Path.Combine(
+                directory,
+                $"{fileName}.corrupt-{DateTime.UtcNow:yyyyMMdd-HHmmss}{extension}");
+
+            if (!File.Exists(backupPath))
+            {
+                File.Copy(SettingsPath, backupPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            try { App.LoggingService?.LogError("Failed to preserve corrupt settings copy", ex); } catch { }
         }
     }
 }

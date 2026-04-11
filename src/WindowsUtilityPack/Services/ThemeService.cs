@@ -13,7 +13,7 @@ namespace WindowsUtilityPack.Services;
 ///           and follows OS changes via <see cref="SystemEvents.UserPreferenceChanged"/>.</item>
 ///   </list>
 /// </summary>
-public class ThemeService : IThemeService
+public class ThemeService : IThemeService, IDisposable
 {
     private const string DarkThemeUri  = "Themes/DarkTheme.xaml";
     private const string LightThemeUri = "Themes/LightTheme.xaml";
@@ -27,10 +27,12 @@ public class ThemeService : IThemeService
 
     /// <inheritdoc/>
     public event EventHandler<AppTheme>? ThemeChanged;
+    private bool _disposed;
 
     /// <inheritdoc/>
     public void SetTheme(AppTheme theme)
     {
+        ThrowIfDisposed();
         CurrentTheme = theme;
 
         // Always update OS-event subscription before any early-exit so that switching
@@ -76,6 +78,11 @@ public class ThemeService : IThemeService
     /// <summary>Reacts to Windows theme changes when following the system setting.</summary>
     private void OnSystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (e.Category != UserPreferenceCategory.General)
             return;
 
@@ -85,7 +92,13 @@ public class ThemeService : IThemeService
 
         EffectiveTheme = resolved;
 
-        Application.Current.Dispatcher.Invoke(() =>
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        dispatcher.Invoke(() =>
         {
             ApplyTheme(resolved);
             ThemeChanged?.Invoke(this, resolved);
@@ -99,6 +112,7 @@ public class ThemeService : IThemeService
     /// </remarks>
     protected virtual void ApplyTheme(AppTheme theme)
     {
+        ThrowIfDisposed();
         var mergedDicts = Application.Current.Resources.MergedDictionaries;
         var themeUri = theme switch
         {
@@ -120,5 +134,21 @@ public class ThemeService : IThemeService
             Source = new Uri(themeUri, UriKind.Relative)
         };
         mergedDicts.Insert(0, newDict);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;
+    }
+
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
     }
 }

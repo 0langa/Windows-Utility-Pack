@@ -45,7 +45,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="160"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Border Background="{DynamicResource PanelBackgroundBrush}"
                             BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="0,0,0,1"
@@ -55,6 +55,7 @@
                     </Border>
                     <TextBox Grid.Row="1" Text="{Binding LeftText, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             MinHeight="160"
                              FontFamily="Consolas" FontSize="12"
                              Foreground="{DynamicResource PrimaryTextBrush}"
                              BorderThickness="0" Padding="10"/>
@@ -65,7 +66,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="160"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Border Background="{DynamicResource PanelBackgroundBrush}"
                             BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="0,0,0,1"
@@ -75,6 +76,7 @@
                     </Border>
                     <TextBox Grid.Row="1" Text="{Binding RightText, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             MinHeight="160"
                              FontFamily="Consolas" FontSize="12"
                              Foreground="{DynamicResource PrimaryTextBrush}"
                              BorderThickness="0" Padding="10"/>
@@ -96,9 +98,9 @@
                         <TextBlock Text="Diff Result" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,16,0"/>
                         <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11">
-                            <Run Text="{Binding AddedCount, Mode=OneWay}" Foreground="Green"/>
+                            <Run Text="{Binding AddedCount, Mode=OneWay}" Foreground="{DynamicResource SuccessBrush}"/>
                             <Run Text=" added  "/>
-                            <Run Text="{Binding RemovedCount, Mode=OneWay}" Foreground="Red"/>
+                            <Run Text="{Binding RemovedCount, Mode=OneWay}" Foreground="{DynamicResource ErrorBrush}"/>
                             <Run Text=" removed  "/>
                             <Run Text="{Binding UnchangedCount, Mode=OneWay}"/>
                             <Run Text=" unchanged"/>
@@ -118,10 +120,10 @@
                                         <Style TargetType="Grid">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding Type}" Value="{x:Static local:DiffType.Added}">
-                                                    <Setter Property="Background" Value="#1A00AA00"/>
+                                                    <Setter Property="Background" Value="{DynamicResource SuccessSurfaceBrush}"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Type}" Value="{x:Static local:DiffType.Removed}">
-                                                    <Setter Property="Background" Value="#1AAA0000"/>
+                                                    <Setter Property="Background" Value="{DynamicResource ErrorSurfaceBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -134,11 +136,11 @@
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Type}" Value="{x:Static local:DiffType.Added}">
                                                         <Setter Property="Text" Value="+"/>
-                                                        <Setter Property="Foreground" Value="Green"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding Type}" Value="{x:Static local:DiffType.Removed}">
                                                         <Setter Property="Text" Value="-"/>
-                                                        <Setter Property="Foreground" Value="Red"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>

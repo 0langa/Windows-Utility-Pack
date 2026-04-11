@@ -114,7 +114,7 @@ public class SecureFileShredderViewModel : ViewModelBase
                     Status      = "Queued"
                 };
 
-                Application.Current.Dispatcher.Invoke(() => Files.Add(entry));
+                RunOnUi(() => Files.Add(entry));
             }
         });
 
@@ -167,35 +167,38 @@ public class SecureFileShredderViewModel : ViewModelBase
 
         try
         {
-            foreach (var entry in filesToShred)
+            await Task.Run(() =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                foreach (var entry in filesToShred)
                 {
-                    entry.Status  = "Shredding";
-                    CurrentFile   = entry.FileName;
-                });
-
-                try
-                {
-                    await Task.Run(() => ShredFile(entry.FilePath, PassCount));
-
-                    Application.Current.Dispatcher.Invoke(() =>
+                    RunOnUi(() =>
                     {
-                        entry.Status = "Done";
+                        entry.Status = "Shredding";
+                        CurrentFile = entry.FileName;
                     });
-                }
-                catch (Exception ex)
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        entry.Status = $"Error: {ex.Message}";
-                    });
-                }
 
-                done++;
-                var pct = done / (double)total * 100.0;
-                Application.Current.Dispatcher.Invoke(() => Progress = pct);
-            }
+                    try
+                    {
+                        ShredFile(entry.FilePath, PassCount);
+
+                        RunOnUi(() =>
+                        {
+                            entry.Status = "Done";
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        RunOnUi(() =>
+                        {
+                            entry.Status = $"Error: {ex.Message}";
+                        });
+                    }
+
+                    done++;
+                    var pct = done / (double)total * 100.0;
+                    RunOnUi(() => Progress = pct);
+                }
+            });
 
             StatusMessage = $"Shredding complete. {done}/{total} file(s) processed.";
             CurrentFile   = string.Empty;
@@ -214,12 +217,21 @@ public class SecureFileShredderViewModel : ViewModelBase
         long length  = fileInfo.Length;
 
         // Rename before deletion for additional obscurity
-        var dir         = Path.GetDirectoryName(path) ?? string.Empty;
-        var randomName  = Path.Combine(dir, Path.GetRandomFileName());
+        var activePath = path;
+        var dir = Path.GetDirectoryName(path) ?? string.Empty;
+        var randomName = Path.Combine(dir, Path.GetRandomFileName());
+        try
+        {
+            File.Move(path, randomName);
+            activePath = randomName;
+        }
+        catch
+        {
+            // Keep original path if rename is not possible (locked/permission/cross-volume edge case).
+            activePath = path;
+        }
 
-        File.Move(path, randomName);
-
-        using (var stream = new FileStream(randomName, FileMode.Open, FileAccess.Write, FileShare.None))
+        using (var stream = new FileStream(activePath, FileMode.Open, FileAccess.Write, FileShare.None))
         {
             for (int pass = 0; pass < passes; pass++)
             {
@@ -253,7 +265,24 @@ public class SecureFileShredderViewModel : ViewModelBase
             stream.Flush();
         }
 
-        File.Delete(randomName);
+        File.Delete(activePath);
+    }
+
+    private static void RunOnUi(Action action)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        if (dispatcher.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        dispatcher.Invoke(action);
     }
 
     private static string FormatSize(long bytes)

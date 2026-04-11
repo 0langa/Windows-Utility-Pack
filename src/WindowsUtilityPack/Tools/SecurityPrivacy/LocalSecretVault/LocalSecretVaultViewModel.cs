@@ -32,7 +32,7 @@ internal class VaultFile
 /// ViewModel for the Local Secret Vault tool.
 /// All secrets are AES-256 encrypted with a master password derived key (PBKDF2 / SHA-256).
 /// </summary>
-public class LocalSecretVaultViewModel : ViewModelBase
+public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
 {
     private static readonly string VaultPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -58,6 +58,8 @@ public class LocalSecretVaultViewModel : ViewModelBase
     private bool          _isLocked       = true;
     private string        _masterPassword = string.Empty;
     private string        _statusMessage  = string.Empty;
+    private int           _failedUnlockAttempts;
+    private DateTimeOffset? _lockedOutUntilUtc;
 
     public ObservableCollection<SecretEntry> Secrets { get; } = [];
 
@@ -158,6 +160,13 @@ public class LocalSecretVaultViewModel : ViewModelBase
             return;
         }
 
+        if (_lockedOutUntilUtc.HasValue && DateTimeOffset.UtcNow < _lockedOutUntilUtc.Value)
+        {
+            var remaining = _lockedOutUntilUtc.Value - DateTimeOffset.UtcNow;
+            StatusMessage = $"Too many failed attempts. Try again in {Math.Ceiling(remaining.TotalSeconds):F0}s.";
+            return;
+        }
+
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(VaultPath)!);
@@ -165,13 +174,15 @@ public class LocalSecretVaultViewModel : ViewModelBase
             if (!File.Exists(VaultPath))
             {
                 // Create new vault
-                _salt       = RandomNumberGenerator.GetBytes(32);
-                _derivedKey = DeriveKey(MasterPassword, _salt);
+                ReplaceSalt(RandomNumberGenerator.GetBytes(32));
+                ReplaceDerivedKey(DeriveKey(MasterPassword, _salt!));
                 _allSecrets.Clear();
                 await SaveVaultAsync();
                 IsLocked      = false;
                 StatusMessage = "New vault created and unlocked.";
                 MasterPassword = string.Empty;
+                _failedUnlockAttempts = 0;
+                _lockedOutUntilUtc = null;
                 FilterSecrets();
                 return;
             }
@@ -179,37 +190,59 @@ public class LocalSecretVaultViewModel : ViewModelBase
             // Load and decrypt existing vault
             var json       = await File.ReadAllTextAsync(VaultPath);
             var vaultFile  = JsonSerializer.Deserialize<VaultFile>(json)!;
-            _salt          = Convert.FromBase64String(vaultFile.Salt);
-            _derivedKey    = DeriveKey(MasterPassword, _salt);
+            ReplaceSalt(Convert.FromBase64String(vaultFile.Salt));
+            ReplaceDerivedKey(DeriveKey(MasterPassword, _salt!));
 
-            var plaintext  = Decrypt(Convert.FromBase64String(vaultFile.EncryptedData), _derivedKey);
-            var entries    = JsonSerializer.Deserialize<List<SecretEntry>>(plaintext) ?? [];
+            var plaintextBytes = Decrypt(Convert.FromBase64String(vaultFile.EncryptedData), _derivedKey!);
+            var plaintextJson = Encoding.UTF8.GetString(plaintextBytes);
+            ClearSensitiveBuffer(plaintextBytes);
+            var entries = JsonSerializer.Deserialize<List<SecretEntry>>(plaintextJson) ?? [];
             _allSecrets    = new ObservableCollection<SecretEntry>(entries);
 
             IsLocked      = false;
             StatusMessage = $"Vault unlocked. {_allSecrets.Count} secret(s) loaded.";
             MasterPassword = string.Empty;
+            _failedUnlockAttempts = 0;
+            _lockedOutUntilUtc = null;
             FilterSecrets();
         }
-        catch (CryptographicException)
+        catch (Exception ex) when (ex is CryptographicException or JsonException)
         {
-            StatusMessage = "Incorrect master password or vault is corrupted.";
-            _derivedKey   = null;
+            _failedUnlockAttempts++;
+            ReplaceDerivedKey(null);
+            var delay = GetUnlockBackoffDelay(_failedUnlockAttempts);
+
+            if (_failedUnlockAttempts >= 10)
+            {
+                _lockedOutUntilUtc = DateTimeOffset.UtcNow.AddMinutes(2);
+                StatusMessage = "Too many failed attempts. Vault unlock is temporarily locked for 2 minutes.";
+            }
+            else
+            {
+                StatusMessage = $"Incorrect master password or vault is corrupted. Retry in {delay.TotalSeconds:F1}s.";
+            }
+
+            await Task.Delay(delay);
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
         }
+        finally
+        {
+            MasterPassword = string.Empty;
+        }
     }
 
     private void Lock()
     {
-        _derivedKey   = null;
-        _salt         = null;
+        ReplaceDerivedKey(null);
+        ReplaceSalt(null);
         IsLocked      = true;
         Secrets.Clear();
         _allSecrets.Clear();
         SelectedSecret = null;
+        EditValue = string.Empty;
         StatusMessage  = "Vault locked.";
     }
 
@@ -226,9 +259,11 @@ public class LocalSecretVaultViewModel : ViewModelBase
     private async Task SaveSecretAsync()
     {
         if (_derivedKey == null) return;
-
-        var encryptedValue = Convert.ToBase64String(
-            Encrypt(Encoding.UTF8.GetBytes(EditValue), _derivedKey));
+        var plaintextBytes = Encoding.UTF8.GetBytes(EditValue);
+        var encryptedBytes = Encrypt(plaintextBytes, _derivedKey);
+        ClearSensitiveBuffer(plaintextBytes);
+        var encryptedValue = Convert.ToBase64String(encryptedBytes);
+        ClearSensitiveBuffer(encryptedBytes);
 
         if (SelectedSecret == null)
         {
@@ -291,6 +326,7 @@ public class LocalSecretVaultViewModel : ViewModelBase
         {
             var plainBytes = Decrypt(Convert.FromBase64String(SelectedSecret.EncryptedValue), _derivedKey);
             _clipboard.SetText(Encoding.UTF8.GetString(plainBytes));
+            ClearSensitiveBuffer(plainBytes);
             StatusMessage = "Value copied to clipboard.";
         }
         catch { StatusMessage = "Failed to decrypt value."; }
@@ -309,6 +345,7 @@ public class LocalSecretVaultViewModel : ViewModelBase
             {
                 var plainBytes = Decrypt(Convert.FromBase64String(entry.EncryptedValue), _derivedKey);
                 EditValue = Encoding.UTF8.GetString(plainBytes);
+                ClearSensitiveBuffer(plainBytes);
             }
             catch { EditValue = "<decryption error>"; }
         }
@@ -338,16 +375,48 @@ public class LocalSecretVaultViewModel : ViewModelBase
         if (_derivedKey == null || _salt == null) return;
 
         var json      = JsonSerializer.Serialize(_allSecrets.ToList());
-        var encrypted = Encrypt(Encoding.UTF8.GetBytes(json), _derivedKey);
+        var plaintextBytes = Encoding.UTF8.GetBytes(json);
+        var encrypted = Encrypt(plaintextBytes, _derivedKey);
+        ClearSensitiveBuffer(plaintextBytes);
 
         var vaultFile = new VaultFile
         {
             Salt          = Convert.ToBase64String(_salt),
             EncryptedData = Convert.ToBase64String(encrypted),
         };
+        ClearSensitiveBuffer(encrypted);
 
         var output = JsonSerializer.Serialize(vaultFile, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(VaultPath, output);
+    }
+
+    internal static TimeSpan GetUnlockBackoffDelay(int failedAttempts)
+    {
+        var sanitizedAttempts = Math.Max(1, failedAttempts);
+        var delayMs = Math.Min(10_000, 250 * (int)Math.Pow(2, Math.Min(sanitizedAttempts - 1, 6)));
+        return TimeSpan.FromMilliseconds(delayMs);
+    }
+
+    private void ReplaceDerivedKey(byte[]? newKey)
+    {
+        ClearSensitiveBuffer(_derivedKey);
+        _derivedKey = newKey;
+    }
+
+    private void ReplaceSalt(byte[]? newSalt)
+    {
+        ClearSensitiveBuffer(_salt);
+        _salt = newSalt;
+    }
+
+    internal static void ClearSensitiveBuffer(byte[]? buffer)
+    {
+        if (buffer is null)
+        {
+            return;
+        }
+
+        Array.Clear(buffer, 0, buffer.Length);
     }
 
     // --- Crypto helpers ---
@@ -382,5 +451,10 @@ public class LocalSecretVaultViewModel : ViewModelBase
         aes.IV = iv;
         using var dec = aes.CreateDecryptor();
         return dec.TransformFinalBlock(ciphertext, 0, ciphertext.Length);
+    }
+
+    public void Dispose()
+    {
+        Lock();
     }
 }

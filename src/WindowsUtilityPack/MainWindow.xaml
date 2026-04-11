@@ -13,7 +13,8 @@
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
-        Closing="OnWindowClosing">
+        Closing="OnWindowClosing"
+        Closed="OnWindowClosed">
 
     <Grid Margin="16">
         <Grid.RowDefinitions>

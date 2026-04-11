@@ -130,15 +130,13 @@ public class HomeViewModel : ViewModelBase
 
     /// <summary>
     /// Initialises the dashboard ViewModel.
-    /// Falls back to static <see cref="App"/> accessors when services are not
-    /// injected (DataTemplate instantiation path).
     /// </summary>
     public HomeViewModel(
-        INavigationService? navigation = null,
-        IHomeDashboardService? dashboard = null)
+        INavigationService navigation,
+        IHomeDashboardService dashboard)
     {
-        _navigation = navigation ?? App.NavigationService;
-        _dashboard = dashboard ?? App.HomeDashboardService;
+        _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
+        _dashboard = dashboard ?? throw new ArgumentNullException(nameof(dashboard));
 
         AllTools = ToolRegistry.GetDisplayTools();
         Categories = ToolRegistry.GetCategories();

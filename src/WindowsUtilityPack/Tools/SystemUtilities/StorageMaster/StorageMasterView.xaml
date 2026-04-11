@@ -297,6 +297,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <!-- Filter bar -->
@@ -334,13 +335,21 @@
                             <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"
                                        VerticalAlignment="Center" Margin="8,0,0,0">
                                 <TextBlock.Text>
-                                    <Binding Path="FilteredFiles.Count" StringFormat="{}{0} files"/>
+                                    <Binding Path="FilteredResultsSummary"/>
                                 </TextBlock.Text>
                             </TextBlock>
                         </WrapPanel>
                     </Border>
+                    <Border Grid.Row="1"
+                            Margin="0,0,0,6"
+                            Style="{StaticResource WarningStatusSurfaceStyle}"
+                            Visibility="{Binding IsFilteredResultsTruncated, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{Binding FilteredResultsSummary}"
+                                   Foreground="{DynamicResource WarningBrush}"
+                                   TextWrapping="Wrap"/>
+                    </Border>
                     <!-- File list -->
-                    <ListView Grid.Row="1" ItemsSource="{Binding FilteredFiles}"
+                    <ListView Grid.Row="2" ItemsSource="{Binding FilteredFiles}"
                               Background="{DynamicResource AppBackgroundBrush}"
                               Foreground="{DynamicResource PrimaryTextBrush}"
                               BorderThickness="0"

@@ -96,6 +96,10 @@ public partial class App : Application
     public static IImageProcessingService ImageProcessingService { get; private set; } = null!;
     public static IUlidGenerator UlidGenerator { get; private set; } = null!;
 
+    public static ISettingsService? TryGetSettingsService() => SettingsService;
+    public static IThemeService? TryGetThemeService() => ThemeService;
+    public static ILoggingService? TryGetLoggingService() => LoggingService;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -164,12 +168,12 @@ public partial class App : Application
         ImageProcessingService = new ImageProcessingService();
         UlidGenerator = new UlidGenerator();
 
+        HomeDashboardService = new HomeDashboardService(SettingsService);
+
         var settings = SettingsService.Load();
         ThemeService.SetTheme(settings.Theme);
 
         RegisterTools();
-
-        HomeDashboardService = new HomeDashboardService(SettingsService);
 
         // Track tool launches for the Recently Used section.
         NavigationService.Navigated += (_, vmType) =>
@@ -191,6 +195,9 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         LoggingService.LogInfo("Application exiting.");
+        (ThemeService as IDisposable)?.Dispose();
+        (NavigationService as IDisposable)?.Dispose();
+        (DownloadCoordinatorService as IDisposable)?.Dispose();
         base.OnExit(e);
     }
 
@@ -218,7 +225,7 @@ public partial class App : Application
             Icon = "🏠",
             IconGlyph = "\uE80F",
             Description = "Application dashboard",
-            Factory = () => new HomeViewModel(),
+            Factory = () => new HomeViewModel(NavigationService, HomeDashboardService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -438,7 +445,8 @@ public partial class App : Application
                 DownloadSchedulerService,
                 DownloaderFileDialogService,
                 ClipboardService,
-                UserDialogService),
+                UserDialogService,
+                NavigationService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition

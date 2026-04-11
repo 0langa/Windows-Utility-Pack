@@ -26,6 +26,8 @@ public class PortResult
 /// </summary>
 public class PortScannerViewModel : ViewModelBase
 {
+    internal const int MaxSafeConcurrency = 100;
+
     private static readonly Dictionary<int, string> WellKnownServices = new()
     {
         { 21,    "FTP"        },
@@ -76,7 +78,7 @@ public class PortScannerViewModel : ViewModelBase
     public int Concurrency
     {
         get => _concurrency;
-        set => SetProperty(ref _concurrency, Math.Clamp(value, 1, 500));
+        set => SetProperty(ref _concurrency, Math.Clamp(value, 1, MaxSafeConcurrency));
     }
 
     public bool IsScanning
@@ -115,7 +117,7 @@ public class PortScannerViewModel : ViewModelBase
     /// <summary>
     /// Parses a port range string like "22,80-90,443" into a list of port numbers.
     /// </summary>
-    private static List<int> ParsePorts(string input)
+    internal static List<int> ParsePorts(string input)
     {
         var ports = new HashSet<int>();
         foreach (var segment in input.Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -158,7 +160,7 @@ public class PortScannerViewModel : ViewModelBase
         StatusMessage = $"Scanning {ports.Count} port(s) on {Host}…";
 
         var ct          = _cts.Token;
-        var sem         = new SemaphoreSlim(Concurrency);
+        var sem         = new SemaphoreSlim(Math.Clamp(Concurrency, 1, MaxSafeConcurrency));
         var scanned     = 0;
         var openCount   = 0;
         var total       = ports.Count;

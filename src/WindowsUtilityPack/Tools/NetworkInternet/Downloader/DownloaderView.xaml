@@ -154,11 +154,62 @@
                             <StackPanel>
                                 <TextBlock Text="Inspector" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <TextBlock Text="Source URL" Style="{StaticResource MetadataTextStyle}"/>
-                                <TextBox Text="{Binding SelectedJob.SourceUrl}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="46" Margin="0,2,0,8"/>
+                                <Grid Margin="0,2,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0"
+                                             Text="{Binding SelectedJob.SourceUrl}"
+                                             IsReadOnly="True"
+                                             IsTabStop="True"
+                                             TextWrapping="Wrap"
+                                             MinHeight="46"
+                                             Margin="0,0,6,0"/>
+                                    <Button Grid.Column="1"
+                                            Content="Copy"
+                                            Style="{StaticResource SecondaryActionButtonStyle}"
+                                            Command="{Binding CopyInspectorFieldCommand}"
+                                            CommandParameter="{Binding SelectedJob.SourceUrl}"/>
+                                </Grid>
                                 <TextBlock Text="Resolved URL" Style="{StaticResource MetadataTextStyle}"/>
-                                <TextBox Text="{Binding SelectedJob.ResolvedUrl}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="46" Margin="0,2,0,8"/>
+                                <Grid Margin="0,2,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0"
+                                             Text="{Binding SelectedJob.ResolvedUrl}"
+                                             IsReadOnly="True"
+                                             IsTabStop="True"
+                                             TextWrapping="Wrap"
+                                             MinHeight="46"
+                                             Margin="0,0,6,0"/>
+                                    <Button Grid.Column="1"
+                                            Content="Copy"
+                                            Style="{StaticResource SecondaryActionButtonStyle}"
+                                            Command="{Binding CopyInspectorFieldCommand}"
+                                            CommandParameter="{Binding SelectedJob.ResolvedUrl}"/>
+                                </Grid>
                                 <TextBlock Text="Output" Style="{StaticResource MetadataTextStyle}"/>
-                                <TextBox Text="{Binding SelectedJob.OutputFilePath}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="46" Margin="0,2,0,8"/>
+                                <Grid Margin="0,2,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0"
+                                             Text="{Binding SelectedJob.OutputFilePath}"
+                                             IsReadOnly="True"
+                                             IsTabStop="True"
+                                             TextWrapping="Wrap"
+                                             MinHeight="46"
+                                             Margin="0,0,6,0"/>
+                                    <Button Grid.Column="1"
+                                            Content="Copy"
+                                            Style="{StaticResource SecondaryActionButtonStyle}"
+                                            Command="{Binding CopyInspectorFieldCommand}"
+                                            CommandParameter="{Binding SelectedJob.OutputFilePath}"/>
+                                </Grid>
                                 <TextBlock Text="Status Message" Style="{StaticResource MetadataTextStyle}"/>
                                 <TextBox Text="{Binding SelectedJob.StatusMessage}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="46" Margin="0,2,0,8"/>
                                 <TextBlock Text="Error" Style="{StaticResource MetadataTextStyle}"/>

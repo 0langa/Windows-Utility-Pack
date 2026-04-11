@@ -63,11 +63,25 @@ public class AsyncRelayCommand : ICommand
             {
                 _isExecuting = true;
                 RaiseCanExecuteChanged();
-                await _execute(parameter);
+                await _execute(parameter).ConfigureAwait(true);
             }
-            catch (Exception ex) when (_onException != null)
+            catch (Exception ex)
             {
-                _onException(ex);
+                if (_onException is not null)
+                {
+                    _onException(ex);
+                }
+                else
+                {
+                    try
+                    {
+                        App.LoggingService.LogError("Unhandled async command error.", ex);
+                    }
+                    catch
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AsyncRelayCommand] Unhandled async command error: {ex}");
+                    }
+                }
             }
             finally
             {

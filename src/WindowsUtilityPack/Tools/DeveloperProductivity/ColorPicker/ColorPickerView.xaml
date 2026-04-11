@@ -1,6 +1,11 @@
 <UserControl x:Class="WindowsUtilityPack.Tools.DeveloperProductivity.ColorPicker.ColorPickerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="ColorPickerRedChannelBrush" Color="#EF4444"/>
+        <SolidColorBrush x:Key="ColorPickerGreenChannelBrush" Color="#22C55E"/>
+        <SolidColorBrush x:Key="ColorPickerBlueChannelBrush" Color="#3B82F6"/>
+    </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="4" MaxWidth="1080">
             <Border Style="{StaticResource HeroSurfaceStyle}" Margin="0,0,0,12">
@@ -85,7 +90,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="60"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="R" Foreground="#EF4444" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock Text="R" Foreground="{StaticResource ColorPickerRedChannelBrush}" FontWeight="Bold" VerticalAlignment="Center"/>
                                 <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding R}" Margin="10,0"/>
                                 <TextBox Grid.Column="2" Text="{Binding R, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
                             </Grid>
@@ -96,7 +101,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="60"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="G" Foreground="#22C55E" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock Text="G" Foreground="{StaticResource ColorPickerGreenChannelBrush}" FontWeight="Bold" VerticalAlignment="Center"/>
                                 <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding G}" Margin="10,0"/>
                                 <TextBox Grid.Column="2" Text="{Binding G, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
                             </Grid>
@@ -107,7 +112,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="60"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="B" Foreground="#3B82F6" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock Text="B" Foreground="{StaticResource ColorPickerBlueChannelBrush}" FontWeight="Bold" VerticalAlignment="Center"/>
                                 <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding B}" Margin="10,0"/>
                                 <TextBox Grid.Column="2" Text="{Binding B, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
                             </Grid>

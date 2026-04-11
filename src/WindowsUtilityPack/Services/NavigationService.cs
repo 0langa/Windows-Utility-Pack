@@ -16,19 +16,21 @@ namespace WindowsUtilityPack.Services
     /// <see cref="CurrentView"/>; WPF <c>DataTemplate</c> entries in
     /// <c>App.xaml</c> then resolve the matching View automatically.
     /// </summary>
-    public sealed class NavigationService : INavigationService
+    public sealed class NavigationService : INavigationService, IDisposable
     {
+        private const int MaxBackStackItems = 12;
         private readonly IServiceProvider? _serviceProvider;
         private ContentControl? _contentHost;
-        private readonly Stack<object> _backStack = new();
+        private readonly List<ViewModelBase> _backStack = [];
         private readonly Dictionary<Type, Func<ViewModelBase>> _factories = new();
         private readonly Dictionary<string, Func<ViewModelBase>> _keyFactories = new();
-        private ViewModelBase _currentViewModel = null!;
+        private ViewModelBase? _currentViewModel;
+        private bool _disposed;
 
         // current view-model exposed as a property (used by MainWindowViewModel)
         public ViewModelBase CurrentViewModel
         {
-            get => _currentViewModel;
+            get => _currentViewModel ?? throw new InvalidOperationException("No current view model has been assigned yet.");
             private set
             {
                 _currentViewModel = value;
@@ -56,6 +58,8 @@ namespace WindowsUtilityPack.Services
 
         public void Navigate<TViewModel>() where TViewModel : ViewModelBase
         {
+            ThrowIfDisposed();
+
             var type = typeof(TViewModel);
             ViewModelBase viewModel;
 
@@ -73,12 +77,23 @@ namespace WindowsUtilityPack.Services
                     $"No factory registered for {type.Name} and no service provider is available.");
             }
 
+            if (_currentViewModel is not null)
+            {
+                if (!CanNavigateAway(_currentViewModel))
+                {
+                    return;
+                }
+
+                PushToBackStack(_currentViewModel);
+            }
+
             CurrentViewModel = viewModel;
             Navigated?.Invoke(this, type);
         }
 
         public void NavigateTo(object viewModel)
         {
+            ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(viewModel);
 
             // If a string key is passed, resolve from registered key-based factories
@@ -95,8 +110,15 @@ namespace WindowsUtilityPack.Services
                 }
             }
 
-            if (CurrentViewModel is not null)
-                _backStack.Push(CurrentViewModel);
+            if (_currentViewModel is not null)
+            {
+                if (!CanNavigateAway(_currentViewModel))
+                {
+                    return;
+                }
+
+                PushToBackStack(_currentViewModel);
+            }
 
             if (viewModel is not ViewModelBase vm)
             {
@@ -114,9 +136,22 @@ namespace WindowsUtilityPack.Services
 
         public void GoBack()
         {
+            ThrowIfDisposed();
             if (!CanGoBack) return;
 
-            CurrentViewModel = (ViewModelBase)_backStack.Pop();
+            var current = _currentViewModel;
+            var previousIndex = _backStack.Count - 1;
+            var previous = _backStack[previousIndex];
+            _backStack.RemoveAt(previousIndex);
+
+            if (current is not null && !CanNavigateAway(current))
+            {
+                _backStack.Add(previous);
+                return;
+            }
+
+            DisposeViewModel(current);
+            CurrentViewModel = previous;
 
             if (_contentHost is not null)
                 _contentHost.Content = CurrentViewModel;
@@ -124,6 +159,10 @@ namespace WindowsUtilityPack.Services
 
         public void ClearHistory()
         {
+            foreach (var viewModel in _backStack)
+            {
+                DisposeViewModel(viewModel);
+            }
             _backStack.Clear();
         }
 
@@ -138,6 +177,56 @@ namespace WindowsUtilityPack.Services
         public void Register(string key, Func<ViewModelBase> factory)
         {
             _keyFactories[key] = factory ?? throw new ArgumentNullException(nameof(factory));
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            ClearHistory();
+            DisposeViewModel(_currentViewModel);
+            _currentViewModel = null;
+            _contentHost = null;
+        }
+
+        private static bool CanNavigateAway(ViewModelBase viewModel)
+        {
+            if (viewModel is INavigationGuard guard)
+            {
+                return guard.CanNavigateAway();
+            }
+
+            return true;
+        }
+
+        private void PushToBackStack(ViewModelBase viewModel)
+        {
+            _backStack.Add(viewModel);
+            if (_backStack.Count <= MaxBackStackItems)
+            {
+                return;
+            }
+
+            var evicted = _backStack[0];
+            _backStack.RemoveAt(0);
+            DisposeViewModel(evicted);
+        }
+
+        private static void DisposeViewModel(object? viewModel)
+        {
+            if (viewModel is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+
+        private void ThrowIfDisposed()
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
         }
     }
 }

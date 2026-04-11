@@ -27,6 +27,7 @@ public class StartupManagerViewModel : ViewModelBase
     private ObservableCollection<StartupEntry> _entries = [];
     private StartupEntry? _selectedEntry;
     private bool _isLoading;
+    private bool _hklmEntriesSkipped;
     private string _statusMessage = string.Empty;
 
     public ObservableCollection<StartupEntry> Entries
@@ -53,6 +54,12 @@ public class StartupManagerViewModel : ViewModelBase
         private set => SetProperty(ref _isLoading, value);
     }
 
+    public bool HklmEntriesSkipped
+    {
+        get => _hklmEntriesSkipped;
+        private set => SetProperty(ref _hklmEntriesSkipped, value);
+    }
+
     public string StatusMessage
     {
         get => _statusMessage;
@@ -77,19 +84,21 @@ public class StartupManagerViewModel : ViewModelBase
     private async Task LoadEntriesAsync()
     {
         IsLoading     = true;
+        HklmEntriesSkipped = false;
         StatusMessage = "Loading startup entries…";
 
         try
         {
-            var entries = await Task.Run(CollectEntries);
+            var snapshot = await Task.Run(CollectEntries);
 
             Application.Current.Dispatcher.Invoke(() =>
             {
                 Entries.Clear();
-                foreach (var e in entries)
+                foreach (var e in snapshot.Entries)
                     Entries.Add(e);
             });
 
+            HklmEntriesSkipped = snapshot.HklmSkipped;
             StatusMessage = $"Loaded {Entries.Count} startup entries.";
         }
         catch (Exception ex)
@@ -102,9 +111,10 @@ public class StartupManagerViewModel : ViewModelBase
         }
     }
 
-    private static List<StartupEntry> CollectEntries()
+    private static StartupCollectionResult CollectEntries()
     {
         var result = new List<StartupEntry>();
+        var hklmSkipped = false;
 
         // HKCU enabled
         using (var key = Registry.CurrentUser.OpenSubKey(RunKeyPath))
@@ -162,10 +172,10 @@ public class StartupManagerViewModel : ViewModelBase
         }
         catch
         {
-            // HKLM may require elevation — silently skip
+            hklmSkipped = true;
         }
 
-        return result;
+        return new StartupCollectionResult(result, hklmSkipped);
     }
 
     private void ToggleSelected()
@@ -240,4 +250,6 @@ public class StartupManagerViewModel : ViewModelBase
             StatusMessage = $"Remove failed: {ex.Message}";
         }
     }
+
+    private sealed record StartupCollectionResult(List<StartupEntry> Entries, bool HklmSkipped);
 }

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Net.NetworkInformation;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Windows;
 using WindowsUtilityPack.Commands;
@@ -21,11 +22,21 @@ public class SpeedTestResult
 
 /// <summary>
 /// ViewModel for the Network Speed Test tool.
-/// Measures download speed, upload speed (simulated), and latency.
+/// Measures download speed, upload speed, and latency.
 /// </summary>
 public class NetworkSpeedTestViewModel : ViewModelBase
 {
-    private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
+    private static readonly SocketsHttpHandler HttpHandler = new()
+    {
+        AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+    };
+
+    private static readonly HttpClient _httpClient = new(HttpHandler)
+    {
+        Timeout = Timeout.InfiniteTimeSpan,
+    };
+    private const string DefaultUploadUrl = "https://speed.cloudflare.com/__up";
 
     private readonly IClipboardService _clipboard;
     private CancellationTokenSource?   _cts;
@@ -211,13 +222,16 @@ public class NetworkSpeedTestViewModel : ViewModelBase
 
         try
         {
-            using var response = await _httpClient.GetAsync(ServerUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-            using var stream   = await response.Content.ReadAsStreamAsync(ct);
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(60));
+            using var response = await _httpClient.GetAsync(ServerUrl, HttpCompletionOption.ResponseHeadersRead, timeoutCts.Token);
+            response.EnsureSuccessStatusCode();
+            using var stream = await response.Content.ReadAsStreamAsync(timeoutCts.Token);
             var contentLength  = response.Content.Headers.ContentLength ?? 25_000_000L;
             var buffer         = new byte[65536];
             int read;
 
-            while ((read = await stream.ReadAsync(buffer, ct)) > 0)
+            while ((read = await stream.ReadAsync(buffer, timeoutCts.Token)) > 0)
             {
                 totalBytes += read;
                 var elapsed = sw.Elapsed.TotalSeconds;
@@ -249,37 +263,54 @@ public class NetworkSpeedTestViewModel : ViewModelBase
 
     private async Task MeasureUploadAsync(CancellationToken ct)
     {
-        // Simulate upload: generate random data and measure local throughput
-        // (a real test needs a cooperative upload endpoint)
-        const int uploadSize = 10_000_000; // 10 MB
-        var data   = new byte[uploadSize];
-        Random.Shared.NextBytes(data);
+        const int uploadSizeBytes = 5_000_000;
+        var payload = new byte[uploadSizeBytes];
+        Random.Shared.NextBytes(payload);
+        var uploadEndpoint = ResolveUploadEndpoint();
+        var sw = Stopwatch.StartNew();
 
-        var sw       = Stopwatch.StartNew();
-        var uploaded = 0;
-        var chunkSize = 65536;
-
-        while (uploaded < uploadSize && !ct.IsCancellationRequested)
+        try
         {
-            var toWrite = Math.Min(chunkSize, uploadSize - uploaded);
-            // Simulate network delay (1 ms per 64 KB chunk)
-            await Task.Delay(1, ct);
-            uploaded += toWrite;
-
-            var elapsed = sw.Elapsed.TotalSeconds;
-            if (elapsed > 0)
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(60));
+            using var request = new HttpRequestMessage(HttpMethod.Post, uploadEndpoint)
             {
-                var mbps = uploaded * 8.0 / elapsed / 1_000_000;
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    UploadSpeed    = $"{mbps:F1} Mbps (est.)";
-                    UploadProgress = uploaded * 100.0 / uploadSize;
-                });
-            }
+                Content = new ByteArrayContent(payload),
+            };
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+            UploadProgress = 30;
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeoutCts.Token);
+            response.EnsureSuccessStatusCode();
+            UploadProgress = 90;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            UploadSpeed = $"Not measured ({ex.Message})";
+            UploadProgress = 0;
+            return;
         }
 
         sw.Stop();
+        var elapsedSeconds = sw.Elapsed.TotalSeconds <= 0 ? 0.001 : sw.Elapsed.TotalSeconds;
+        var mbps = uploadSizeBytes * 8.0 / elapsedSeconds / 1_000_000;
+        UploadSpeed = $"{mbps:F1} Mbps";
         UploadProgress = 100;
+    }
+
+    private string ResolveUploadEndpoint()
+    {
+        if (Uri.TryCreate(ServerUrl, UriKind.Absolute, out var sourceUri)
+            && sourceUri.Host.Contains("speed.cloudflare.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return DefaultUploadUrl;
+        }
+
+        return DefaultUploadUrl;
     }
 
     private void CopyResults()

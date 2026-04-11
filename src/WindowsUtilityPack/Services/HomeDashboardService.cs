@@ -106,10 +106,17 @@ public sealed class HomeDashboardService : IHomeDashboardService
 
     private void Persist()
     {
-        var appSettings = _settings.Load();
-        appSettings.FavoriteToolKeys = new List<string>(_favoriteKeys);
-        appSettings.RecentToolKeys = new List<string>(_recentKeys);
-        _settings.Save(appSettings);
+        try
+        {
+            var appSettings = _settings.Load();
+            appSettings.FavoriteToolKeys = new List<string>(_favoriteKeys);
+            appSettings.RecentToolKeys = new List<string>(_recentKeys);
+            _settings.Save(appSettings);
+        }
+        catch (Exception ex)
+        {
+            try { App.TryGetLoggingService()?.LogError("Failed to persist home dashboard state", ex); } catch { }
+        }
     }
 
     private static List<ToolDefinition> ResolveKeys(List<string> keys)

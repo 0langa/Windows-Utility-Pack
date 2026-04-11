@@ -8,7 +8,7 @@ using WindowsUtilityPack.Tools.NetworkInternet.Downloader.Models;
 namespace WindowsUtilityPack.Services.Downloader;
 
 /// <summary>Coordinates queue lifecycle, engine execution, retries, history, and scheduler actions.</summary>
-public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
+public sealed class DownloadCoordinatorService : IDownloadCoordinatorService, IDisposable
 {
     private readonly IDownloadInputParserService _inputParser;
     private readonly IDownloadEngineResolver _engineResolver;
@@ -19,6 +19,7 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
     private readonly IDownloadSchedulerService _scheduler;
 
     private readonly ConcurrentDictionary<Guid, ActiveJobHandle> _activeJobs = new();
+    private readonly ConcurrentDictionary<Guid, Task> _runningTasks = new();
     private readonly object _sync = new();
 
     // Fix Issue 2: use int flag for atomic start guard (0=stopped, 1=running)
@@ -28,6 +29,7 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
     private int _queueOrderSeed;
     private Task? _queueLoopTask;
     private CancellationTokenSource? _queueCts;
+    private bool _disposed;
 
     public ObservableCollection<DownloadJob> Jobs { get; } = [];
 
@@ -258,6 +260,8 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
             await _queueLoopTask;
         }
 
+        await WaitForRunningTasksAsync(cancellationToken);
+
         _eventLog.Log(DownloaderLogLevel.Normal, "Queue paused.");
     }
 
@@ -285,6 +289,8 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         {
             await _queueLoopTask;
         }
+
+        await WaitForRunningTasksAsync(cancellationToken);
 
         _eventLog.Log(DownloaderLogLevel.Normal, "Queue stopped.");
     }
@@ -538,7 +544,8 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
                         break;
                     }
 
-                    _ = Task.Run(() => ExecuteJobAsync(nextJob, handle, cancellationToken), cancellationToken);
+                    var executionTask = Task.Run(() => ExecuteJobAsync(nextJob, handle, cancellationToken), CancellationToken.None);
+                    _runningTasks[nextJob.JobId] = executionTask;
                 }
 
                 var hasQueued = await RunOnUiAsync(() => Jobs.Any(job => job.Status == DownloadJobStatus.Queued));
@@ -665,9 +672,35 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
             {
                 removedHandle.Dispose();
             }
+            _runningTasks.TryRemove(job.JobId, out _);
 
             // Fix Issue 4: marshal statistics recomputation to the UI thread
             await RecomputeStatisticsAsync();
+        }
+    }
+
+    private async Task WaitForRunningTasksAsync(CancellationToken cancellationToken)
+    {
+        var running = _runningTasks.Values
+            .Where(task => !task.IsCompleted)
+            .ToArray();
+
+        if (running.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await Task.WhenAll(running).WaitAsync(TimeSpan.FromSeconds(15), cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+            _eventLog.Log(DownloaderLogLevel.ErrorsOnly, "Timed out while waiting for in-flight download tasks to stop.");
+        }
+        catch (OperationCanceledException)
+        {
+            // Caller requested cancellation while waiting for shutdown.
         }
     }
 
@@ -968,5 +1001,28 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService
         None,
         Pause,
         Cancel,
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _scheduler.ActionTriggered -= OnScheduledActionTriggered;
+
+        try
+        {
+            StopQueueAsync().GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Best effort during app shutdown.
+        }
+
+        _queueCts?.Dispose();
+        _queueCts = null;
     }
 }

@@ -186,7 +186,7 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
             case TextFormatKind.Docx:
                 try
                 {
-                    conversionText = await ExtractDocxTextAsync(filePath, cancellationToken);
+                    conversionText = await ExtractDocxTextAsync(filePath, cancellationToken).ConfigureAwait(false);
                     previewText = conversionText;
                     warnings.Add("DOCX input is converted from extracted text paragraphs. Complex layout is not preserved.");
                 }
@@ -199,7 +199,7 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
             case TextFormatKind.Pdf:
                 try
                 {
-                    conversionText = await ExtractPdfTextAsync(filePath, cancellationToken);
+                    conversionText = await ExtractPdfTextAsync(filePath, cancellationToken).ConfigureAwait(false);
                     previewText = conversionText;
                     warnings.Add("PDF input is converted from extracted text. Visual layout and embedded media are not preserved.");
                 }
@@ -210,11 +210,11 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
                 break;
 
             case TextFormatKind.Rtf:
-                conversionText = await File.ReadAllTextAsync(filePath, cancellationToken);
+                conversionText = await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
 
                 try
                 {
-                    previewText = await ConvertRtfToPlainTextAsync(conversionText, cancellationToken);
+                    previewText = await ConvertRtfToPlainTextAsync(conversionText, cancellationToken).ConfigureAwait(false);
                     warnings.Add("RTF input is loaded as rich text, but the preview uses plain text for readability.");
                 }
                 catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
@@ -224,7 +224,7 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
                 break;
 
             default:
-                conversionText = await File.ReadAllTextAsync(filePath, cancellationToken);
+                conversionText = await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
                 previewText = conversionText;
                 break;
         }
@@ -302,9 +302,9 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
                         request.SourceFormat,
                         normalizedInput,
                         warnings,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
-                    outputText = await ConvertPlainTextToRtfAsync(previewText, cancellationToken);
+                    outputText = await ConvertPlainTextToRtfAsync(previewText, cancellationToken).ConfigureAwait(false);
                     outputBytes = Utf8NoBom.GetBytes(outputText);
                     warnings.Add("RTF output preserves readable paragraph structure, but advanced styling is intentionally kept minimal.");
                     break;
@@ -314,7 +314,7 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
                         request.SourceFormat,
                         normalizedInput,
                         warnings,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                     outputText = previewText;
                     outputBytes = CreateDocxDocument(previewText);
@@ -326,7 +326,7 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
                         request.SourceFormat,
                         normalizedInput,
                         warnings,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
 
                     outputText = previewText;
                     outputBytes = CreatePdfDocument(previewText);
@@ -811,7 +811,7 @@ public sealed class TextFormatConversionService : ITextFormatConversionService
                 ConvertMarkdownToHtml(NormalizeMarkdown(input))),
             TextFormatKind.Json => FormatJson(input),
             TextFormatKind.Xml => FormatXml(input),
-            TextFormatKind.Rtf => await ConvertRtfToPlainTextAsync(input, cancellationToken),
+            TextFormatKind.Rtf => await ConvertRtfToPlainTextAsync(input, cancellationToken).ConfigureAwait(false),
             TextFormatKind.Docx or TextFormatKind.Pdf => NormalizeLineEndings(input),
             _ => NormalizeLineEndings(input),
         };

@@ -14,7 +14,7 @@ using WindowsUtilityPack.ViewModels;
 namespace WindowsUtilityPack.Tools.NetworkInternet.Downloader;
 
 /// <summary>Downloader workspace ViewModel for queue management and asset discovery.</summary>
-public sealed class DownloaderViewModel : ViewModelBase
+public sealed class DownloaderViewModel : ViewModelBase, IDisposable
 {
     private readonly IDownloadCoordinatorService _coordinator;
     private readonly IAssetDiscoveryService _assetDiscovery;
@@ -25,7 +25,9 @@ public sealed class DownloaderViewModel : ViewModelBase
     private readonly IDownloaderFileDialogService _fileDialog;
     private readonly IClipboardService _clipboard;
     private readonly IUserDialogService _dialogs;
+    private readonly INavigationService _navigation;
     private readonly DispatcherTimer _clipboardTimer;
+    private bool _disposed;
 
     private string _quickInput = string.Empty;
     private string _mediaInput = string.Empty;
@@ -609,6 +611,7 @@ public sealed class DownloaderViewModel : ViewModelBase
     public RelayCommand OpenContainingFolderCommand { get; }
 
     public RelayCommand CopySourceUrlCommand { get; }
+    public RelayCommand CopyInspectorFieldCommand { get; }
 
     public AsyncRelayCommand ScanPageCommand { get; }
 
@@ -672,7 +675,8 @@ public sealed class DownloaderViewModel : ViewModelBase
         IDownloadSchedulerService scheduler,
         IDownloaderFileDialogService fileDialog,
         IClipboardService clipboard,
-        IUserDialogService dialogs)
+        IUserDialogService dialogs,
+        INavigationService navigation)
     {
         _coordinator = coordinator;
         _assetDiscovery = assetDiscovery;
@@ -683,6 +687,7 @@ public sealed class DownloaderViewModel : ViewModelBase
         _fileDialog = fileDialog;
         _clipboard = clipboard;
         _dialogs = dialogs;
+        _navigation = navigation;
 
         Settings = _settingsService.Load();
         foreach (var rule in Settings.Categories.Select(CloneRule))
@@ -737,12 +742,13 @@ public sealed class DownloaderViewModel : ViewModelBase
         HelpTopicsView.Filter = FilterHelpTopic;
 
         _clipboardTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _clipboardTimer.Tick += async (_, _) => await MonitorClipboardAsync();
+        _clipboardTimer.Tick += OnClipboardTimerTick;
         ApplyClipboardMonitoring();
 
         _eventLog.EventRecorded += OnEventRecorded;
         Jobs.CollectionChanged += OnJobsCollectionChanged;
         DiscoveredAssets.CollectionChanged += OnDiscoveredAssetsChanged;
+        _navigation.Navigated += OnNavigated;
 
         AddToQueueCommand = new AsyncRelayCommand(_ => AddQuickInputAsync(startNow: false));
         DownloadNowCommand = new AsyncRelayCommand(_ => AddQuickInputAsync(startNow: true));
@@ -781,6 +787,7 @@ public sealed class DownloaderViewModel : ViewModelBase
         OpenSourceCommand = new RelayCommand(_ => OpenSourceUrl(), _ => SelectedJob is not null);
         OpenContainingFolderCommand = new RelayCommand(_ => OpenContainingFolder(), _ => SelectedJob is not null);
         CopySourceUrlCommand = new RelayCommand(_ => CopySourceUrl(), _ => SelectedJob is not null);
+        CopyInspectorFieldCommand = new RelayCommand(value => CopyInspectorField(value as string));
         ScanPageCommand = new AsyncRelayCommand(_ => DiscoverAssetsAsync(ScanUrl, false));
         CrawlSiteCommand = new AsyncRelayCommand(_ => DiscoverAssetsAsync(CrawlUrl, true));
         AddSelectedAssetsCommand = new AsyncRelayCommand(_ => AddSelectedAssetsAsync(startNow: false));
@@ -809,6 +816,32 @@ public sealed class DownloaderViewModel : ViewModelBase
         SelectHelpTopicCommand = new RelayCommand(topic => SelectHelpTopic(topic as string));
 
         _ = InitializeAsync();
+    }
+
+    private async void OnClipboardTimerTick(object? sender, EventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        await MonitorClipboardAsync();
+    }
+
+    private void OnNavigated(object? sender, Type viewModelType)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(_navigation.CurrentViewModel, this) || ReferenceEquals(_navigation.CurrentView, this))
+        {
+            ApplyClipboardMonitoring();
+            return;
+        }
+
+        _clipboardTimer.Stop();
     }
 
     private async Task InitializeAsync()
@@ -1432,6 +1465,18 @@ public sealed class DownloaderViewModel : ViewModelBase
         }
     }
 
+    private void CopyInspectorField(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            StatusMessage = "Nothing to copy.";
+            return;
+        }
+
+        _clipboard.SetText(text);
+        StatusMessage = "Copied to clipboard.";
+    }
+
     private void OpenHistoryFile()
     {
         if (SelectedHistoryEntry is null || string.IsNullOrWhiteSpace(SelectedHistoryEntry.OutputFilePath))
@@ -1832,5 +1877,28 @@ public sealed class DownloaderViewModel : ViewModelBase
         var local = new DateTime(date.Year, date.Month, date.Day, time.Hours, time.Minutes, 0, DateTimeKind.Local);
         value = new DateTimeOffset(local);
         return true;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _clipboardTimer.Stop();
+        _clipboardTimer.Tick -= OnClipboardTimerTick;
+        _eventLog.EventRecorded -= OnEventRecorded;
+        Jobs.CollectionChanged -= OnJobsCollectionChanged;
+        DiscoveredAssets.CollectionChanged -= OnDiscoveredAssetsChanged;
+        _navigation.Navigated -= OnNavigated;
+
+        if (_scanCts is not null)
+        {
+            _scanCts.Cancel();
+            _scanCts.Dispose();
+            _scanCts = null;
+        }
     }
 }
