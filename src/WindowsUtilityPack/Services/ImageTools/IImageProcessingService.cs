@@ -76,6 +76,12 @@ public sealed class ImageAnnotation
     public float Y { get; init; }
     public float Width { get; init; }
     public float Height { get; init; }
+    /// <summary>
+    /// Optional second point (end point) used by line-like annotations such as <see cref="AnnotationType.Arrow"/>.
+    /// When provided for arrows, <see cref="Width"/>/<see cref="Height"/> are ignored for line geometry.
+    /// </summary>
+    public float? X2 { get; init; }
+    public float? Y2 { get; init; }
     public string Text { get; init; } = string.Empty;
     public string ColorHex { get; init; } = "#FF3B30";
     public float StrokeThickness { get; init; } = 3f;
@@ -124,4 +130,3 @@ public interface IImageProcessingService
         int quality,
         CancellationToken cancellationToken);
 }
-

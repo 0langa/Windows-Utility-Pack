@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
@@ -17,6 +18,11 @@ public sealed class AnnotationRow : ViewModelBase
     private float _y;
     private float _width = 200;
     private float _height = 120;
+    private float _startX;
+    private float _startY;
+    private float _endX;
+    private float _endY;
+    private bool _isEditing;
     private string _text = string.Empty;
     private string _color = "#FF3B30";
     private float _thickness = 3;
@@ -26,9 +32,43 @@ public sealed class AnnotationRow : ViewModelBase
     public float Y { get => _y; set => SetProperty(ref _y, value); }
     public float Width { get => _width; set => SetProperty(ref _width, Math.Max(0, value)); }
     public float Height { get => _height; set => SetProperty(ref _height, Math.Max(0, value)); }
+    public float StartX { get => _startX; set => SetProperty(ref _startX, value); }
+    public float StartY { get => _startY; set => SetProperty(ref _startY, value); }
+    public float EndX { get => _endX; set => SetProperty(ref _endX, value); }
+    public float EndY { get => _endY; set => SetProperty(ref _endY, value); }
+    public bool IsEditing { get => _isEditing; set => SetProperty(ref _isEditing, value); }
     public string Text { get => _text; set => SetProperty(ref _text, value); }
     public string Color { get => _color; set => SetProperty(ref _color, value); }
     public float Thickness { get => _thickness; set => SetProperty(ref _thickness, Math.Clamp(value, 1, 20)); }
+
+    // Local coordinates for arrow rendering within the annotation's bounding box.
+    public float ArrowStartLocalX => StartX - X;
+    public float ArrowStartLocalY => StartY - Y;
+    public float ArrowEndLocalX => EndX - X;
+    public float ArrowEndLocalY => EndY - Y;
+
+    public void SetArrowEndpoints(float startX, float startY, float endX, float endY)
+    {
+        StartX = startX;
+        StartY = startY;
+        EndX = endX;
+        EndY = endY;
+
+        var left = Math.Min(startX, endX);
+        var top = Math.Min(startY, endY);
+        var right = Math.Max(startX, endX);
+        var bottom = Math.Max(startY, endY);
+
+        X = left;
+        Y = top;
+        Width = Math.Max(0, right - left);
+        Height = Math.Max(0, bottom - top);
+
+        OnPropertyChanged(nameof(ArrowStartLocalX));
+        OnPropertyChanged(nameof(ArrowStartLocalY));
+        OnPropertyChanged(nameof(ArrowEndLocalX));
+        OnPropertyChanged(nameof(ArrowEndLocalY));
+    }
 
     public AnnotationRow Clone()
     {
@@ -39,6 +79,11 @@ public sealed class AnnotationRow : ViewModelBase
             Y = Y,
             Width = Width,
             Height = Height,
+            StartX = StartX,
+            StartY = StartY,
+            EndX = EndX,
+            EndY = EndY,
+            IsEditing = IsEditing,
             Text = Text,
             Color = Color,
             Thickness = Thickness,
@@ -51,12 +96,16 @@ public sealed class AnnotationRow : ViewModelBase
 /// </summary>
 public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 {
+    private const string AnnotationClipboardPrefix = "WindowsUtilityPack.ScreenshotAnnotator.Annotation:";
+
     public enum ResizeHandle
     {
         TopLeft,
         TopRight,
         BottomLeft,
         BottomRight,
+        ArrowStart,
+        ArrowEnd,
     }
 
     private enum InteractionMode
@@ -81,6 +130,10 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     private float _y = 100;
     private float _width = 240;
     private float _height = 120;
+    private float _arrowStartX = 100;
+    private float _arrowStartY = 100;
+    private float _arrowEndX = 340;
+    private float _arrowEndY = 220;
     private string _annotationText = "Note";
     private string _annotationColor = "#FF3B30";
     private float _annotationThickness = 3;
@@ -97,6 +150,10 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
     private float _interactionStartTop;
     private float _interactionStartWidth;
     private float _interactionStartHeight;
+    private float _interactionStartArrowStartX;
+    private float _interactionStartArrowStartY;
+    private float _interactionStartArrowEndX;
+    private float _interactionStartArrowEndY;
     private InteractionMode _interactionMode;
     private ResizeHandle _resizeHandle;
     private bool _hasUndoSnapshotForInteraction;
@@ -172,6 +229,30 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         set => SetProperty(ref _height, Math.Max(0, value));
     }
 
+    public float ArrowStartX
+    {
+        get => _arrowStartX;
+        set => SetProperty(ref _arrowStartX, Math.Max(0, value));
+    }
+
+    public float ArrowStartY
+    {
+        get => _arrowStartY;
+        set => SetProperty(ref _arrowStartY, Math.Max(0, value));
+    }
+
+    public float ArrowEndX
+    {
+        get => _arrowEndX;
+        set => SetProperty(ref _arrowEndX, Math.Max(0, value));
+    }
+
+    public float ArrowEndY
+    {
+        get => _arrowEndY;
+        set => SetProperty(ref _arrowEndY, Math.Max(0, value));
+    }
+
     public string AnnotationText
     {
         get => _annotationText;
@@ -207,6 +288,11 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         get => _selectedAnnotation;
         set
         {
+            if (!ReferenceEquals(_selectedAnnotation, value) && _selectedAnnotation?.IsEditing == true)
+            {
+                _selectedAnnotation.IsEditing = false;
+            }
+
             if (!SetProperty(ref _selectedAnnotation, value))
             {
                 return;
@@ -215,16 +301,136 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
             if (value is not null)
             {
                 AnnotationType = value.Type;
-                X = value.X;
-                Y = value.Y;
-                Width = value.Width;
-                Height = value.Height;
+                if (string.Equals(value.Type, "Arrow", StringComparison.OrdinalIgnoreCase))
+                {
+                    ArrowStartX = value.StartX;
+                    ArrowStartY = value.StartY;
+                    ArrowEndX = value.EndX;
+                    ArrowEndY = value.EndY;
+                }
+                else
+                {
+                    X = value.X;
+                    Y = value.Y;
+                    Width = value.Width;
+                    Height = value.Height;
+                }
                 AnnotationText = value.Text;
                 AnnotationColor = value.Color;
                 AnnotationThickness = value.Thickness;
             }
 
             RelayCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    public bool BeginEditSelectedText()
+    {
+        if (SelectedAnnotation is null
+            || !string.Equals(SelectedAnnotation.Type, "Text", StringComparison.OrdinalIgnoreCase)
+            || SelectedAnnotation.IsEditing)
+        {
+            return false;
+        }
+
+        PushUndoSnapshot();
+        SelectedAnnotation.IsEditing = true;
+        StatusMessage = "Editing text annotation...";
+        return true;
+    }
+
+    public void CommitEditSelectedText()
+    {
+        if (SelectedAnnotation is null || !SelectedAnnotation.IsEditing)
+        {
+            return;
+        }
+
+        SelectedAnnotation.IsEditing = false;
+        StatusMessage = "Text updated.";
+    }
+
+    public void CancelEditSelectedText()
+    {
+        if (SelectedAnnotation is null || !SelectedAnnotation.IsEditing)
+        {
+            return;
+        }
+
+        // Undo snapshot was taken at edit start, so undo gives a precise revert.
+        Undo();
+        SelectedAnnotation.IsEditing = false;
+        StatusMessage = "Text edit cancelled.";
+    }
+
+    public void CopySelectedAnnotationToClipboard()
+    {
+        if (SelectedAnnotation is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var payload = JsonSerializer.Serialize(SelectedAnnotation.Clone());
+            _clipboardService.SetText(AnnotationClipboardPrefix + payload);
+            StatusMessage = "Copied annotation to clipboard.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Copy failed: {ex.Message}";
+        }
+    }
+
+    public void PasteAnnotationFromClipboard()
+    {
+        if (!CanDrawOnPreview)
+        {
+            return;
+        }
+
+        if (!_clipboardService.TryGetText(out var text))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(text) || !text.StartsWith(AnnotationClipboardPrefix, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        try
+        {
+            var json = text.Substring(AnnotationClipboardPrefix.Length);
+            var pasted = JsonSerializer.Deserialize<AnnotationRow>(json);
+            if (pasted is null)
+            {
+                return;
+            }
+
+            const float offset = 14;
+            if (string.Equals(pasted.Type, "Arrow", StringComparison.OrdinalIgnoreCase))
+            {
+                pasted.SetArrowEndpoints(pasted.StartX + offset, pasted.StartY + offset, pasted.EndX + offset, pasted.EndY + offset);
+            }
+            else
+            {
+                pasted.X += offset;
+                pasted.Y += offset;
+            }
+
+            // Clamp to preview to keep paste visible.
+            pasted.X = (float)Math.Clamp(pasted.X, 0, Math.Max(0, PreviewPixelWidth - pasted.Width));
+            pasted.Y = (float)Math.Clamp(pasted.Y, 0, Math.Max(0, PreviewPixelHeight - pasted.Height));
+
+            PushUndoSnapshot();
+            Annotations.Add(pasted);
+            SelectedAnnotation = pasted;
+            StatusMessage = "Pasted annotation from clipboard.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Paste failed: {ex.Message}";
         }
     }
 
@@ -360,14 +566,22 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         var annotation = new AnnotationRow
         {
             Type = AnnotationType,
-            X = X,
-            Y = Y,
-            Width = Width,
-            Height = Height,
             Text = AnnotationText,
             Color = AnnotationColor,
             Thickness = AnnotationThickness,
         };
+
+        if (string.Equals(AnnotationType, "Arrow", StringComparison.OrdinalIgnoreCase))
+        {
+            annotation.SetArrowEndpoints(ArrowStartX, ArrowStartY, ArrowEndX, ArrowEndY);
+        }
+        else
+        {
+            annotation.X = X;
+            annotation.Y = Y;
+            annotation.Width = Width;
+            annotation.Height = Height;
+        }
         Annotations.Add(annotation);
         SelectedAnnotation = annotation;
 
@@ -395,10 +609,17 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 
         PushUndoSnapshot();
         SelectedAnnotation.Type = AnnotationType;
-        SelectedAnnotation.X = X;
-        SelectedAnnotation.Y = Y;
-        SelectedAnnotation.Width = Width;
-        SelectedAnnotation.Height = Height;
+        if (string.Equals(AnnotationType, "Arrow", StringComparison.OrdinalIgnoreCase))
+        {
+            SelectedAnnotation.SetArrowEndpoints(ArrowStartX, ArrowStartY, ArrowEndX, ArrowEndY);
+        }
+        else
+        {
+            SelectedAnnotation.X = X;
+            SelectedAnnotation.Y = Y;
+            SelectedAnnotation.Width = Width;
+            SelectedAnnotation.Height = Height;
+        }
         SelectedAnnotation.Text = AnnotationText;
         SelectedAnnotation.Color = AnnotationColor;
         SelectedAnnotation.Thickness = AnnotationThickness;
@@ -413,17 +634,13 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         }
 
         PushUndoSnapshot();
-        var duplicate = new AnnotationRow
-        {
-            Type = SelectedAnnotation.Type,
-            X = SelectedAnnotation.X + 12,
-            Y = SelectedAnnotation.Y + 12,
-            Width = SelectedAnnotation.Width,
-            Height = SelectedAnnotation.Height,
-            Text = SelectedAnnotation.Text,
-            Color = SelectedAnnotation.Color,
-            Thickness = SelectedAnnotation.Thickness,
-        };
+        var duplicate = SelectedAnnotation.Clone();
+        duplicate.X += 12;
+        duplicate.Y += 12;
+        duplicate.StartX += 12;
+        duplicate.StartY += 12;
+        duplicate.EndX += 12;
+        duplicate.EndY += 12;
 
         Annotations.Add(duplicate);
         SelectedAnnotation = duplicate;
@@ -526,10 +743,12 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
                 "BLUR" => Services.ImageTools.AnnotationType.Blur,
                 _ => Services.ImageTools.AnnotationType.Rectangle,
             },
-            X = row.X,
-            Y = row.Y,
+            X = string.Equals(row.Type, "Arrow", StringComparison.OrdinalIgnoreCase) ? row.StartX : row.X,
+            Y = string.Equals(row.Type, "Arrow", StringComparison.OrdinalIgnoreCase) ? row.StartY : row.Y,
             Width = row.Width,
             Height = row.Height,
+            X2 = string.Equals(row.Type, "Arrow", StringComparison.OrdinalIgnoreCase) ? row.EndX : null,
+            Y2 = string.Equals(row.Type, "Arrow", StringComparison.OrdinalIgnoreCase) ? row.EndY : null,
             Text = row.Text,
             ColorHex = row.Color,
             StrokeThickness = row.Thickness,
@@ -655,14 +874,22 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         DragPreviewAnnotation = new AnnotationRow
         {
             Type = AnnotationType,
-            X = _dragStartX,
-            Y = _dragStartY,
-            Width = 0,
-            Height = 0,
             Text = AnnotationText,
             Color = AnnotationColor,
             Thickness = AnnotationThickness,
         };
+
+        if (string.Equals(AnnotationType, "Arrow", StringComparison.OrdinalIgnoreCase))
+        {
+            DragPreviewAnnotation.SetArrowEndpoints(_dragStartX, _dragStartY, _dragStartX, _dragStartY);
+        }
+        else
+        {
+            DragPreviewAnnotation.X = _dragStartX;
+            DragPreviewAnnotation.Y = _dragStartY;
+            DragPreviewAnnotation.Width = 0;
+            DragPreviewAnnotation.Height = 0;
+        }
         IsInteractiveAnnotationActive = true;
         StatusMessage = $"Drawing {AnnotationType} annotation...";
         return true;
@@ -677,6 +904,12 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 
         var currentX = ClampToPreview(x, PreviewPixelWidth);
         var currentY = ClampToPreview(y, PreviewPixelHeight);
+
+        if (string.Equals(DragPreviewAnnotation.Type, "Arrow", StringComparison.OrdinalIgnoreCase))
+        {
+            DragPreviewAnnotation.SetArrowEndpoints(_dragStartX, _dragStartY, currentX, currentY);
+            return;
+        }
 
         DragPreviewAnnotation.X = Math.Min(_dragStartX, currentX);
         DragPreviewAnnotation.Y = Math.Min(_dragStartY, currentY);
@@ -694,7 +927,18 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         var preview = DragPreviewAnnotation.Clone();
         CancelInteractiveAnnotation(resetStatus: false);
 
-        if (preview.Width < 4 && preview.Height < 4)
+        if (string.Equals(preview.Type, "Arrow", StringComparison.OrdinalIgnoreCase))
+        {
+            var dx = preview.EndX - preview.StartX;
+            var dy = preview.EndY - preview.StartY;
+            var len = MathF.Sqrt(dx * dx + dy * dy);
+            if (len < 6)
+            {
+                StatusMessage = "Annotation drag was too small to add.";
+                return false;
+            }
+        }
+        else if (preview.Width < 4 && preview.Height < 4)
         {
             StatusMessage = "Annotation drag was too small to add.";
             return false;
@@ -750,6 +994,10 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         _interactionStartTop = SelectedAnnotation.Y;
         _interactionStartWidth = SelectedAnnotation.Width;
         _interactionStartHeight = SelectedAnnotation.Height;
+        _interactionStartArrowStartX = SelectedAnnotation.StartX;
+        _interactionStartArrowStartY = SelectedAnnotation.StartY;
+        _interactionStartArrowEndX = SelectedAnnotation.EndX;
+        _interactionStartArrowEndY = SelectedAnnotation.EndY;
 
         IsInteractiveAnnotationActive = true;
         StatusMessage = "Moving annotation...";
@@ -776,6 +1024,10 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         _interactionStartTop = SelectedAnnotation.Y;
         _interactionStartWidth = SelectedAnnotation.Width;
         _interactionStartHeight = SelectedAnnotation.Height;
+        _interactionStartArrowStartX = SelectedAnnotation.StartX;
+        _interactionStartArrowStartY = SelectedAnnotation.StartY;
+        _interactionStartArrowEndX = SelectedAnnotation.EndX;
+        _interactionStartArrowEndY = SelectedAnnotation.EndY;
 
         IsInteractiveAnnotationActive = true;
         StatusMessage = "Resizing annotation...";
@@ -800,8 +1052,22 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
             var newLeft = _interactionStartLeft + deltaX;
             var newTop = _interactionStartTop + deltaY;
 
-            SelectedAnnotation.X = (float)Math.Clamp(newLeft, 0, Math.Max(0, PreviewPixelWidth - SelectedAnnotation.Width));
-            SelectedAnnotation.Y = (float)Math.Clamp(newTop, 0, Math.Max(0, PreviewPixelHeight - SelectedAnnotation.Height));
+            var clampedLeft = (float)Math.Clamp(newLeft, 0, Math.Max(0, PreviewPixelWidth - SelectedAnnotation.Width));
+            var clampedTop = (float)Math.Clamp(newTop, 0, Math.Max(0, PreviewPixelHeight - SelectedAnnotation.Height));
+            var appliedDx = clampedLeft - _interactionStartLeft;
+            var appliedDy = clampedTop - _interactionStartTop;
+
+            SelectedAnnotation.X = clampedLeft;
+            SelectedAnnotation.Y = clampedTop;
+
+            if (string.Equals(SelectedAnnotation.Type, "Arrow", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectedAnnotation.SetArrowEndpoints(
+                    _interactionStartArrowStartX + appliedDx,
+                    _interactionStartArrowStartY + appliedDy,
+                    _interactionStartArrowEndX + appliedDx,
+                    _interactionStartArrowEndY + appliedDy);
+            }
             return;
         }
 
@@ -809,6 +1075,29 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         {
             var currentX = ClampToPreview(x, PreviewPixelWidth);
             var currentY = ClampToPreview(y, PreviewPixelHeight);
+
+            if (string.Equals(SelectedAnnotation.Type, "Arrow", StringComparison.OrdinalIgnoreCase)
+                && _resizeHandle is ResizeHandle.ArrowStart or ResizeHandle.ArrowEnd)
+            {
+                var startX = _interactionStartArrowStartX;
+                var startY = _interactionStartArrowStartY;
+                var endX = _interactionStartArrowEndX;
+                var endY = _interactionStartArrowEndY;
+
+                if (_resizeHandle == ResizeHandle.ArrowStart)
+                {
+                    startX = currentX;
+                    startY = currentY;
+                }
+                else
+                {
+                    endX = currentX;
+                    endY = currentY;
+                }
+
+                SelectedAnnotation.SetArrowEndpoints(startX, startY, endX, endY);
+                return;
+            }
 
             var minSize = 4f;
 
@@ -862,6 +1151,7 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         IsInteractiveAnnotationActive = false;
         _interactionMode = InteractionMode.None;
         _hasUndoSnapshotForInteraction = false;
+        SyncEditorFromSelected();
         StatusMessage = "Annotation updated.";
         RelayCommand.RaiseCanExecuteChanged();
     }
@@ -910,10 +1200,48 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
         var newLeft = SelectedAnnotation.X + deltaX * step;
         var newTop = SelectedAnnotation.Y + deltaY * step;
 
-        SelectedAnnotation.X = (float)Math.Clamp(newLeft, 0, Math.Max(0, PreviewPixelWidth - SelectedAnnotation.Width));
-        SelectedAnnotation.Y = (float)Math.Clamp(newTop, 0, Math.Max(0, PreviewPixelHeight - SelectedAnnotation.Height));
+        var clampedLeft = (float)Math.Clamp(newLeft, 0, Math.Max(0, PreviewPixelWidth - SelectedAnnotation.Width));
+        var clampedTop = (float)Math.Clamp(newTop, 0, Math.Max(0, PreviewPixelHeight - SelectedAnnotation.Height));
+
+        var appliedDx = clampedLeft - SelectedAnnotation.X;
+        var appliedDy = clampedTop - SelectedAnnotation.Y;
+
+        SelectedAnnotation.X = clampedLeft;
+        SelectedAnnotation.Y = clampedTop;
+
+        if (string.Equals(SelectedAnnotation.Type, "Arrow", StringComparison.OrdinalIgnoreCase))
+        {
+            SelectedAnnotation.SetArrowEndpoints(
+                SelectedAnnotation.StartX + appliedDx,
+                SelectedAnnotation.StartY + appliedDy,
+                SelectedAnnotation.EndX + appliedDx,
+                SelectedAnnotation.EndY + appliedDy);
+        }
 
         CommitMoveOrResize();
+    }
+
+    private void SyncEditorFromSelected()
+    {
+        if (SelectedAnnotation is null)
+        {
+            return;
+        }
+
+        if (string.Equals(SelectedAnnotation.Type, "Arrow", StringComparison.OrdinalIgnoreCase))
+        {
+            ArrowStartX = SelectedAnnotation.StartX;
+            ArrowStartY = SelectedAnnotation.StartY;
+            ArrowEndX = SelectedAnnotation.EndX;
+            ArrowEndY = SelectedAnnotation.EndY;
+        }
+        else
+        {
+            X = SelectedAnnotation.X;
+            Y = SelectedAnnotation.Y;
+            Width = SelectedAnnotation.Width;
+            Height = SelectedAnnotation.Height;
+        }
     }
 
     private void EnsureUndoSnapshotForInteraction()

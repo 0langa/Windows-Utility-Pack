@@ -5,6 +5,8 @@ using WindowsUtilityPack.Services;
 using WindowsUtilityPack.Services.ImageTools;
 using WindowsUtilityPack.Tools.ImageTools.ScreenshotAnnotator;
 using Xunit;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace WindowsUtilityPack.Tests.ViewModels;
 
@@ -42,10 +44,10 @@ public sealed class ScreenshotAnnotatorViewModelTests
         vm.AddAnnotationCommand.Execute(null);
         vm.SelectedAnnotation = vm.Annotations[0];
         vm.AnnotationType = "Arrow";
-        vm.X = 10;
-        vm.Y = 20;
-        vm.Width = 300;
-        vm.Height = 150;
+        vm.ArrowStartX = 10;
+        vm.ArrowStartY = 20;
+        vm.ArrowEndX = 300;
+        vm.ArrowEndY = 150;
         vm.AnnotationText = "Updated";
         vm.AnnotationColor = "#112233";
         vm.AnnotationThickness = 8;
@@ -53,8 +55,10 @@ public sealed class ScreenshotAnnotatorViewModelTests
         vm.ApplyEditorToSelectedCommand.Execute(null);
 
         Assert.Equal("Arrow", vm.Annotations[0].Type);
-        Assert.Equal(10, vm.Annotations[0].X);
-        Assert.Equal(20, vm.Annotations[0].Y);
+        Assert.Equal(10, vm.Annotations[0].StartX);
+        Assert.Equal(20, vm.Annotations[0].StartY);
+        Assert.Equal(300, vm.Annotations[0].EndX);
+        Assert.Equal(150, vm.Annotations[0].EndY);
         Assert.Equal("Updated", vm.Annotations[0].Text);
         Assert.Equal("#112233", vm.Annotations[0].Color);
         Assert.Equal(8, vm.Annotations[0].Thickness);
@@ -277,6 +281,181 @@ public sealed class ScreenshotAnnotatorViewModelTests
     }
 
     [Fact]
+    public void ArrowDrag_CreatesArrowWithEndpointsAndBoundingBox()
+    {
+        var imagePath = CreateTestImageFile();
+        try
+        {
+            var vm = new ScreenshotAnnotatorViewModel(
+                new NoopImageProcessingService(),
+                new TestClipboardService(),
+                new StubQuickCaptureStateService { LastCapturePath = imagePath });
+
+            vm.AnnotationType = "Arrow";
+            Assert.True(vm.BeginInteractiveAnnotation(10, 15));
+            vm.UpdateInteractiveAnnotation(90, 65);
+            Assert.True(vm.CommitInteractiveAnnotation());
+
+            var arrow = vm.Annotations[0];
+            Assert.Equal("Arrow", arrow.Type);
+            Assert.Equal(10, arrow.StartX);
+            Assert.Equal(15, arrow.StartY);
+            Assert.Equal(90, arrow.EndX);
+            Assert.Equal(65, arrow.EndY);
+            Assert.Equal(10, arrow.X);
+            Assert.Equal(15, arrow.Y);
+            Assert.Equal(80, arrow.Width);
+            Assert.Equal(50, arrow.Height);
+        }
+        finally
+        {
+            if (File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Fact]
+    public void ResizeArrowEndpoint_UpdatesEndpoints()
+    {
+        var imagePath = CreateTestImageFile();
+        try
+        {
+            var vm = new ScreenshotAnnotatorViewModel(
+                new NoopImageProcessingService(),
+                new TestClipboardService(),
+                new StubQuickCaptureStateService { LastCapturePath = imagePath });
+
+            vm.AnnotationType = "Arrow";
+            vm.ArrowStartX = 10;
+            vm.ArrowStartY = 10;
+            vm.ArrowEndX = 50;
+            vm.ArrowEndY = 50;
+            vm.AddAnnotationCommand.Execute(null);
+            vm.SelectedAnnotation = vm.Annotations[0];
+
+            Assert.True(vm.BeginResizeSelected(ScreenshotAnnotatorViewModel.ResizeHandle.ArrowEnd, 50, 50));
+            vm.UpdateMoveOrResize(80, 20);
+            vm.CommitMoveOrResize();
+
+            Assert.Equal(10, vm.SelectedAnnotation!.StartX);
+            Assert.Equal(10, vm.SelectedAnnotation!.StartY);
+            Assert.Equal(80, vm.SelectedAnnotation!.EndX);
+            Assert.Equal(20, vm.SelectedAnnotation!.EndY);
+        }
+        finally
+        {
+            if (File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Fact]
+    public void TextEdit_Cancel_RevertsViaUndoSnapshot()
+    {
+        var vm = CreateViewModel();
+        vm.AnnotationType = "Text";
+        vm.X = 10;
+        vm.Y = 10;
+        vm.Width = 200;
+        vm.Height = 60;
+        vm.AnnotationText = "Hello";
+        vm.AddAnnotationCommand.Execute(null);
+        vm.SelectedAnnotation = vm.Annotations[0];
+
+        Assert.True(vm.BeginEditSelectedText());
+        vm.SelectedAnnotation!.Text = "Changed";
+        vm.CancelEditSelectedText();
+
+        Assert.False(vm.SelectedAnnotation!.IsEditing);
+        Assert.Equal("Hello", vm.SelectedAnnotation!.Text);
+    }
+
+    [Fact]
+    public void CopyPaste_SelectedAnnotation_DuplicatesWithOffset()
+    {
+        var imagePath = CreateTestImageFile();
+        try
+        {
+            var clipboard = new TestClipboardService();
+            var vm = new ScreenshotAnnotatorViewModel(
+                new NoopImageProcessingService(),
+                clipboard,
+                new StubQuickCaptureStateService { LastCapturePath = imagePath });
+
+            vm.X = 10;
+            vm.Y = 10;
+            vm.Width = 40;
+            vm.Height = 20;
+            vm.AddAnnotationCommand.Execute(null);
+            vm.SelectedAnnotation = vm.Annotations[0];
+
+            vm.CopySelectedAnnotationToClipboard();
+            vm.PasteAnnotationFromClipboard();
+
+            Assert.Equal(2, vm.Annotations.Count);
+            Assert.Equal(24, vm.Annotations[1].X);
+            Assert.Equal(24, vm.Annotations[1].Y);
+        }
+        finally
+        {
+            if (File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ImageProcessingService_ArrowWithEndpoints_DrawsLineAcrossImage()
+    {
+        var inputPath = CreateTestImageFile();
+        var outputPath = Path.Combine(Path.GetTempPath(), $"annotator-out-{Guid.NewGuid():N}.png");
+        try
+        {
+            var service = new WindowsUtilityPack.Services.ImageTools.ImageProcessingService();
+            var annotations = new[]
+            {
+                new ImageAnnotation
+                {
+                    Type = AnnotationType.Arrow,
+                    X = 10,
+                    Y = 70,
+                    X2 = 110,
+                    Y2 = 10,
+                    Width = 0,
+                    Height = 0,
+                    ColorHex = "#FF0000",
+                    StrokeThickness = 4,
+                }
+            };
+
+            var result = await service.AnnotateAsync(inputPath, outputPath, annotations, ImageOutputFormat.Png, 90, CancellationToken.None);
+            Assert.True(result.Success, result.ErrorMessage);
+
+            using var image = Image.Load<Rgba32>(outputPath);
+            // Midpoint (approx) should be influenced by the arrow stroke.
+            var pixel = image[60, 40];
+            Assert.True(pixel.R > 150, $"Expected red-ish pixel at midpoint but got R={pixel.R} G={pixel.G} B={pixel.B}");
+        }
+        finally
+        {
+            if (File.Exists(inputPath))
+            {
+                File.Delete(inputPath);
+            }
+
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    [Fact]
     public void ResizeSelected_BottomRight_UpdatesSize()
     {
         var imagePath = CreateTestImageFile();
@@ -399,14 +578,17 @@ public sealed class ScreenshotAnnotatorViewModelTests
 
     private sealed class TestClipboardService : IClipboardService
     {
+        private string? _text;
+
         public bool TryGetText(out string text)
         {
-            text = string.Empty;
-            return false;
+            text = _text ?? string.Empty;
+            return !string.IsNullOrEmpty(_text);
         }
 
         public void SetText(string text)
         {
+            _text = text;
         }
 
         public bool TrySetImage(System.Windows.Media.Imaging.BitmapSource image) => true;

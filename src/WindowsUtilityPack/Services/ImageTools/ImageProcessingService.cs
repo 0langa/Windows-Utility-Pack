@@ -310,34 +310,60 @@ public sealed class ImageProcessingService : IImageProcessingService
 
     private static void ApplyAnnotation(IImageProcessingContext context, ImageAnnotation annotation, int imageWidth, int imageHeight)
     {
-        var rectangle = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
-        if (rectangle.Width <= 0 || rectangle.Height <= 0)
-            return;
-
         var color = ParseColor(annotation.ColorHex);
         var thickness = Math.Clamp(annotation.StrokeThickness, 1f, 20f);
 
         switch (annotation.Type)
         {
             case AnnotationType.Rectangle:
+                var rectangle = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
+                if (rectangle.Width <= 0 || rectangle.Height <= 0)
+                    return;
                 context.Draw(color, thickness, rectangle);
                 break;
 
             case AnnotationType.Arrow:
-                DrawArrow(context, color, thickness, rectangle);
+                if (annotation.X2 is float x2 && annotation.Y2 is float y2)
+                {
+                    var start = NormalizePoint(annotation.X, annotation.Y, imageWidth, imageHeight);
+                    var end = NormalizePoint(x2, y2, imageWidth, imageHeight);
+                    if (start == end)
+                        return;
+
+                    DrawArrow(context, color, thickness, start, end);
+                }
+                else
+                {
+                    // Backward-compatible fallback: interpret arrow as diagonal of a rectangle.
+                    var fallbackRect = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
+                    if (fallbackRect.Width <= 0 || fallbackRect.Height <= 0)
+                        return;
+                    var start = new PointF(fallbackRect.X, fallbackRect.Y);
+                    var end = new PointF(fallbackRect.Right, fallbackRect.Bottom);
+                    DrawArrow(context, color, thickness, start, end);
+                }
                 break;
 
             case AnnotationType.Text:
-                var font = SLFonts.SystemFonts.CreateFont("Segoe UI", Math.Clamp(rectangle.Height * 0.5f, 12f, 72f), SLFonts.FontStyle.Bold);
-                context.DrawText(annotation.Text, font, color, new PointF(rectangle.X, rectangle.Y));
+                var textRect = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
+                if (textRect.Width <= 0 || textRect.Height <= 0)
+                    return;
+                var font = SLFonts.SystemFonts.CreateFont("Segoe UI", Math.Clamp(textRect.Height * 0.5f, 12f, 72f), SLFonts.FontStyle.Bold);
+                context.DrawText(annotation.Text, font, color, new PointF(textRect.X, textRect.Y));
                 break;
 
             case AnnotationType.Redaction:
-                context.Fill(SixLabors.ImageSharp.Color.Black, rectangle);
+                var redactionRect = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
+                if (redactionRect.Width <= 0 || redactionRect.Height <= 0)
+                    return;
+                context.Fill(SixLabors.ImageSharp.Color.Black, redactionRect);
                 break;
 
             case AnnotationType.Blur:
-                context.GaussianBlur(12f, rectangle);
+                var blurRect = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
+                if (blurRect.Width <= 0 || blurRect.Height <= 0)
+                    return;
+                context.GaussianBlur(12f, blurRect);
                 break;
         }
     }
@@ -351,10 +377,15 @@ public sealed class ImageProcessingService : IImageProcessingService
         return new Rectangle(left, top, safeWidth, safeHeight);
     }
 
-    private static void DrawArrow(IImageProcessingContext context, SixLabors.ImageSharp.Color color, float thickness, Rectangle rectangle)
+    private static PointF NormalizePoint(float x, float y, int imageWidth, int imageHeight)
     {
-        var start = new PointF(rectangle.X, rectangle.Y);
-        var end = new PointF(rectangle.Right, rectangle.Bottom);
+        var safeX = Math.Clamp(x, 0, Math.Max(0, imageWidth - 1));
+        var safeY = Math.Clamp(y, 0, Math.Max(0, imageHeight - 1));
+        return new PointF(safeX, safeY);
+    }
+
+    private static void DrawArrow(IImageProcessingContext context, SixLabors.ImageSharp.Color color, float thickness, PointF start, PointF end)
+    {
         context.DrawLine(color, thickness, start, end);
 
         var angle = MathF.Atan2(end.Y - start.Y, end.X - start.X);

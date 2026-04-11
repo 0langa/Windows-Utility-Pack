@@ -1,6 +1,7 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows;
+using System.Windows.Media;
 
 namespace WindowsUtilityPack.Tools.ImageTools.ScreenshotAnnotator;
 
@@ -119,6 +120,25 @@ public partial class ScreenshotAnnotatorView : UserControl
         }
 
         vm.SelectedAnnotation = annotation;
+
+        if (e.ClickCount >= 2 && vm.BeginEditSelectedText())
+        {
+            _dragKind = DragKind.None;
+            e.Handled = true;
+            Dispatcher.BeginInvoke(() =>
+            {
+                var textBox = FindVisualChild<TextBox>(presenter, "EditTextBox");
+                if (textBox is null)
+                {
+                    return;
+                }
+
+                textBox.Focus();
+                textBox.SelectAll();
+            });
+            return;
+        }
+
         var position = e.GetPosition(PreviewSurface);
         if (vm.BeginMoveSelected(position.X, position.Y))
         {
@@ -146,6 +166,8 @@ public partial class ScreenshotAnnotatorView : UserControl
             "TopRight" => ScreenshotAnnotatorViewModel.ResizeHandle.TopRight,
             "BottomLeft" => ScreenshotAnnotatorViewModel.ResizeHandle.BottomLeft,
             "BottomRight" => ScreenshotAnnotatorViewModel.ResizeHandle.BottomRight,
+            "ArrowStart" => ScreenshotAnnotatorViewModel.ResizeHandle.ArrowStart,
+            "ArrowEnd" => ScreenshotAnnotatorViewModel.ResizeHandle.ArrowEnd,
             _ => (ScreenshotAnnotatorViewModel.ResizeHandle?)null,
         };
 
@@ -170,10 +192,69 @@ public partial class ScreenshotAnnotatorView : UserControl
             return;
         }
 
+        if (e.Key == Key.Escape && vm.SelectedAnnotation?.IsEditing == true)
+        {
+            vm.CancelEditSelectedText();
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Escape && vm.IsInteractiveAnnotationActive)
         {
             vm.CancelInteractiveAnnotation();
             vm.CancelMoveOrResize();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter && vm.SelectedAnnotation?.IsEditing == true)
+        {
+            vm.CommitEditSelectedText();
+            e.Handled = true;
+            return;
+        }
+
+        var isCtrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        var isShift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+        if (isCtrl && (e.Key == Key.Z || e.Key == Key.Y))
+        {
+            if (e.Key == Key.Z && isShift)
+            {
+                if (vm.RedoCommand.CanExecute(null))
+                {
+                    vm.RedoCommand.Execute(null);
+                }
+            }
+            else if (e.Key == Key.Z)
+            {
+                if (vm.UndoCommand.CanExecute(null))
+                {
+                    vm.UndoCommand.Execute(null);
+                }
+            }
+            else if (e.Key == Key.Y)
+            {
+                if (vm.RedoCommand.CanExecute(null))
+                {
+                    vm.RedoCommand.Execute(null);
+                }
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (isCtrl && e.Key == Key.C)
+        {
+            vm.CopySelectedAnnotationToClipboard();
+            e.Handled = true;
+            return;
+        }
+
+        if (isCtrl && e.Key == Key.V)
+        {
+            vm.PasteAnnotationFromClipboard();
             e.Handled = true;
             return;
         }
@@ -185,7 +266,7 @@ public partial class ScreenshotAnnotatorView : UserControl
             return;
         }
 
-        var step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 10 : 1;
+        var step = isShift ? 10 : 1;
 
         if (e.Key == Key.Left)
         {
@@ -207,5 +288,54 @@ public partial class ScreenshotAnnotatorView : UserControl
             vm.NudgeSelectedAnnotation(0, 1, step);
             e.Handled = true;
         }
+    }
+
+    private void OnTextEditorLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ScreenshotAnnotatorViewModel vm)
+        {
+            vm.CommitEditSelectedText();
+        }
+    }
+
+    private void OnTextEditorKeyDown(object sender, KeyEventArgs e)
+    {
+        if (DataContext is not ScreenshotAnnotatorViewModel vm)
+        {
+            return;
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            vm.CancelEditSelectedText();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            vm.CommitEditSelectedText();
+            e.Handled = true;
+        }
+    }
+
+    private static TChild? FindVisualChild<TChild>(DependencyObject parent, string? name = null)
+        where TChild : FrameworkElement
+    {
+        var count = VisualTreeHelper.GetChildrenCount(parent);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is TChild match && (name is null || string.Equals(match.Name, name, StringComparison.Ordinal)))
+            {
+                return match;
+            }
+
+            var nested = FindVisualChild<TChild>(child, name);
+            if (nested is not null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
     }
 }

@@ -16,6 +16,12 @@
   - Delete selected annotation.
   - Keyboard nudging with clamping.
 - Hardened bounds/clamping and undo snapshot logic so repeated interactions do not corrupt state.
+- Completed “feature-finish” behaviors:
+  - Arrow annotations now use true start/end endpoints (not “rectangle diagonal” semantics).
+  - Arrow-specific endpoint handles for resizing.
+  - In-place Text editing with commit/cancel and focus behavior.
+  - Copy/paste of annotations via clipboard (Ctrl+C / Ctrl+V), including safe clamping to preview bounds.
+  - Keyboard shortcuts for undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z).
 
 ### UI Wiring (View + Thin Code-Behind)
 - Wired the preview surface to the ViewModel interaction entry points for:
@@ -27,15 +33,19 @@
   - `Esc` cancels current interaction
   - `Delete` removes selection
   - Arrow keys nudge selection (Shift = bigger step)
+  - `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` undo/redo
+  - `Ctrl+C` / `Ctrl+V` copy/paste
 
 ### Rendering Support
-- Added an arrowhead converter used by the arrow rendering template to keep the rendering logic declarative and testable.
+- Added/updated an arrowhead converter used by the arrow rendering template to keep the rendering logic declarative and testable.
 
 ## Interaction Issues Found (And Addressed)
 - “Looks enabled but does nothing”: interactions are now routed through consistent ViewModel methods.
 - “State not reflected in UI”: selection visuals and the ghost preview are bound to ViewModel state.
 - “Actions silently fail”: interaction methods now return success/failure and maintain a coherent interaction mode.
 - “Rapid/repeated interactions”: move/resize/nudge use a single undo snapshot per interaction to avoid ballooning history and to ensure stable cancel semantics.
+- “Arrows behave wrong”: arrows now behave like a proper line tool with endpoint manipulation and correct export rendering.
+- “Text annotations can’t be edited in-place”: double-click editing with commit/cancel and LostFocus commit is now implemented.
 
 ## Binding / Command Issues Found (And Addressed)
 - Removed/avoided brittle binding paths by exposing clear ViewModel state required for overlays (selection/preview).
@@ -49,9 +59,12 @@ Added/expanded xUnit tests focused on deterministic, non-UI automation coverage 
 - Delete selected annotation.
 - Keyboard nudging behavior (including clamping).
 - Undo/redo behavior for interaction-driven edits.
+- Arrow: endpoints + bounding box creation and endpoint resize behavior.
+- Text: begin/cancel edit behavior.
+- Clipboard: copy/paste duplicates with offset.
+- Image export: integration test verifying an arrow drawn using explicit endpoints affects output pixels.
 
 ## Areas Still Worth Improving Later
-- Arrow authoring UX (true start/end semantics vs. rectangle-like box editing) if the tool is intended to behave like a line tool.
-- Optional: Add `Ctrl+Z` / `Ctrl+Y` keybindings explicitly (currently undo/redo is primarily validated via ViewModel tests and existing UI affordances).
+- Optional: multi-select + grouping, if the tool is intended to support batch manipulation.
+- Optional: higher-confidence pixel assertions for image export tests (currently smoke-level verification to keep it stable across rendering differences).
 - Optional: UI automation for the highest-value interaction smoke test (only if the repo adopts a stable WPF UI automation harness).
-

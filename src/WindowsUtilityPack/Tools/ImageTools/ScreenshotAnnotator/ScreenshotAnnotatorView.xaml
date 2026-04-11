@@ -99,17 +99,31 @@
                                                            Margin="6,4,6,4"
                                                            TextWrapping="Wrap"
                                                            Visibility="Collapsed"/>
+                                                <TextBox x:Name="EditTextBox"
+                                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                                                         Foreground="{Binding Color}"
+                                                         FontWeight="SemiBold"
+                                                         Background="#AA000000"
+                                                         BorderBrush="{Binding Color}"
+                                                         BorderThickness="1"
+                                                         Padding="6,4,6,4"
+                                                         TextWrapping="Wrap"
+                                                         Visibility="Collapsed"
+                                                         LostFocus="OnTextEditorLostFocus"
+                                                         KeyDown="OnTextEditorKeyDown"/>
                                                 <Grid x:Name="ArrowGrid" Visibility="Collapsed">
-                                                    <Line X1="0" Y1="0"
-                                                          X2="{Binding Width}"
-                                                          Y2="{Binding Height}"
+                                                    <Line X1="{Binding ArrowStartLocalX}" Y1="{Binding ArrowStartLocalY}"
+                                                          X2="{Binding ArrowEndLocalX}"
+                                                          Y2="{Binding ArrowEndLocalY}"
                                                           Stroke="{Binding Color}"
                                                           StrokeThickness="{Binding Thickness}"/>
                                                     <Polygon Fill="{Binding Color}">
                                                         <Polygon.Points>
                                                             <MultiBinding Converter="{StaticResource ArrowHeadPointsConverter}">
-                                                                <Binding Path="Width"/>
-                                                                <Binding Path="Height"/>
+                                                                <Binding Path="ArrowStartLocalX"/>
+                                                                <Binding Path="ArrowStartLocalY"/>
+                                                                <Binding Path="ArrowEndLocalX"/>
+                                                                <Binding Path="ArrowEndLocalY"/>
                                                             </MultiBinding>
                                                         </Polygon.Points>
                                                     </Polygon>
@@ -120,6 +134,10 @@
                                                     <Setter TargetName="ShapeBorder" Property="BorderThickness" Value="1"/>
                                                     <Setter TargetName="ShapeBorder" Property="Background" Value="#22000000"/>
                                                     <Setter TargetName="ShapeText" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter TargetName="ShapeText" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="EditTextBox" Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Type}" Value="Redaction">
                                                     <Setter TargetName="ShapeBorder" Property="Background" Value="#CC000000"/>
@@ -165,48 +183,134 @@
                                         </Style>
                                     </Canvas.Style>
 
-                                    <!-- Selection outline -->
+                                    <!-- Box selection outline (non-arrow) -->
                                     <Rectangle Stroke="{DynamicResource AccentBrush}"
                                                StrokeThickness="1"
                                                Fill="#00000000"
                                                Width="{Binding SelectedAnnotation.Width}"
                                                Height="{Binding SelectedAnnotation.Height}"
                                                Canvas.Left="{Binding SelectedAnnotation.X}"
-                                               Canvas.Top="{Binding SelectedAnnotation.Y}"/>
+                                               Canvas.Top="{Binding SelectedAnnotation.Y}">
+                                        <Rectangle.Style>
+                                            <Style TargetType="Rectangle">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedAnnotation.Type}" Value="Arrow">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Rectangle.Style>
+                                    </Rectangle>
 
-                                    <!-- Resize handles -->
-                                    <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
-                                               Canvas.Left="{Binding SelectedAnnotation.X}"
-                                               Canvas.Top="{Binding SelectedAnnotation.Y}"
-                                               Cursor="SizeNWSE"
-                                               MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
-                                               Tag="TopLeft"/>
-                                    <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
-                                               Canvas.Left="{Binding SelectedAnnotation.X}"
-                                               Cursor="SizeNESW"
-                                               MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
-                                               Tag="TopRight">
-                                        <Rectangle.RenderTransform>
-                                            <TranslateTransform X="{Binding SelectedAnnotation.Width}"/>
-                                        </Rectangle.RenderTransform>
-                                    </Rectangle>
-                                    <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
-                                               Canvas.Top="{Binding SelectedAnnotation.Y}"
-                                               Cursor="SizeNESW"
-                                               MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
-                                               Tag="BottomLeft">
-                                        <Rectangle.RenderTransform>
-                                            <TranslateTransform Y="{Binding SelectedAnnotation.Height}"/>
-                                        </Rectangle.RenderTransform>
-                                    </Rectangle>
-                                    <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
-                                               Cursor="SizeNWSE"
-                                               MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
-                                               Tag="BottomRight">
-                                        <Rectangle.RenderTransform>
-                                            <TranslateTransform X="{Binding SelectedAnnotation.Width}" Y="{Binding SelectedAnnotation.Height}"/>
-                                        </Rectangle.RenderTransform>
-                                    </Rectangle>
+                                    <!-- Arrow selection line (arrow only) -->
+                                    <Line Stroke="{DynamicResource AccentBrush}"
+                                          StrokeThickness="2"
+                                          X1="{Binding SelectedAnnotation.StartX}"
+                                          Y1="{Binding SelectedAnnotation.StartY}"
+                                          X2="{Binding SelectedAnnotation.EndX}"
+                                          Y2="{Binding SelectedAnnotation.EndY}">
+                                        <Line.Style>
+                                            <Style TargetType="Line">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedAnnotation.Type}" Value="Arrow">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Line.Style>
+                                    </Line>
+
+                                    <!-- Corner resize handles (non-arrow) -->
+                                    <Canvas>
+                                        <Canvas.Style>
+                                            <Style TargetType="Canvas">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedAnnotation.Type}" Value="Arrow">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Canvas.Style>
+
+                                        <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
+                                                   Canvas.Left="{Binding SelectedAnnotation.X}"
+                                                   Canvas.Top="{Binding SelectedAnnotation.Y}"
+                                                   Cursor="SizeNWSE"
+                                                   MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                                   Tag="TopLeft">
+                                            <Rectangle.RenderTransform>
+                                                <TranslateTransform X="-5" Y="-5"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                        <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
+                                                   Canvas.Left="{Binding SelectedAnnotation.X}"
+                                                   Canvas.Top="{Binding SelectedAnnotation.Y}"
+                                                   Cursor="SizeNESW"
+                                                   MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                                   Tag="TopRight">
+                                            <Rectangle.RenderTransform>
+                                                <TranslateTransform X="{Binding SelectedAnnotation.Width}" Y="-5"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                        <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
+                                                   Canvas.Left="{Binding SelectedAnnotation.X}"
+                                                   Canvas.Top="{Binding SelectedAnnotation.Y}"
+                                                   Cursor="SizeNESW"
+                                                   MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                                   Tag="BottomLeft">
+                                            <Rectangle.RenderTransform>
+                                                <TranslateTransform X="-5" Y="{Binding SelectedAnnotation.Height}"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                        <Rectangle Width="10" Height="10" Fill="{DynamicResource AccentBrush}"
+                                                   Canvas.Left="{Binding SelectedAnnotation.X}"
+                                                   Canvas.Top="{Binding SelectedAnnotation.Y}"
+                                                   Cursor="SizeNWSE"
+                                                   MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                                   Tag="BottomRight">
+                                            <Rectangle.RenderTransform>
+                                                <TranslateTransform X="{Binding SelectedAnnotation.Width}" Y="{Binding SelectedAnnotation.Height}"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Canvas>
+
+                                    <!-- Arrow endpoint handles (arrow only) -->
+                                    <Canvas>
+                                        <Canvas.Style>
+                                            <Style TargetType="Canvas">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedAnnotation.Type}" Value="Arrow">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Canvas.Style>
+
+                                        <Ellipse Width="12" Height="12" Fill="{DynamicResource AccentBrush}"
+                                                 Canvas.Left="{Binding SelectedAnnotation.StartX}"
+                                                 Canvas.Top="{Binding SelectedAnnotation.StartY}"
+                                                 Cursor="Pen"
+                                                 MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                                 Tag="ArrowStart">
+                                            <Ellipse.RenderTransform>
+                                                <TranslateTransform X="-6" Y="-6"/>
+                                            </Ellipse.RenderTransform>
+                                        </Ellipse>
+                                        <Ellipse Width="12" Height="12" Fill="{DynamicResource AccentBrush}"
+                                                 Canvas.Left="{Binding SelectedAnnotation.EndX}"
+                                                 Canvas.Top="{Binding SelectedAnnotation.EndY}"
+                                                 Cursor="Pen"
+                                                 MouseLeftButtonDown="OnResizeHandleMouseLeftButtonDown"
+                                                 Tag="ArrowEnd">
+                                            <Ellipse.RenderTransform>
+                                                <TranslateTransform X="-6" Y="-6"/>
+                                            </Ellipse.RenderTransform>
+                                        </Ellipse>
+                                    </Canvas>
                                 </Canvas>
                             </Grid>
                         </ScrollViewer>
@@ -242,14 +346,205 @@
                         <TextBlock Text="Type" Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
                         <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AnnotationTypes}" SelectedItem="{Binding AnnotationType}" Margin="0,0,0,8"/>
 
-                        <TextBlock Text="X" Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding X, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
-                        <TextBlock Text="Y" Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Y, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
-                        <TextBlock Text="Width" Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
-                        <TextBlock Text="Height" Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <TextBlock Text="X" Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding X, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <TextBlock Text="Start X" Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ArrowStartX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <TextBlock Text="Y" Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Y, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <TextBlock Text="Start Y" Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ArrowStartY, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <TextBlock Text="Width" Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <TextBlock Text="End X" Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ArrowEndX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <TextBlock Text="Height" Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <TextBlock Text="End Y" Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ArrowEndY, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnnotationType}" Value="Arrow">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
                             <TextBlock Text="Color" Grid.Row="5" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding AnnotationColor, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
                         <TextBlock Text="Thickness" Grid.Row="6" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center"/>
