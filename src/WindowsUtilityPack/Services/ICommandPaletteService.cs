@@ -29,6 +29,7 @@ public sealed class CommandPaletteService : ICommandPaletteService
             CommandKey = "home",
             Kind = CommandPaletteItemKind.ShellAction,
             Keywords = ["dashboard", "start", "home"],
+            IconGlyph = "\uE80F", // Home glyph
         },
         new CommandPaletteItem
         {
@@ -39,16 +40,18 @@ public sealed class CommandPaletteService : ICommandPaletteService
             CommandKey = "open-settings",
             Kind = CommandPaletteItemKind.ShellAction,
             Keywords = ["preferences", "theme", "options"],
+            IconGlyph = "\uE713", // Settings glyph
         },
         new CommandPaletteItem
         {
             Id = "shell:popout-current-tool",
-            Title = "Open Current Tool In New Window",
+            Title = "Open Current Tool in New Window",
             Subtitle = "Detach the current tool into a separate window",
             Category = "Shell",
             CommandKey = "popout-current-tool",
             Kind = CommandPaletteItemKind.ShellAction,
             Keywords = ["detach", "window", "popout", "multitask"],
+            IconGlyph = "\uE946", // MiniExpand glyph
         },
     ];
 
@@ -69,6 +72,8 @@ public sealed class CommandPaletteService : ICommandPaletteService
                 CommandKey = tool.Key,
                 Kind = CommandPaletteItemKind.Tool,
                 Keywords = tool.Keywords,
+                IconGlyph = tool.IconGlyph,
+                Icon = tool.Icon,
             });
         }
 

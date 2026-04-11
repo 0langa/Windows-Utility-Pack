@@ -88,6 +88,9 @@ public partial class App : Application
     public static IMarkdownEditorService MarkdownEditorService { get; private set; } = null!;
     public static IApiMockServerService ApiMockServerService { get; private set; } = null!;
 
+    public static ITrayService TrayService { get; private set; } = null!;
+    public static IGlobalHotkeyService GlobalHotkeyService { get; private set; } = null!;
+
     public static ISettingsService? TryGetSettingsService() => SettingsService;
     public static IThemeService? TryGetThemeService() => ThemeService;
     public static ILoggingService? TryGetLoggingService() => LoggingService;
@@ -187,6 +190,9 @@ public partial class App : Application
 
         HomeDashboardService = new HomeDashboardService(SettingsService);
 
+        TrayService = new TrayService();
+        GlobalHotkeyService = new GlobalHotkeyService();
+
         var settings = SettingsService.Load();
         ThemeService.SetTheme(settings.Theme);
 
@@ -227,6 +233,8 @@ public partial class App : Application
         (ThemeService as IDisposable)?.Dispose();
         (NavigationService as IDisposable)?.Dispose();
         (DownloadCoordinatorService as IDisposable)?.Dispose();
+        GlobalHotkeyService.Dispose();
+        TrayService.Dispose();
         VitalsService.Dispose();
         base.OnExit(e);
     }
