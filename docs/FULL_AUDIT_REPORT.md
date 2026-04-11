@@ -136,18 +136,18 @@ Impact:
 
 - weaker production diagnostics when edge conditions occur.
 
-## 5. Previously Flagged Issues Now Resolved
+## 5. What Changed vs Prior Audit Snapshot
 
-The following prior findings are no longer accurate in the current codebase:
+The following improvements were confirmed during this audit pass (previously flagged, now resolved):
 
-1. Theme system-follow mode subscription bug: resolved in `ThemeService.SetTheme(...)`.
-2. Unsafe recursive traversal findings in duplicate/drive analysis: resolved with `EnumerationOptions` + `IgnoreInaccessible` paths.
-3. Hard-coded shell/home metadata duplication: materially improved; shell/home are now registry-driven.
-4. Prior low test-count finding: superseded by current passing baseline (196 tests) and expanded service/viewmodel coverage.
+- Home cards and category navigation are now generated from `ToolRegistry` metadata instead of hard-coded lists.
+- Theme system-follow behavior is implemented correctly in `ThemeService.SetTheme(...)` — subscription state is updated before early return.
+- Storage traversal in duplicate detection and drive analysis now uses `EnumerationOptions` with `IgnoreInaccessible` and skips inaccessible areas more safely.
+- Test coverage is broader than before, including dedicated tests for `ThemeService`, `DownloaderViewModel`, `DriveAnalysisService`, and `DuplicateDetectionService`.
 
-## 6. Test Posture (Current)
+## 7. Test Posture (Current)
 
-### 6.1 Strong coverage areas
+### 7.1 Strong coverage areas
 
 - Navigation and tool registry behavior
 - Storage services (scan, duplicates, drive analysis, reports, snapshots)
@@ -155,13 +155,13 @@ The following prior findings are no longer accurate in the current codebase:
 - Theme service behavior
 - Multiple tool viewmodels (including downloader)
 
-### 6.2 Remaining weaker areas
+### 7.2 Remaining weaker areas
 
 - Shell-level integration flows (startup, navigation + settings + notifications in one path)
 - External-process heavy download execution (`yt-dlp` / `gallery-dl`) under realistic integration conditions
 - Full end-to-end UI workflow regression checks
 
-## 7. Prioritized Recommendations
+## 8. Prioritized Recommendations
 
 1. Establish a single explicit composition direction and reduce `App.*` usage in shell/settings/home edges first.
 2. Decompose hotspot files incrementally by workflow boundary (not by arbitrary file slicing).
@@ -169,6 +169,6 @@ The following prior findings are no longer accurate in the current codebase:
 4. Align shim/app package metadata or document and automate drift checks.
 5. Add a small set of integration tests around shell startup/navigation/settings and downloader engine execution boundaries.
 
-## 8. Final Conclusion
+## 9. Final Conclusion
 
 The project is in good operational shape and materially healthier than earlier audit artifacts suggested. The highest-value work now is architectural hardening and automation guardrails, not broad defect triage or rewrite planning.

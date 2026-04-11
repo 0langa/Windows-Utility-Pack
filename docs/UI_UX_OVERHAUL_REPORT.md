@@ -1,4 +1,6 @@
-# UI/UX Overhaul Report
+# UI/UX Overhaul Report (circa 2025–2026)
+
+> **Note:** This document has no explicit date. It describes completed design improvements (theme expansion, semantic tokens, shell redesign). Treat as a reference for the current visual design approach.
 
 ## Major problems found
 

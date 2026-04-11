@@ -1,5 +1,7 @@
 # IMPLEMENTATION AND REFACTOR PLAN (2026-04-08)
 
+> **Status (2026-04-11):** Active roadmap — workstreams not yet started. Cross-reference `docs/REPO_RECOVERY_AUDIT.md` (2026-04-10) for the most recent list of incomplete tool registrations that should be resolved alongside this plan.
+
 ## 1. Objective
 
 This plan defines the next implementation steps for Windows Utility Pack based on the current validated baseline:

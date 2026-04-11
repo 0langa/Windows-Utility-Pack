@@ -1,4 +1,6 @@
 
+> **Status (2026-04-11):** Specification — completion unclear. Verify against current `DownloaderViewModel.cs` and downloader views before acting on this document. Items described as "broken" may or may not have been addressed since this was written.
+
 IMPORTANT REPOSITORY REFERENCES
 
 You must read and use ALL of the following documents before making changes:
