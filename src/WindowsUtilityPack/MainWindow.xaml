@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:controls="clr-namespace:WindowsUtilityPack.Controls"
         mc:Ignorable="d"
         Title="Windows Utility Pack"
         Icon="Assets/WindowsUtilityPackLogo.ico"
@@ -18,7 +17,6 @@
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -78,34 +76,7 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1"
-                Style="{StaticResource ElevatedSurfaceStyle}"
-                Padding="12"
-                Margin="0,0,0,12">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Disabled">
-                <ItemsControl ItemsSource="{Binding Categories}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <controls:CategoryMenuButton
-                                Label="{Binding Label}"
-                                Icon="{Binding Icon}"
-                                Description="{Binding Description}"
-                                NavigateCommand="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                ToolDefinitions="{Binding Tools}"
-                                Margin="0,0,10,0"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Border>
-
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="1">
             <ContentControl Content="{Binding CurrentView}" Margin="0"/>
 
             <Border VerticalAlignment="Top"
@@ -143,7 +114,7 @@
             </Border>
         </Grid>
 
-        <Border Grid.Row="3"
+        <Border Grid.Row="2"
                 Style="{StaticResource ElevatedSurfaceStyle}"
                 Padding="14,10"
                 Margin="0,12,0,0">

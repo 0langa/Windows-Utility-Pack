@@ -55,6 +55,7 @@
             <converters:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter"/>
             <converters:PercentageToScaleConverter x:Key="PercentageToScaleConverter"/>
             <converters:FavoriteCheckConverter x:Key="FavoriteCheckConverter"/>
+            <converters:EqualityToTagConverter x:Key="EqualityToTagConverter"/>
 
             <DataTemplate DataType="{x:Type vm:HomeViewModel}">
                 <views:HomeView/>
