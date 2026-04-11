@@ -3,42 +3,233 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Style="{StaticResource PageRootStyle}">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding DisplayTools}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding Key}"
-                                Style="{StaticResource CardButtonStyle}"
-                                Width="320"
-                                Margin="0,0,14,14"
-                                AutomationProperties.Name="{Binding Name}">
-                            <StackPanel>
-                                <Border Width="48"
-                                        Height="48"
-                                        CornerRadius="14"
-                                        Background="{DynamicResource AppSurfaceElevatedBrush}"
-                                        BorderBrush="{DynamicResource StrongBorderBrush}"
-                                        BorderThickness="1"
-                                        Margin="0,0,0,14">
-                                    <TextBlock Text="{Binding IconGlyph}"
-                                               FontFamily="Segoe MDL2 Assets"
-                                               FontSize="22"
-                                               Foreground="{DynamicResource AccentBrush}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
+            <StackPanel Margin="4,0">
+
+                <!-- ── Favourites ─────────────────────────────────────── -->
+                <StackPanel Margin="0,0,0,20">
+                    <DockPanel Margin="0,0,0,0">
+                        <TextBlock Text="&#xE735;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Text="Favourites"
+                                   Style="{StaticResource DashboardSectionHeaderStyle}"/>
+                    </DockPanel>
+
+                    <!-- Empty state -->
+                    <TextBlock Text="Pin your most-used tools for quick access by clicking the ☆ star on any tool card below."
+                               Style="{StaticResource EmptyStateTextStyle}"
+                               Visibility="{Binding HasFavorites, Converter={StaticResource InvertedBoolToVisibilityConverter}}"/>
+
+                    <!-- Favourite tool cards (compact horizontal) -->
+                    <ItemsControl ItemsSource="{Binding FavoriteTools}"
+                                  Visibility="{Binding HasFavorites, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Key}"
+                                        Style="{StaticResource CompactCardButtonStyle}"
+                                        Width="260"
+                                        Margin="0,0,10,10"
+                                        AutomationProperties.Name="{Binding Name}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="36"
+                                                Height="36"
+                                                CornerRadius="10"
+                                                Background="{DynamicResource AppSurfaceElevatedBrush}"
+                                                BorderBrush="{DynamicResource StrongBorderBrush}"
+                                                BorderThickness="1"
+                                                Margin="0,0,10,0">
+                                            <TextBlock Text="{Binding IconGlyph}"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="16"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Category}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ── Recently Used ──────────────────────────────────── -->
+                <StackPanel Margin="0,0,0,20">
+                    <DockPanel Margin="0,0,0,0">
+                        <TextBlock Text="&#xE81C;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Text="Recently Used"
+                                   Style="{StaticResource DashboardSectionHeaderStyle}"/>
+                        <Button Content="Clear"
+                                Style="{StaticResource SectionActionLinkStyle}"
+                                Command="{Binding ClearRecentCommand}"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding HasRecents, Converter={StaticResource BoolToVisibilityConverter}}"
+                                AutomationProperties.Name="Clear recent tools"/>
+                    </DockPanel>
+
+                    <!-- Empty state -->
+                    <TextBlock Text="Tools you open will appear here."
+                               Style="{StaticResource EmptyStateTextStyle}"
+                               Visibility="{Binding HasRecents, Converter={StaticResource InvertedBoolToVisibilityConverter}}"/>
+
+                    <!-- Recent tool cards (compact horizontal) -->
+                    <ItemsControl ItemsSource="{Binding RecentTools}"
+                                  Visibility="{Binding HasRecents, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Key}"
+                                        Style="{StaticResource CompactCardButtonStyle}"
+                                        Width="260"
+                                        Margin="0,0,10,10"
+                                        AutomationProperties.Name="{Binding Name}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="36"
+                                                Height="36"
+                                                CornerRadius="10"
+                                                Background="{DynamicResource AppSurfaceElevatedBrush}"
+                                                BorderBrush="{DynamicResource StrongBorderBrush}"
+                                                BorderThickness="1"
+                                                Margin="0,0,10,0">
+                                            <TextBlock Text="{Binding IconGlyph}"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="16"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Category}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ── All Tools ──────────────────────────────────────── -->
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,0">
+                        <TextBlock Text="&#xE71D;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Text="All Tools"
+                                   Style="{StaticResource DashboardSectionHeaderStyle}"/>
+                    </DockPanel>
+
+                    <ItemsControl ItemsSource="{Binding AllTools}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,0,14,14" Width="300">
+                                    <Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Key}"
+                                            Style="{StaticResource CardButtonStyle}"
+                                            HorizontalAlignment="Stretch"
+                                            AutomationProperties.Name="{Binding Name}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel>
+                                                <Border Width="42"
+                                                        Height="42"
+                                                        CornerRadius="12"
+                                                        Background="{DynamicResource AppSurfaceElevatedBrush}"
+                                                        BorderBrush="{DynamicResource StrongBorderBrush}"
+                                                        BorderThickness="1"
+                                                        HorizontalAlignment="Left"
+                                                        Margin="0,0,0,12">
+                                                    <TextBlock Text="{Binding IconGlyph}"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="20"
+                                                               Foreground="{DynamicResource AccentBrush}"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitleStyle}"/>
+                                                <TextBlock Text="{Binding Description}" Style="{StaticResource CardDescriptionStyle}"/>
+                                            </StackPanel>
+
+                                            <ToggleButton Grid.Column="1"
+                                                          Style="{StaticResource FavoriteToggleButtonStyle}"
+                                                          VerticalAlignment="Top"
+                                                          Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          CommandParameter="{Binding Key}"
+                                                          AutomationProperties.Name="Toggle favourite">
+                                                <ToggleButton.IsChecked>
+                                                    <MultiBinding Converter="{StaticResource FavoriteCheckConverter}" Mode="OneWay">
+                                                        <Binding Path="Key"/>
+                                                        <Binding Path="DataContext.FavoriteTools"
+                                                                 RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    </MultiBinding>
+                                                </ToggleButton.IsChecked>
+                                            </ToggleButton>
+                                        </Grid>
+                                    </Button>
                                 </Border>
-                                <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitleStyle}"/>
-                                <TextBlock Text="{Binding Description}" Style="{StaticResource CardDescriptionStyle}"/>
-                            </StackPanel>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+            </StackPanel>
         </ScrollViewer>
     </Grid>
 </UserControl>

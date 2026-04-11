@@ -77,6 +77,10 @@ public partial class CategoryMenuButton : UserControl
         DependencyProperty.Register(nameof(ToolDefinitions), typeof(IReadOnlyList<ToolDefinition>),
             typeof(CategoryMenuButton), new PropertyMetadata(null, OnToolDefinitionsChanged));
 
+    public static readonly DependencyProperty DescriptionProperty =
+        DependencyProperty.Register(nameof(Description), typeof(string), typeof(CategoryMenuButton),
+            new PropertyMetadata(string.Empty));
+
     // ── CLR wrappers ──────────────────────────────────────────────────────────
 
     /// <summary>Category label displayed below the icon.</summary>
@@ -118,6 +122,13 @@ public partial class CategoryMenuButton : UserControl
     {
         get => (IReadOnlyList<ToolDefinition>?)GetValue(ToolDefinitionsProperty);
         set => SetValue(ToolDefinitionsProperty, value);
+    }
+
+    /// <summary>Short summary displayed below the category label.</summary>
+    public string Description
+    {
+        get => (string)GetValue(DescriptionProperty);
+        set => SetValue(DescriptionProperty, value);
     }
 
     // ── Constructor ───────────────────────────────────────────────────────────

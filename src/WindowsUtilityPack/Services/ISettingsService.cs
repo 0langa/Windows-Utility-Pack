@@ -38,6 +38,15 @@ public class AppSettings
 
     /// <summary>Persisted settings for the Downloader module.</summary>
     public DownloaderSettings DownloaderSettings { get; set; } = new();
+
+    /// <summary>Tool keys the user has pinned as favorites (order preserved).</summary>
+    public List<string> FavoriteToolKeys { get; set; } = [];
+
+    /// <summary>
+    /// Most recently opened tool keys (newest first).
+    /// Capped at <see cref="IHomeDashboardService.MaxRecentTools"/> entries.
+    /// </summary>
+    public List<string> RecentToolKeys { get; set; } = [];
 }
 
 /// <summary>

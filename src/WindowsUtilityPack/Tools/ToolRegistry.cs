@@ -23,6 +23,9 @@ public static class ToolRegistry
     // Categories appear in the order they are first encountered during registration.
     private static readonly Dictionary<string, string> _categoryIcons = new(StringComparer.OrdinalIgnoreCase);
 
+    // Short human-readable description for each category.
+    private static readonly Dictionary<string, string> _categoryDescriptions = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>All registered tool definitions, in registration order.</summary>
     public static IReadOnlyList<ToolDefinition> All => _tools;
 
@@ -39,6 +42,15 @@ public static class ToolRegistry
     public static void RegisterCategoryIcon(string category, string iconGlyph)
     {
         _categoryIcons[category] = iconGlyph;
+    }
+
+    /// <summary>
+    /// Associates a short human-readable description with a category name.
+    /// Called during startup alongside tool and icon registration.
+    /// </summary>
+    public static void RegisterCategoryDescription(string category, string description)
+    {
+        _categoryDescriptions[category] = description;
     }
 
     /// <summary>
@@ -76,10 +88,12 @@ public static class ToolRegistry
             if (seen.Add(tool.Category))
             {
                 _categoryIcons.TryGetValue(tool.Category, out var icon);
+                _categoryDescriptions.TryGetValue(tool.Category, out var description);
                 categories.Add(new CategoryItem
                 {
                     Label = tool.Category,
                     Icon = icon ?? string.Empty,
+                    Description = description ?? string.Empty,
                     Tools = _tools.Where(t => t.Category.Equals(tool.Category, StringComparison.OrdinalIgnoreCase)).ToList(),
                 });
             }

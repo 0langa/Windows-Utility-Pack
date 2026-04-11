@@ -25,44 +25,43 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
-                Style="{StaticResource HeroSurfaceStyle}"
                 Margin="0,0,0,12">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel>
-                    <Button Style="{StaticResource TransparentButtonStyle}"
-                            Command="{Binding NavigateHomeCommand}"
-                            AutomationProperties.Name="Navigate to home">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Border Width="52"
-                                    Height="52"
-                                    CornerRadius="16"
-                                    Background="{DynamicResource AppSurfaceElevatedBrush}"
-                                    BorderBrush="{DynamicResource StrongBorderBrush}"
-                                    BorderThickness="1"
-                                    Margin="0,0,14,0">
-                                <Image Source="/Assets/WindowsUtilityPackLogo.png"
-                                       Width="30"
-                                       Height="30"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       RenderOptions.BitmapScalingMode="HighQuality"/>
-                            </Border>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Windows Utility Pack" Style="{StaticResource PrimaryHeadingTextStyle}"/>
-                                <TextBlock Text="Unified desktop toolkit for system, file, network, security, developer, and image workflows"
-                                           Style="{StaticResource MetadataTextStyle}"
-                                           Margin="0,2,0,0"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
+                <!-- Compact branding (left-aligned) -->
+                <Button Style="{StaticResource TransparentButtonStyle}"
+                        Command="{Binding NavigateHomeCommand}"
+                        AutomationProperties.Name="Navigate to home">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="36"
+                                Height="36"
+                                CornerRadius="10"
+                                Background="{DynamicResource AppSurfaceElevatedBrush}"
+                                BorderBrush="{DynamicResource StrongBorderBrush}"
+                                BorderThickness="1"
+                                Margin="0,0,10,0">
+                            <Image Source="/Assets/WindowsUtilityPackLogo.png"
+                                   Width="22"
+                                   Height="22"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                        <TextBlock Text="Windows Utility Pack"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                <!-- Corner controls (right-aligned) -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource ThemeToggleButtonStyle}"
                             Command="{Binding ToggleThemeCommand}"
                             FontFamily="Segoe MDL2 Assets"
@@ -96,6 +95,7 @@
                             <controls:CategoryMenuButton
                                 Label="{Binding Label}"
                                 Icon="{Binding Icon}"
+                                Description="{Binding Description}"
                                 NavigateCommand="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                 ToolDefinitions="{Binding Tools}"
                                 Margin="0,0,10,0"/>

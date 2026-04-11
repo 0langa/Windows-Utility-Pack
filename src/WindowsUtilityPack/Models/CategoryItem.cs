@@ -13,6 +13,9 @@ public class CategoryItem
     /// <summary>Segoe MDL2 Assets glyph character shown above the label.</summary>
     public string Icon { get; set; } = string.Empty;
 
+    /// <summary>Short summary of what tools belong to this category.</summary>
+    public string Description { get; set; } = string.Empty;
+
     /// <summary>Tool definitions belonging to this category.</summary>
     public IReadOnlyList<ToolDefinition> Tools { get; set; } = [];
 }

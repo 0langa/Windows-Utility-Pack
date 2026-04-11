@@ -59,6 +59,7 @@ public partial class App : Application
     public static IFolderPickerService FolderPickerService { get; private set; } = null!;
     public static IUserDialogService UserDialogService { get; private set; } = null!;
     public static IClipboardService ClipboardService { get; private set; } = null!;
+    public static IHomeDashboardService HomeDashboardService { get; private set; } = null!;
 
     public static IFileDialogService FileDialogService { get; private set; } = null!;
     public static ITextFormatConversionService TextFormatConversionService { get; private set; } = null!;
@@ -167,6 +168,23 @@ public partial class App : Application
         ThemeService.SetTheme(settings.Theme);
 
         RegisterTools();
+
+        HomeDashboardService = new HomeDashboardService(SettingsService);
+
+        // Track tool launches for the Recently Used section.
+        NavigationService.Navigated += (_, vmType) =>
+        {
+            var typeName = vmType.Name.Replace("ViewModel", "");
+            foreach (var tool in ToolRegistry.All)
+            {
+                if (tool.Name.Replace(" ", "").Equals(typeName, StringComparison.OrdinalIgnoreCase))
+                {
+                    HomeDashboardService.RecordToolLaunch(tool.Key);
+                    break;
+                }
+            }
+        };
+
         LoggingService.LogInfo("Application started.");
     }
 
@@ -184,6 +202,13 @@ public partial class App : Application
         ToolRegistry.RegisterCategoryIcon("Network & Internet", "\uE774");
         ToolRegistry.RegisterCategoryIcon("Developer & Productivity", "\uE943");
         ToolRegistry.RegisterCategoryIcon("Image Tools", "\uEB9F");
+
+        ToolRegistry.RegisterCategoryDescription("System Utilities", "Manage startup, environment, storage, and system info");
+        ToolRegistry.RegisterCategoryDescription("File & Data Tools", "Rename, hash, shred, split, and inspect files");
+        ToolRegistry.RegisterCategoryDescription("Security & Privacy", "Passwords, hashes, secrets, and certificates");
+        ToolRegistry.RegisterCategoryDescription("Network & Internet", "Ping, DNS, ports, HTTP, speed, and downloads");
+        ToolRegistry.RegisterCategoryDescription("Developer & Productivity", "Regex, encoding, colour, QR, diff, and more");
+        ToolRegistry.RegisterCategoryDescription("Image Tools", "Resize, convert, and annotate images");
 
         ToolRegistry.Register(new Models.ToolDefinition
         {

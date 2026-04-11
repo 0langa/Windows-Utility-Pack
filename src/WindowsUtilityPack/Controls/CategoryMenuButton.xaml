@@ -73,9 +73,10 @@
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource PrimaryTextBrush}"
                                TextWrapping="Wrap"/>
-                    <TextBlock Text="Open tools"
+                    <TextBlock Text="{Binding Description, ElementName=Root}"
                                FontSize="11"
                                Foreground="{DynamicResource SecondaryTextBrush}"
+                               TextTrimming="CharacterEllipsis"
                                Margin="0,2,0,0"/>
                 </StackPanel>
 

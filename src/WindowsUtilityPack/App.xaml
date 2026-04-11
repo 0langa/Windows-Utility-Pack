@@ -54,6 +54,7 @@
             <converters:EnumToBooleanConverter x:Key="EnumToBoolConverter"/>
             <converters:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter"/>
             <converters:PercentageToScaleConverter x:Key="PercentageToScaleConverter"/>
+            <converters:FavoriteCheckConverter x:Key="FavoriteCheckConverter"/>
 
             <DataTemplate DataType="{x:Type vm:HomeViewModel}">
                 <views:HomeView/>
