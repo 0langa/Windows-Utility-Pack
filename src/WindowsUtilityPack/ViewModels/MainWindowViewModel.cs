@@ -259,12 +259,17 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void OpenCommandPalette()
     {
+        IsCommandPaletteOpen = true;
+        CommandPaletteQuery = string.Empty;
+        RefreshCommandPaletteResults();
         CommandPaletteRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void CloseCommandPalette()
     {
         IsCommandPaletteOpen = false;
+        CommandPaletteQuery = string.Empty;
+        SelectedCommandPaletteItem = null;
     }
 
     private void RefreshCommandPaletteResults()

@@ -117,11 +117,9 @@ public class DuplicateDetectionServiceTests : IDisposable
         CreateFile("dup2.bin", content);
 
         var progressValues = new List<int>();
-        var progress = new Progress<int>(v => progressValues.Add(v));
+        var progress = new SyncProgress(progressValues);
 
         await _svc.FindDuplicatesAsync(_tempRoot, progress);
-        // Allow progress callbacks to fire
-        await Task.Delay(50);
 
         // Progress should reach 100 for 2 files processed
         Assert.Contains(100, progressValues);
@@ -168,5 +166,20 @@ public class DuplicateDetectionServiceTests : IDisposable
                 Directory.Delete(_tempRoot, recursive: true);
         }
         catch { /* cleanup failure should not fail the test */ }
+    }
+
+    private sealed class SyncProgress : IProgress<int>
+    {
+        private readonly List<int> _values;
+
+        public SyncProgress(List<int> values)
+        {
+            _values = values;
+        }
+
+        public void Report(int value)
+        {
+            _values.Add(value);
+        }
     }
 }

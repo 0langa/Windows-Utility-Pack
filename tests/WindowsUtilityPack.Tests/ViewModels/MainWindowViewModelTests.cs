@@ -368,7 +368,11 @@ public sealed class MainWindowViewModelTests
         public ViewModelBase CurrentViewModel => new StubToolViewModel();
         public bool CanGoBack => false;
 
-        public event EventHandler? CurrentViewChanged;
+        public event EventHandler? CurrentViewChanged
+        {
+            add { }
+            remove { }
+        }
         public event EventHandler<Type>? Navigated;
 
         public void SetContentHost(ContentControl host) { }
@@ -436,11 +440,17 @@ public sealed class MainWindowViewModelTests
     {
         public IReadOnlyList<CommandPaletteItem> Results { get; set; } = [];
         public int SearchCallCount { get; private set; }
+        public string? LastRecordedExecution { get; private set; }
 
         public IReadOnlyList<CommandPaletteItem> Search(string? query, int limit = 20)
         {
             SearchCallCount++;
             return Results;
+        }
+
+        public void RecordExecution(string itemId)
+        {
+            LastRecordedExecution = itemId;
         }
     }
 }

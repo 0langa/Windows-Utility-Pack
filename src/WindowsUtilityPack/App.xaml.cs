@@ -94,7 +94,6 @@ public partial class App : Application
     public static ITrayIconService TrayIconService { get; private set; } = null!;
 
     public static ITrayService TrayService { get; private set; } = null!;
-    public static IGlobalHotkeyService GlobalHotkeyService { get; private set; } = null!;
 
     public static ISettingsService? TryGetSettingsService() => SettingsService;
     public static IThemeService? TryGetThemeService() => ThemeService;
@@ -201,7 +200,6 @@ public partial class App : Application
         HomeDashboardService = new HomeDashboardService(SettingsService);
 
         TrayService = new TrayService();
-        GlobalHotkeyService = new GlobalHotkeyService();
 
         var settings = SettingsService.Load();
         ThemeService.SetTheme(settings.Theme);

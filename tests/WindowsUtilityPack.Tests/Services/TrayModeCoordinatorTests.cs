@@ -170,10 +170,10 @@ public sealed class TrayModeCoordinatorTests
     }
 
     [Fact]
-    public void ShouldShowTaskCompletionAlert_ReturnsFalse_ForQueuedTask()
+    public void ShouldShowTaskCompletionAlert_ReturnsFalse_ForUnknownState()
     {
         var coordinator = new TrayModeCoordinator();
-        var task        = new BackgroundTaskInfo { Name = "Scan", State = BackgroundTaskState.Queued };
+        var task        = new BackgroundTaskInfo { Name = "Scan", State = (BackgroundTaskState)999 };
 
         Assert.False(coordinator.ShouldShowTaskCompletionAlert(task));
     }
