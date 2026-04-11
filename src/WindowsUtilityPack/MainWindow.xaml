@@ -60,27 +60,6 @@
                             </StackPanel>
                         </StackPanel>
                     </Button>
-
-                    <WrapPanel Margin="0,18,0,0">
-                        <Border Style="{StaticResource StatusSurfaceStyle}" Margin="0,0,10,0" Padding="12,8">
-                            <StackPanel>
-                                <TextBlock Text="Navigation" Style="{StaticResource MetadataTextStyle}"/>
-                                <TextBlock Text="Category-driven and template-backed" Style="{StaticResource BodyTextStyle}"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource StatusSurfaceStyle}" Margin="0,0,10,0" Padding="12,8">
-                            <StackPanel>
-                                <TextBlock Text="Theme" Style="{StaticResource MetadataTextStyle}"/>
-                                <TextBlock Text="{Binding ThemeSummary}" Style="{StaticResource BodyTextStyle}"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource StatusSurfaceStyle}" Padding="12,8">
-                            <StackPanel>
-                                <TextBlock Text="Status" Style="{StaticResource MetadataTextStyle}"/>
-                                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource BodyTextStyle}" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                        </Border>
-                    </WrapPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
