@@ -159,3 +159,35 @@ Remaining roadmap work includes:
 2. Extend global hotkey management with profile scoping per workflow category.
 3. Add Storage Master policy presets import/export for repeatable cleanup workflows.
 4. Add startup/system diagnostics history persistence for longitudinal troubleshooting.
+
+---
+
+## Session Handoff Summary (April 11, 2026)
+
+### Completed This Session
+- Diagnostics/export enhancements for Startup Manager and System Info Dashboard:
+  - New diagnostics/report services (StartupDiagnosticsService, SystemInfoReportService)
+  - ViewModel and XAML integration for diagnostics, export, and summary actions
+  - New models: StartupEntryDiagnostic, SystemInfoSnapshot
+  - UI enhancements for diagnostics columns, export/report actions
+  - xUnit tests for new services (324/324 tests passing)
+- Full build and test validation (dotnet build/test clean)
+- All changes committed and pushed to origin/main (commit 385ee82)
+- Delivery report updated
+
+### Current Repo State
+- All diagnostics/export features delivered and validated
+- Working tree clean, HEAD at 385ee82 (main)
+- No outstanding changes or uncommitted work
+
+### Next Roadmap Items (Pending)
+- Network/HTTP diagnostics tool
+- Hotkey UI improvements
+- Storage Master presets
+- Diagnostics history and export log
+
+### Handoff Guidance
+- All new services are registered in App.xaml.cs and injected via DI
+- UI/VM boundaries preserved (MVVM)
+- Service-based diagnostics/reporting enables future extensibility and testability
+- See this section for next agent onboarding
