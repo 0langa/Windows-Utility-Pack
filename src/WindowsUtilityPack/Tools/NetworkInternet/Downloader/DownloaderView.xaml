@@ -31,7 +31,7 @@
                     <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding FailedCount, StringFormat=Failed: {0}}"/></Border>
                     <Button Content="Install Tools" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding InstallToolsCommand}" Margin="10,0,6,0"/>
                     <Button Content="Update yt-dlp" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding UpdateToolsCommand}" Margin="0,0,6,0"/>
-                    <TextBlock Text="{Binding DependenciesReady, StringFormat=Deps Ready: {0}}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding DependenciesReady, StringFormat=Deps Ready: {0}}" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
                 </WrapPanel>
             </Grid>
         </Border>

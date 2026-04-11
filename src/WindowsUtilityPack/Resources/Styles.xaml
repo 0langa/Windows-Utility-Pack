@@ -45,6 +45,8 @@
         <Setter Property="Background" Value="{DynamicResource HeroGradientBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource StrongBorderBrush}"/>
         <Setter Property="Padding" Value="24"/>
+        <!-- Ensure all child TextBlocks inherit theme-correct foreground regardless of background darkness -->
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
     </Style>
 
     <Style x:Key="ToolPanelBorderStyle" TargetType="Border" BasedOn="{StaticResource SurfaceCardStyle}">
@@ -55,6 +57,8 @@
         <Setter Property="Background" Value="{DynamicResource AppSurfaceAltBrush}"/>
         <Setter Property="Padding" Value="12,10"/>
         <Setter Property="CornerRadius" Value="12"/>
+        <!-- Ensure pill labels remain readable on the dark AppSurfaceAltBrush -->
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
     </Style>
 
     <Style x:Key="InfoStatusSurfaceStyle" TargetType="Border" BasedOn="{StaticResource StatusSurfaceStyle}">
