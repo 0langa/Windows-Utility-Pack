@@ -27,4 +27,6 @@ public sealed class CommandPaletteItem
     public IReadOnlyList<string> Keywords { get; init; } = [];
 
     public CommandPaletteItemKind Kind { get; init; }
+
+    public string ShortcutHint { get; init; } = string.Empty;
 }

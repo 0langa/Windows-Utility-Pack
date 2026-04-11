@@ -18,11 +18,24 @@ public class HotkeyManagerViewModelTests
             ]
         };
         var dialogs = new StubDialogService();
+        var global = new StubGlobalHotkeyService
+        {
+            RegistrationIssues =
+            [
+                new HotkeyRegistrationIssue
+                {
+                    Action = ShellHotkeyAction.OpenCommandPalette.ToString(),
+                    Gesture = "Ctrl+K",
+                    Message = "Already registered by another app",
+                }
+            ]
+        };
 
-        var vm = new HotkeyManagerViewModel(service, dialogs);
+        var vm = new HotkeyManagerViewModel(service, dialogs, global);
 
         Assert.False(vm.HotkeysEnabled);
         Assert.Single(vm.Bindings);
+        Assert.Single(vm.RegistrationIssues);
         Assert.Equal("Ctrl+K", vm.Bindings[0].Gesture);
         Assert.Contains("loaded", vm.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
@@ -91,6 +104,8 @@ public class HotkeyManagerViewModelTests
 
     private sealed class StubHotkeyService : IHotkeyService
     {
+        public event EventHandler? BindingsChanged;
+
         public bool HotkeysEnabled { get; set; } = true;
         public List<HotkeyBindingSetting> Bindings { get; set; } =
         [
@@ -114,6 +129,7 @@ public class HotkeyManagerViewModelTests
             if (SaveResult.Success)
             {
                 Bindings = bindings.Select(Clone).ToList();
+                BindingsChanged?.Invoke(this, EventArgs.Empty);
             }
 
             return SaveResult;
@@ -148,5 +164,27 @@ public class HotkeyManagerViewModelTests
         public void ShowInfo(string title, string message) => Infos.Add((title, message));
 
         public void ShowError(string title, string message) => Errors.Add((title, message));
+    }
+
+    private sealed class StubGlobalHotkeyService : IGlobalHotkeyService
+    {
+        public event EventHandler<ShellHotkeyAction>? HotkeyPressed
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler? RegistrationsChanged
+        {
+            add { }
+            remove { }
+        }
+        public bool IsStarted => true;
+        public IReadOnlyList<GlobalHotkeyRegistration> ActiveRegistrations => [];
+        public IReadOnlyList<HotkeyRegistrationIssue> RegistrationIssues { get; init; } = [];
+        public void Start() { }
+        public void Stop() { }
+        public void Refresh() { }
+        public void Dispose() { }
     }
 }

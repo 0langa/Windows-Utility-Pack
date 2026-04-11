@@ -90,6 +90,32 @@ public class AppSettings
     /// If true, notifications and task completion updates are surfaced via tray balloon tips while hidden.
     /// </summary>
     public bool TrayAlertsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// If true, closing the main window hides to tray instead of exiting.
+    /// </summary>
+    public bool CloseToTray { get; set; } = true;
+
+    /// <summary>
+    /// If true, the app starts minimized to tray when tray mode is enabled.
+    /// </summary>
+    public bool StartMinimizedToTray { get; set; }
+
+    /// <summary>
+    /// If true, global shell actions restore the main window before executing UI-oriented actions.
+    /// </summary>
+    public bool RestoreMainWindowOnGlobalAction { get; set; } = true;
+
+    /// <summary>
+    /// Behavior used by global quick screenshot actions.
+    /// </summary>
+    public QuickScreenshotBehavior QuickScreenshotBehavior { get; set; } = QuickScreenshotBehavior.CaptureToFileAndClipboard;
+
+    /// <summary>
+    /// Optional output directory for quick screenshots.
+    /// If empty, defaults to Pictures\WindowsUtilityPack\Screenshots.
+    /// </summary>
+    public string QuickScreenshotOutputDirectory { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -102,6 +128,18 @@ public class HotkeyBindingSetting
     public string Gesture { get; set; } = string.Empty;
 
     public bool Enabled { get; set; } = true;
+}
+
+/// <summary>
+/// Defines how global quick screenshot actions behave.
+/// </summary>
+public enum QuickScreenshotBehavior
+{
+    /// <summary>Capture to file and copy image to clipboard.</summary>
+    CaptureToFileAndClipboard,
+
+    /// <summary>Capture to file and open Screenshot Annotator for editing.</summary>
+    CaptureToFileAndOpenAnnotator,
 }
 
 /// <summary>

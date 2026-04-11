@@ -11,6 +11,11 @@ public interface ICommandPaletteService
     /// Returns matching command items ordered by relevance.
     /// </summary>
     IReadOnlyList<CommandPaletteItem> Search(string? query, int limit = 20);
+
+    /// <summary>
+    /// Records command execution to improve future result relevance.
+    /// </summary>
+    void RecordExecution(string itemId);
 }
 
 /// <summary>
@@ -18,6 +23,8 @@ public interface ICommandPaletteService
 /// </summary>
 public sealed class CommandPaletteService : ICommandPaletteService
 {
+    private readonly Dictionary<string, int> _executionCount = new(StringComparer.OrdinalIgnoreCase);
+
     private static readonly IReadOnlyList<CommandPaletteItem> ShellItems =
     [
         new CommandPaletteItem
@@ -29,6 +36,7 @@ public sealed class CommandPaletteService : ICommandPaletteService
             CommandKey = "home",
             Kind = CommandPaletteItemKind.ShellAction,
             Keywords = ["dashboard", "start", "home"],
+            ShortcutHint = "Ctrl+H",
         },
         new CommandPaletteItem
         {
@@ -39,6 +47,7 @@ public sealed class CommandPaletteService : ICommandPaletteService
             CommandKey = "open-settings",
             Kind = CommandPaletteItemKind.ShellAction,
             Keywords = ["preferences", "theme", "options"],
+            ShortcutHint = "Ctrl+,",
         },
         new CommandPaletteItem
         {
@@ -49,6 +58,48 @@ public sealed class CommandPaletteService : ICommandPaletteService
             CommandKey = "popout-current-tool",
             Kind = CommandPaletteItemKind.ShellAction,
             Keywords = ["detach", "window", "popout", "multitask"],
+        },
+        new CommandPaletteItem
+        {
+            Id = "shell:quick-screenshot",
+            Title = "Quick Screenshot",
+            Subtitle = "Capture screenshot immediately",
+            Category = "Shell",
+            CommandKey = "quick-screenshot",
+            Kind = CommandPaletteItemKind.ShellAction,
+            Keywords = ["capture", "image", "screen"],
+            ShortcutHint = "Ctrl+Shift+S",
+        },
+        new CommandPaletteItem
+        {
+            Id = "shell:open-screenshot-annotator",
+            Title = "Open Screenshot Annotator",
+            Subtitle = "Open the screenshot workflow tool",
+            Category = "Shell",
+            CommandKey = "open-screenshot-annotator",
+            Kind = CommandPaletteItemKind.ShellAction,
+            Keywords = ["annotation", "redaction", "markup", "image"],
+        },
+        new CommandPaletteItem
+        {
+            Id = "shell:toggle-main-window",
+            Title = "Toggle Main Window",
+            Subtitle = "Show or hide the main window",
+            Category = "Shell",
+            CommandKey = "toggle-main-window",
+            Kind = CommandPaletteItemKind.ShellAction,
+            Keywords = ["show", "hide", "tray", "background"],
+            ShortcutHint = "Ctrl+Shift+Space",
+        },
+        new CommandPaletteItem
+        {
+            Id = "shell:open-clipboard-manager",
+            Title = "Open Clipboard Manager",
+            Subtitle = "Open clipboard history and quick reuse tools",
+            Category = "Shell",
+            CommandKey = "open-clipboard-manager",
+            Kind = CommandPaletteItemKind.ShellAction,
+            Keywords = ["clipboard", "history", "paste"],
         },
     ];
 
@@ -76,7 +127,7 @@ public sealed class CommandPaletteService : ICommandPaletteService
         if (string.IsNullOrWhiteSpace(query))
         {
             return items
-                .OrderBy(i => i.Kind)
+                .OrderBy(i => i.Kind == CommandPaletteItemKind.ShellAction ? 0 : 1)
                 .ThenBy(i => i.Category)
                 .ThenBy(i => i.Title)
                 .Take(limit)
@@ -98,12 +149,29 @@ public sealed class CommandPaletteService : ICommandPaletteService
             .ToList();
     }
 
-    private static int Score(CommandPaletteItem item, IReadOnlyList<string> terms)
+    public void RecordExecution(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return;
+        }
+
+        _executionCount[itemId] = _executionCount.TryGetValue(itemId, out var count)
+            ? count + 1
+            : 1;
+    }
+
+    private int Score(CommandPaletteItem item, IReadOnlyList<string> terms)
     {
         var score = 0;
         var title = item.Title.ToLowerInvariant();
         var subtitle = item.Subtitle.ToLowerInvariant();
         var category = item.Category.ToLowerInvariant();
+        var shortcut = item.ShortcutHint.ToLowerInvariant();
+        if (_executionCount.TryGetValue(item.Id, out var usage))
+        {
+            score += Math.Min(usage * 8, 80);
+        }
 
         foreach (var term in terms)
         {
@@ -131,6 +199,11 @@ public sealed class CommandPaletteService : ICommandPaletteService
             if (item.CommandKey.Contains(term, StringComparison.OrdinalIgnoreCase))
             {
                 score += 25;
+            }
+
+            if (!string.IsNullOrWhiteSpace(shortcut) && shortcut.Contains(term, StringComparison.Ordinal))
+            {
+                score += 20;
             }
 
             if (item.Keywords.Any(k => k.Contains(term, StringComparison.OrdinalIgnoreCase)))

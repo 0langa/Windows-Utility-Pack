@@ -9,6 +9,9 @@ namespace WindowsUtilityPack.Services;
 public enum ShellHotkeyAction
 {
     OpenCommandPalette,
+    QuickScreenshot,
+    OpenScreenshotAnnotator,
+    ToggleMainWindow,
     OpenSettings,
     NavigateHome,
     OpenActivityLog,
@@ -20,6 +23,8 @@ public enum ShellHotkeyAction
 /// </summary>
 public interface IHotkeyService
 {
+    event EventHandler? BindingsChanged;
+
     bool HotkeysEnabled { get; set; }
 
     IReadOnlyList<HotkeyBindingSetting> GetBindings();
@@ -55,6 +60,7 @@ public sealed class HotkeyService : IHotkeyService
     private readonly ISettingsService _settings;
     private readonly object _sync = new();
     private List<HotkeyBindingSetting>? _cachedBindings;
+    public event EventHandler? BindingsChanged;
 
     public HotkeyService(ISettingsService settings)
     {
@@ -67,8 +73,14 @@ public sealed class HotkeyService : IHotkeyService
         set
         {
             var settings = _settings.Load();
+            if (settings.HotkeysEnabled == value)
+            {
+                return;
+            }
+
             settings.HotkeysEnabled = value;
             _settings.Save(settings);
+            BindingsChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -88,6 +100,9 @@ public sealed class HotkeyService : IHotkeyService
         return
         [
             new HotkeyBindingSetting { Action = ShellHotkeyAction.OpenCommandPalette.ToString(), Gesture = "Ctrl+K", Enabled = true },
+            new HotkeyBindingSetting { Action = ShellHotkeyAction.QuickScreenshot.ToString(), Gesture = "Ctrl+Shift+S", Enabled = true },
+            new HotkeyBindingSetting { Action = ShellHotkeyAction.OpenScreenshotAnnotator.ToString(), Gesture = "Ctrl+Shift+A", Enabled = false },
+            new HotkeyBindingSetting { Action = ShellHotkeyAction.ToggleMainWindow.ToString(), Gesture = "Ctrl+Shift+Space", Enabled = true },
             new HotkeyBindingSetting { Action = ShellHotkeyAction.OpenSettings.ToString(), Gesture = "Ctrl+OemComma", Enabled = true },
             new HotkeyBindingSetting { Action = ShellHotkeyAction.NavigateHome.ToString(), Gesture = "Ctrl+H", Enabled = true },
             new HotkeyBindingSetting { Action = ShellHotkeyAction.OpenActivityLog.ToString(), Gesture = "Ctrl+Shift+L", Enabled = true },
@@ -120,6 +135,7 @@ public sealed class HotkeyService : IHotkeyService
             _cachedBindings = normalized;
         }
 
+        BindingsChanged?.Invoke(this, EventArgs.Empty);
         return (true, string.Empty);
     }
 
@@ -175,6 +191,7 @@ public sealed class HotkeyService : IHotkeyService
                 _cachedBindings = bindings;
             }
 
+            BindingsChanged?.Invoke(this, EventArgs.Empty);
             return (true, string.Empty, bindings.Count);
         }
         catch (JsonException)

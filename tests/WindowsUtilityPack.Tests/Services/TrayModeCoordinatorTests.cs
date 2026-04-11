@@ -19,9 +19,27 @@ public sealed class TrayModeCoordinatorTests
     public void ShouldInterceptClose_ReturnsFalse_WhenExplicitExitRequested()
     {
         var coordinator = new TrayModeCoordinator();
-        var settings = new AppSettings { TrayModeEnabled = true };
+        var settings = new AppSettings { TrayModeEnabled = true, CloseToTray = true };
 
         Assert.False(coordinator.ShouldInterceptClose(settings, explicitExitRequested: true));
+    }
+
+    [Fact]
+    public void ShouldInterceptClose_ReturnsFalse_WhenCloseToTrayDisabled()
+    {
+        var coordinator = new TrayModeCoordinator();
+        var settings = new AppSettings { TrayModeEnabled = true, CloseToTray = false };
+
+        Assert.False(coordinator.ShouldInterceptClose(settings, explicitExitRequested: false));
+    }
+
+    [Fact]
+    public void ShouldStartMinimizedToTray_ReturnsTrue_WhenConfigured()
+    {
+        var coordinator = new TrayModeCoordinator();
+        var settings = new AppSettings { TrayModeEnabled = true, StartMinimizedToTray = true };
+
+        Assert.True(coordinator.ShouldStartMinimizedToTray(settings));
     }
 
     [Fact]

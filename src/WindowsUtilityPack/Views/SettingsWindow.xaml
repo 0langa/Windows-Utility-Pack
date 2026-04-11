@@ -80,6 +80,39 @@
 
                         <CheckBox Content="Remember window position and size"
                                   IsChecked="{Binding RememberWindowPosition}"/>
+
+                        <Separator Margin="0,18,0,18"/>
+
+                        <TextBlock Text="Tray &amp; Background" Style="{StaticResource SectionHeadingTextStyle}"/>
+                        <TextBlock Text="Control how the app behaves while hidden and how global shell actions restore the UI."
+                                   Style="{StaticResource MetadataTextStyle}"
+                                   Margin="0,4,0,12"/>
+
+                        <CheckBox Content="Enable tray mode"
+                                  IsChecked="{Binding TrayModeEnabled}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Minimize to tray"
+                                  IsChecked="{Binding MinimizeToTray}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Close to tray (instead of exit)"
+                                  IsChecked="{Binding CloseToTray}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Show tray notifications while hidden"
+                                  IsChecked="{Binding TrayAlertsEnabled}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Start minimized to tray"
+                                  IsChecked="{Binding StartMinimizedToTray}"
+                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Restore main window when executing global actions"
+                                  IsChecked="{Binding RestoreMainWindowOnGlobalAction}"
+                                  Margin="0,0,0,12"/>
+
+                        <TextBlock Text="Quick screenshot behavior"
+                                   Style="{StaticResource MetadataTextStyle}"
+                                   Margin="0,0,0,6"/>
+                        <ComboBox ItemsSource="{Binding QuickScreenshotBehaviorOptions}"
+                                  SelectedItem="{Binding QuickScreenshotBehavior}"
+                                  Width="300"/>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

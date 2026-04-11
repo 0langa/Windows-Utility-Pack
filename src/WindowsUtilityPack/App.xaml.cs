@@ -37,6 +37,7 @@ public partial class App : Application
     public static IWorkspaceProfileCoordinator WorkspaceProfileCoordinator { get; private set; } = null!;
     public static IWindowsEventLogService WindowsEventLogService { get; private set; } = null!;
     public static IHotkeyService HotkeyService { get; private set; } = null!;
+    public static IGlobalHotkeyService GlobalHotkeyService { get; private set; } = null!;
     public static IAutomationRuleService AutomationRuleService { get; private set; } = null!;
     public static IProcessExplorerService ProcessExplorerService { get; private set; } = null!;
     public static IRegistryEditorService RegistryEditorService { get; private set; } = null!;
@@ -87,6 +88,9 @@ public partial class App : Application
     public static ILogFileAnalyzerService LogFileAnalyzerService { get; private set; } = null!;
     public static IMarkdownEditorService MarkdownEditorService { get; private set; } = null!;
     public static IApiMockServerService ApiMockServerService { get; private set; } = null!;
+    public static IQuickScreenshotService QuickScreenshotService { get; private set; } = null!;
+    public static IQuickCaptureStateService QuickCaptureStateService { get; private set; } = null!;
+    public static ITrayIconService TrayIconService { get; private set; } = null!;
 
     public static ISettingsService? TryGetSettingsService() => SettingsService;
     public static IThemeService? TryGetThemeService() => ThemeService;
@@ -114,6 +118,7 @@ public partial class App : Application
         ClipboardHistoryService = new ClipboardHistoryService(AppDataStoreService);
         WindowsEventLogService = new WindowsEventLogService();
         HotkeyService = new HotkeyService(SettingsService);
+        GlobalHotkeyService = new GlobalHotkeyService(HotkeyService, LoggingService);
         AutomationRuleService = new AutomationRuleService(AppDataStoreService);
         ProcessExplorerService = new ProcessExplorerService();
         RegistryEditorService = new RegistryEditorService();
@@ -180,6 +185,9 @@ public partial class App : Application
         StructuredDataValidationService = new StructuredDataValidationService();
         FileSplitJoinService = new FileSplitJoinService();
         ImageProcessingService = new ImageProcessingService();
+        QuickCaptureStateService = new QuickCaptureStateService();
+        QuickScreenshotService = new QuickScreenshotService(ImageProcessingService, ClipboardService);
+        TrayIconService = new TrayIconService();
         UlidGenerator = new UlidGenerator();
         LogFileAnalyzerService = new LogFileAnalyzerService();
         MarkdownEditorService = new MarkdownEditorService();
@@ -191,6 +199,7 @@ public partial class App : Application
         ThemeService.SetTheme(settings.Theme);
 
         RegisterTools();
+        GlobalHotkeyService.Start();
 
         // Track tool launches for the Recently Used section.
         NavigationService.Navigated += (_, vmType) =>
@@ -227,6 +236,8 @@ public partial class App : Application
         (ThemeService as IDisposable)?.Dispose();
         (NavigationService as IDisposable)?.Dispose();
         (DownloadCoordinatorService as IDisposable)?.Dispose();
+        (GlobalHotkeyService as IDisposable)?.Dispose();
+        (TrayIconService as IDisposable)?.Dispose();
         VitalsService.Dispose();
         base.OnExit(e);
     }
