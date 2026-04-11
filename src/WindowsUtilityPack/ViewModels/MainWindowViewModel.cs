@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Collections.ObjectModel;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
@@ -17,11 +18,16 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly INavigationService _navigation;
     private readonly IThemeService _theme;
     private readonly INotificationService? _notifications;
+    private readonly ICommandPaletteService? _commandPalette;
+    private readonly IActivityLogService? _activityLogService;
     private AppTheme _effectiveTheme = AppTheme.Dark;
     private string _statusMessage = "Ready";
     private string _notificationText = string.Empty;
     private bool _isNotificationVisible;
     private NotificationType _notificationType;
+    private bool _isCommandPaletteOpen;
+    private string _commandPaletteQuery = string.Empty;
+    private CommandPaletteItem? _selectedCommandPaletteItem;
 
     public AppTheme EffectiveTheme
     {
@@ -52,6 +58,44 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         get => _statusMessage;
         set => SetProperty(ref _statusMessage, value);
     }
+
+    /// <summary>
+    /// Indicates whether the command palette overlay is currently open.
+    /// </summary>
+    public bool IsCommandPaletteOpen
+    {
+        get => _isCommandPaletteOpen;
+        set => SetProperty(ref _isCommandPaletteOpen, value);
+    }
+
+    /// <summary>
+    /// Current command palette search query.
+    /// </summary>
+    public string CommandPaletteQuery
+    {
+        get => _commandPaletteQuery;
+        set
+        {
+            if (SetProperty(ref _commandPaletteQuery, value))
+            {
+                RefreshCommandPaletteResults();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Current selected command palette item.
+    /// </summary>
+    public CommandPaletteItem? SelectedCommandPaletteItem
+    {
+        get => _selectedCommandPaletteItem;
+        set => SetProperty(ref _selectedCommandPaletteItem, value);
+    }
+
+    /// <summary>
+    /// In-memory command palette search results.
+    /// </summary>
+    public ObservableCollection<CommandPaletteItem> CommandPaletteItems { get; } = [];
 
     /// <summary>Text displayed in the in-app notification banner.</summary>
     public string NotificationText
@@ -89,6 +133,9 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public RelayCommand NavigateHomeCommand { get; }
     public RelayCommand OpenSettingsCommand { get; }
     public RelayCommand DismissNotificationCommand { get; }
+    public RelayCommand OpenCommandPaletteCommand { get; }
+    public RelayCommand CloseCommandPaletteCommand { get; }
+    public AsyncRelayCommand ExecuteCommandPaletteItemCommand { get; }
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -98,10 +145,14 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public MainWindowViewModel(
         INavigationService navigation,
         IThemeService theme,
-        INotificationService? notifications)
+        INotificationService? notifications,
+        ICommandPaletteService? commandPalette = null,
+        IActivityLogService? activityLogService = null)
     {
         _navigation = navigation;
         _theme = theme;
+        _commandPalette = commandPalette;
+        _activityLogService = activityLogService;
 
         _effectiveTheme = theme.EffectiveTheme;
 
@@ -122,6 +173,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         NavigateHomeCommand = new RelayCommand(_ => _navigation.NavigateTo("home"));
         OpenSettingsCommand = new RelayCommand(_ => OpenSettings());
         DismissNotificationCommand = new RelayCommand(_ => IsNotificationVisible = false);
+        OpenCommandPaletteCommand = new RelayCommand(_ => OpenCommandPalette());
+        CloseCommandPaletteCommand = new RelayCommand(_ => CloseCommandPalette());
+        ExecuteCommandPaletteItemCommand = new AsyncRelayCommand(ExecuteCommandPaletteItemAsync);
+
+        RefreshCommandPaletteResults();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -143,6 +199,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         }
 
         StatusMessage = $"Navigated to {displayName}";
+
+        if (_activityLogService is not null)
+        {
+            _ = _activityLogService.LogAsync("Navigation", "Navigate", displayName);
+        }
     }
 
     private void OnNotificationRequested(object? sender, NotificationEventArgs e)
@@ -184,6 +245,74 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         if (Application.Current.MainWindow is { IsLoaded: true } mainWindow)
             window.Owner = mainWindow;
         window.ShowDialog();
+    }
+
+    private void OpenCommandPalette()
+    {
+        IsCommandPaletteOpen = true;
+        CommandPaletteQuery = string.Empty;
+        RefreshCommandPaletteResults();
+    }
+
+    private void CloseCommandPalette()
+    {
+        IsCommandPaletteOpen = false;
+        CommandPaletteQuery = string.Empty;
+        SelectedCommandPaletteItem = null;
+    }
+
+    private void RefreshCommandPaletteResults()
+    {
+        if (_commandPalette is null)
+        {
+            CommandPaletteItems.Clear();
+            return;
+        }
+
+        var items = _commandPalette.Search(CommandPaletteQuery, limit: 25);
+        CommandPaletteItems.Clear();
+        foreach (var item in items)
+        {
+            CommandPaletteItems.Add(item);
+        }
+
+        SelectedCommandPaletteItem = CommandPaletteItems.FirstOrDefault();
+    }
+
+    private async Task ExecuteCommandPaletteItemAsync(object? parameter)
+    {
+        var item = parameter as CommandPaletteItem ?? SelectedCommandPaletteItem;
+        if (item is null)
+        {
+            return;
+        }
+
+        switch (item.Kind)
+        {
+            case CommandPaletteItemKind.Tool:
+                _navigation.NavigateTo(item.CommandKey);
+                break;
+
+            case CommandPaletteItemKind.ShellAction:
+                if (item.CommandKey.Equals("open-settings", StringComparison.OrdinalIgnoreCase))
+                {
+                    OpenSettings();
+                }
+                else if (item.CommandKey.Equals("home", StringComparison.OrdinalIgnoreCase))
+                {
+                    _navigation.NavigateTo("home");
+                }
+                break;
+        }
+
+        if (_activityLogService is not null)
+        {
+            await _activityLogService
+                .LogAsync("CommandPalette", "Execute", item.Id)
+                .ConfigureAwait(true);
+        }
+
+        CloseCommandPalette();
     }
 
     public void Dispose()

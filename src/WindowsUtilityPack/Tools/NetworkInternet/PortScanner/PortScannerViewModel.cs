@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Windows;
 using WindowsUtilityPack.Commands;
+using WindowsUtilityPack.Models;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
 
@@ -47,7 +48,8 @@ public class PortScannerViewModel : ViewModelBase
     };
 
     private readonly IClipboardService _clipboard;
-    private CancellationTokenSource?   _cts;
+    private readonly IBackgroundTaskService _backgroundTaskService;
+    private Guid? _scanTaskId;
 
     private string _host           = "localhost";
     private string _portRangeText  = "1-1024";
@@ -105,12 +107,13 @@ public class PortScannerViewModel : ViewModelBase
     public RelayCommand      StopCommand          { get; }
     public RelayCommand      CopyOpenPortsCommand { get; }
 
-    public PortScannerViewModel(IClipboardService clipboard)
+    public PortScannerViewModel(IClipboardService clipboard, IBackgroundTaskService backgroundTaskService)
     {
         _clipboard = clipboard;
+        _backgroundTaskService = backgroundTaskService;
 
         ScanCommand          = new AsyncRelayCommand(_ => RunScanAsync(), _ => !IsScanning);
-        StopCommand          = new RelayCommand(_ => _cts?.Cancel(),      _ => IsScanning);
+        StopCommand          = new RelayCommand(_ => StopScan(),           _ => IsScanning);
         CopyOpenPortsCommand = new RelayCommand(_ => CopyOpenPorts(),     _ => Results.Count > 0);
     }
 
@@ -153,13 +156,26 @@ public class PortScannerViewModel : ViewModelBase
             return;
         }
 
-        _cts = new CancellationTokenSource();
+        if (_scanTaskId is Guid previousTask)
+        {
+            _backgroundTaskService.CancelTask(previousTask, "Superseded by a new scan request.");
+        }
+
+        var taskId = _backgroundTaskService.BeginTask("Port scan");
+        _scanTaskId = taskId;
+
         IsScanning = true;
         Results.Clear();
         Progress = 0;
         StatusMessage = $"Scanning {ports.Count} port(s) on {Host}…";
+        _backgroundTaskService.ReportProgress(taskId, new BackgroundTaskProgress
+        {
+            Percent = 0,
+            Message = "Port scan started",
+            Detail = Host,
+        });
 
-        var ct          = _cts.Token;
+        var ct          = _backgroundTaskService.GetCancellationToken(taskId);
         var sem         = new SemaphoreSlim(Math.Clamp(Concurrency, 1, MaxSafeConcurrency));
         var scanned     = 0;
         var openCount   = 0;
@@ -214,6 +230,13 @@ public class PortScannerViewModel : ViewModelBase
                         Progress      = done * 100.0 / total;
                         StatusMessage = $"{openCount} open port(s) found, {done} scanned of {total}";
                     });
+
+                    _backgroundTaskService.ReportProgress(taskId, new BackgroundTaskProgress
+                    {
+                        Percent = (int)Math.Round(done * 100.0 / total),
+                        Message = "Scanning ports",
+                        Detail = $"{done}/{total} scanned",
+                    });
                 }
                 finally
                 {
@@ -231,8 +254,25 @@ public class PortScannerViewModel : ViewModelBase
         StatusMessage = cancelled
             ? $"Scan stopped. {openCount} open port(s) found."
             : $"Scan complete. {openCount} open port(s) found of {total} scanned.";
-        _cts?.Dispose();
-        _cts = null;
+
+        if (cancelled)
+        {
+            _backgroundTaskService.CancelTask(taskId, "Port scan cancelled.");
+        }
+        else
+        {
+            _backgroundTaskService.CompleteTask(taskId, "Port scan completed.");
+        }
+
+        _scanTaskId = null;
+    }
+
+    private void StopScan()
+    {
+        if (_scanTaskId is Guid taskId)
+        {
+            _backgroundTaskService.CancelTask(taskId, "Cancellation requested by user.");
+        }
     }
 
     private void CopyOpenPorts()

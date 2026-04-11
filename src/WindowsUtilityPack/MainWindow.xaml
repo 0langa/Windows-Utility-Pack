@@ -13,8 +13,14 @@
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
+        PreviewKeyDown="OnPreviewKeyDown"
         Closing="OnWindowClosing"
         Closed="OnWindowClosed">
+
+    <Window.InputBindings>
+        <KeyBinding Gesture="Ctrl+K" Command="{Binding OpenCommandPaletteCommand}"/>
+        <KeyBinding Gesture="Escape" Command="{Binding CloseCommandPaletteCommand}"/>
+    </Window.InputBindings>
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -79,6 +85,80 @@
 
         <Grid Grid.Row="1">
             <ContentControl Content="{Binding CurrentView}" Margin="0"/>
+
+            <Border Background="#88000000"
+                    Visibility="{Binding IsCommandPaletteOpen, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Panel.ZIndex="20"/>
+
+            <Border Style="{StaticResource ElevatedSurfaceStyle}"
+                    Width="760"
+                    MaxHeight="540"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Margin="0,26,0,0"
+                    Padding="16"
+                    Panel.ZIndex="21"
+                    Visibility="{Binding IsCommandPaletteOpen, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Command Palette"
+                               Style="{StaticResource SectionHeadingTextStyle}"/>
+
+                    <TextBox x:Name="CommandPaletteQueryBox"
+                             Grid.Row="1"
+                             Margin="0,10,0,10"
+                             Text="{Binding CommandPaletteQuery, UpdateSourceTrigger=PropertyChanged}"
+                             MinHeight="40"
+                             VerticalContentAlignment="Center"
+                             FontSize="14"
+                             ToolTip="Search tools and shell actions"/>
+
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding CommandPaletteItems}"
+                             SelectedItem="{Binding SelectedCommandPaletteItem, Mode=TwoWay}"
+                             BorderThickness="1"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             Background="{DynamicResource AppSurfaceAltBrush}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource PanelHeaderTextStyle}"/>
+                                        <TextBlock Text="{Binding Subtitle}" Style="{StaticResource MetadataTextStyle}"/>
+                                    </StackPanel>
+
+                                    <Border Grid.Column="1"
+                                            Background="{DynamicResource CardBackgroundBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            Padding="8,3"
+                                            CornerRadius="8"
+                                            VerticalAlignment="Center"
+                                            Margin="12,0,0,0">
+                                        <TextBlock Text="{Binding Category}" Style="{StaticResource MetadataTextStyle}"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+
+                        <ListBox.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.ExecuteCommandPaletteItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}"/>
+                        </ListBox.InputBindings>
+                    </ListBox>
+                </Grid>
+            </Border>
 
             <Border VerticalAlignment="Top"
                     HorizontalAlignment="Stretch"

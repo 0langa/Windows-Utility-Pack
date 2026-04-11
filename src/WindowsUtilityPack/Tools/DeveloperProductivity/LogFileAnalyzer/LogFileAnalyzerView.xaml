@@ -1,0 +1,70 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.DeveloperProductivity.LogFileAnalyzer.LogFileAnalyzerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:WindowsUtilityPack.Models">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Log File Analyzer" Style="{StaticResource PrimaryHeadingTextStyle}" Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                <Button Grid.Column="1" Content="Browse" Command="{Binding BrowseCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" ToolTip="Optional text filter"/>
+                <ComboBox Grid.Column="1" Margin="0,0,8,0" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding MinimumSeverity, Mode=TwoWay}"/>
+                <Button Grid.Column="2" Content="Analyze" Command="{Binding AnalyzeCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <Button Grid.Column="3" Content="Copy Summary" Command="{Binding CopySummaryCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}">
+            <DataGrid ItemsSource="{Binding Entries}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      RowHeaderWidth="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Line" Binding="{Binding LineNumber}" Width="90"/>
+                    <DataGridTextColumn Header="Severity" Binding="{Binding Severity}" Width="100"/>
+                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="4" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource MetadataTextStyle}" Margin="0,0,16,0" Text="{Binding StatusMessage}"/>
+                <TextBlock Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding TotalLines, StringFormat=Lines: {0:N0}}"/>
+                <TextBlock Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding MatchedLines, StringFormat=Matched: {0:N0}}"/>
+                <TextBlock Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding ErrorCount, StringFormat=Errors: {0:N0}}"/>
+                <TextBlock Style="{StaticResource MetadataTextStyle}" Text="{Binding WarnCount, StringFormat=Warnings: {0:N0}}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

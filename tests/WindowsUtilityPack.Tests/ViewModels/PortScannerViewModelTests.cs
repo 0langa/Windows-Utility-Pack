@@ -9,7 +9,7 @@ public class PortScannerViewModelTests
     [Fact]
     public void Concurrency_IsCappedToSafeMaximum()
     {
-        var vm = new PortScannerViewModel(new NullClipboardService())
+        var vm = new PortScannerViewModel(new NullClipboardService(), new BackgroundTaskService())
         {
             Concurrency = 500,
         };

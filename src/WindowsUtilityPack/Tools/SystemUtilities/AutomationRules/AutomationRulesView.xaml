@@ -1,0 +1,54 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.SystemUtilities.AutomationRules.AutomationRulesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:WindowsUtilityPack.Models">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Automation Rules" Style="{StaticResource PrimaryHeadingTextStyle}" Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Add" Command="{Binding AddCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,8,0" Style="{StaticResource DangerActionButtonStyle}"/>
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
+            <DataGrid ItemsSource="{Binding RuleItems}"
+                      SelectedItem="{Binding SelectedRule, Mode=TwoWay}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="False"
+                      GridLinesVisibility="Horizontal"
+                      RowHeaderWidth="0">
+                <DataGrid.Columns>
+                    <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, Mode=TwoWay}" Width="80"/>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="220"/>
+                    <DataGridComboBoxColumn Header="Trigger"
+                                            Width="180"
+                                            SelectedItemBinding="{Binding TriggerType, Mode=TwoWay}"
+                                            ItemsSource="{Binding DataContext.TriggerTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <DataGridTextColumn Header="Threshold" Binding="{Binding Threshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
+                    <DataGridTextColumn Header="Cooldown (min)" Binding="{Binding CooldownMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130"/>
+                    <DataGridComboBoxColumn Header="Action"
+                                            Width="170"
+                                            SelectedItemBinding="{Binding ActionType, Mode=TwoWay}"
+                                            ItemsSource="{Binding DataContext.ActionTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
+            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+        </Border>
+    </Grid>
+</UserControl>

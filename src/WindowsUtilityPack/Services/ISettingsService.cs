@@ -5,6 +5,12 @@ namespace WindowsUtilityPack.Services;
 /// <summary>Persisted user preferences loaded and saved as JSON.</summary>
 public class AppSettings
 {
+    /// <summary>Whether custom shell hotkeys are enabled.</summary>
+    public bool HotkeysEnabled { get; set; } = true;
+
+    /// <summary>Persisted shell hotkey bindings.</summary>
+    public List<HotkeyBindingSetting> HotkeyBindings { get; set; } = [];
+
     /// <summary>Last used colour theme (default: Dark).</summary>
     public AppTheme Theme { get; set; } = AppTheme.Dark;
 
@@ -69,6 +75,18 @@ public class AppSettings
     /// Used for the usage-frequency indicator on tool cards.
     /// </summary>
     public Dictionary<string, int> ToolLaunchCounts { get; set; } = [];
+}
+
+/// <summary>
+/// Persisted shell hotkey binding setting.
+/// </summary>
+public class HotkeyBindingSetting
+{
+    public string Action { get; set; } = string.Empty;
+
+    public string Gesture { get; set; } = string.Empty;
+
+    public bool Enabled { get; set; } = true;
 }
 
 /// <summary>

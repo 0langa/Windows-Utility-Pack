@@ -165,8 +165,9 @@ public class StorageMasterViewModel : ViewModelBase
     private readonly IFolderPickerService          _folderPicker;
     private readonly IUserDialogService            _dialogService;
     private readonly IClipboardService             _clipboardService;
+    private readonly IBackgroundTaskService        _backgroundTaskService;
 
-    private CancellationTokenSource? _scanCts;
+    private Guid?                    _scanTaskId;
     private StorageItem?             _scanRoot;
 
     private bool   _isScanning;
@@ -382,7 +383,8 @@ public class StorageMasterViewModel : ViewModelBase
         IDriveAnalysisService         driveService,
         IFolderPickerService          folderPicker,
         IUserDialogService            dialogService,
-        IClipboardService             clipboardService)
+        IClipboardService             clipboardService,
+        IBackgroundTaskService        backgroundTaskService)
     {
         _scanEngine       = scanEngine;
         _duplicateService = duplicateService;
@@ -394,9 +396,10 @@ public class StorageMasterViewModel : ViewModelBase
         _folderPicker     = folderPicker;
         _dialogService    = dialogService;
         _clipboardService = clipboardService;
+        _backgroundTaskService = backgroundTaskService;
 
         ScanCommand                   = new AsyncRelayCommand(_ => StartScanAsync(),             _ => CanScan);
-        CancelScanCommand             = new RelayCommand(_ => _scanCts?.Cancel(),                _ => _isScanning);
+        CancelScanCommand             = new RelayCommand(_ => CancelScan(),                       _ => _isScanning);
         BrowseFolderCommand           = new RelayCommand(_ => BrowseFolder());
         ScanDuplicatesCommand         = new AsyncRelayCommand(_ => ScanDuplicatesAsync(),        _ => HasScanResult && !IsDuplicateScanRunning);
         AnalyseCleanupCommand         = new AsyncRelayCommand(_ => AnalyseCleanupAsync(),        _ => HasScanResult && !IsCleanupAnalysing);
@@ -428,9 +431,16 @@ public class StorageMasterViewModel : ViewModelBase
         HasScanResult     = false;
         ScanProgressValue = 0;
         ScanStatusText    = $"Scanning {SelectedScanPath}...";
-        _scanCts?.Cancel();
-        _scanCts?.Dispose();
-        _scanCts = new CancellationTokenSource();
+
+        if (_scanTaskId is Guid previousTask)
+        {
+            _backgroundTaskService.CancelTask(previousTask, "Superseded by a new scan request.");
+        }
+
+        var taskId = _backgroundTaskService.BeginTask("Storage scan");
+        _scanTaskId = taskId;
+        var cancellationToken = _backgroundTaskService.GetCancellationToken(taskId);
+
         var options = new ScanOptions
         {
             IncludeHidden = ShowHiddenFiles || IsElevated,
@@ -442,6 +452,13 @@ public class StorageMasterViewModel : ViewModelBase
             ScanCurrentPath   = TruncatePath(p.CurrentPath, 60);
             ScanProgressValue = (ScanProgressValue + 2) % 98 + 1;
 
+            _backgroundTaskService.ReportProgress(taskId, new BackgroundTaskProgress
+            {
+                Percent = ScanProgressValue,
+                Message = "Scanning storage",
+                Detail = p.CurrentPath,
+            });
+
             // Update interim counters so Overview stat cards reflect live progress
             _interimBytes = p.BytesCounted;
             _interimFiles = p.FilesFound;
@@ -450,27 +467,37 @@ public class StorageMasterViewModel : ViewModelBase
         });
         try
         {
-            _scanRoot = await _scanEngine.ScanAsync(SelectedScanPath, options, progress, _scanCts.Token);
+            _scanRoot = await _scanEngine.ScanAsync(SelectedScanPath, options, progress, cancellationToken);
             PopulateScanResults(_scanRoot);
             HasScanResult     = true;
             ScanStatusText    = $"Scan complete - {_scanRoot.DisplaySize} in {_scanRoot.FileCount:N0} files, {_scanRoot.DirectoryCount:N0} folders";
             ScanProgressValue = 100;
             SelectedTabIndex  = 1;
+            _backgroundTaskService.CompleteTask(taskId, "Storage scan completed.");
         }
         catch (OperationCanceledException)
         {
             ScanStatusText    = "Scan cancelled.";
             ScanProgressValue = 0;
+            _backgroundTaskService.CancelTask(taskId, "Storage scan cancelled.");
         }
         catch (Exception ex)
         {
             ScanStatusText = $"Scan failed: {ex.Message}";
+            _backgroundTaskService.FailTask(taskId, ex, "Storage scan failed.");
         }
         finally
         {
             IsScanning = false;
-            _scanCts?.Dispose();
-            _scanCts = null;
+            _scanTaskId = null;
+        }
+    }
+
+    private void CancelScan()
+    {
+        if (_scanTaskId is Guid taskId)
+        {
+            _backgroundTaskService.CancelTask(taskId, "Cancellation requested by user.");
         }
     }
 

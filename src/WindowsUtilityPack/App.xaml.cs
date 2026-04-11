@@ -11,9 +11,13 @@ using WindowsUtilityPack.Services.StructuredData;
 using WindowsUtilityPack.Services.TextConversion;
 using WindowsUtilityPack.Tools;
 using WindowsUtilityPack.Tools.DeveloperProductivity.Base64Encoder;
+using WindowsUtilityPack.Tools.DeveloperProductivity.ApiMockServer;
+using WindowsUtilityPack.Tools.DeveloperProductivity.ClipboardManager;
 using WindowsUtilityPack.Tools.DeveloperProductivity.ColorPicker;
 using WindowsUtilityPack.Tools.DeveloperProductivity.DiffTool;
 using WindowsUtilityPack.Tools.DeveloperProductivity.JsonYamlValidator;
+using WindowsUtilityPack.Tools.DeveloperProductivity.LogFileAnalyzer;
+using WindowsUtilityPack.Tools.DeveloperProductivity.MarkdownEditor;
 using WindowsUtilityPack.Tools.DeveloperProductivity.QrCodeGenerator;
 using WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester;
 using WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter;
@@ -33,15 +37,25 @@ using WindowsUtilityPack.Tools.NetworkInternet.HttpRequestTester;
 using WindowsUtilityPack.Tools.NetworkInternet.NetworkSpeedTest;
 using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
 using WindowsUtilityPack.Tools.NetworkInternet.PortScanner;
+using WindowsUtilityPack.Tools.NetworkInternet.SshRemoteTool;
 using WindowsUtilityPack.Tools.SecurityPrivacy.CertificateInspector;
 using WindowsUtilityPack.Tools.SecurityPrivacy.HashGenerator;
 using WindowsUtilityPack.Tools.SecurityPrivacy.LocalSecretVault;
 using WindowsUtilityPack.Tools.SecurityPrivacy.PasswordGenerator;
 using WindowsUtilityPack.Tools.SystemUtilities.EnvVarsEditor;
 using WindowsUtilityPack.Tools.SystemUtilities.HostsFileEditor;
+using WindowsUtilityPack.Tools.SystemUtilities.ActivityLog;
+using WindowsUtilityPack.Tools.SystemUtilities.BackgroundTaskMonitor;
+using WindowsUtilityPack.Tools.SystemUtilities.AutomationRules;
+using WindowsUtilityPack.Tools.SystemUtilities.EventLogViewer;
+using WindowsUtilityPack.Tools.SystemUtilities.HotkeyManager;
+using WindowsUtilityPack.Tools.SystemUtilities.ProcessExplorer;
+using WindowsUtilityPack.Tools.SystemUtilities.RegistryEditor;
 using WindowsUtilityPack.Tools.SystemUtilities.StartupManager;
+using WindowsUtilityPack.Tools.SystemUtilities.TaskSchedulerUi;
 using WindowsUtilityPack.Tools.SystemUtilities.StorageMaster;
 using WindowsUtilityPack.Tools.SystemUtilities.SystemInfoDashboard;
+using WindowsUtilityPack.Tools.SystemUtilities.WorkspaceProfiles;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack;
@@ -61,6 +75,21 @@ public partial class App : Application
     public static IClipboardService ClipboardService { get; private set; } = null!;
     public static IHomeDashboardService HomeDashboardService { get; private set; } = null!;
     public static SystemVitalsService VitalsService { get; private set; } = null!;
+    public static IAppDataStoreService AppDataStoreService { get; private set; } = null!;
+    public static IActivityLogService ActivityLogService { get; private set; } = null!;
+    public static IWorkspaceProfileService WorkspaceProfileService { get; private set; } = null!;
+    public static ICommandPaletteService CommandPaletteService { get; private set; } = null!;
+    public static IBackgroundTaskService BackgroundTaskService { get; private set; } = null!;
+    public static IClipboardHistoryService ClipboardHistoryService { get; private set; } = null!;
+    public static IWorkspaceProfileCoordinator WorkspaceProfileCoordinator { get; private set; } = null!;
+    public static IWindowsEventLogService WindowsEventLogService { get; private set; } = null!;
+    public static IHotkeyService HotkeyService { get; private set; } = null!;
+    public static IAutomationRuleService AutomationRuleService { get; private set; } = null!;
+    public static IProcessExplorerService ProcessExplorerService { get; private set; } = null!;
+    public static IRegistryEditorService RegistryEditorService { get; private set; } = null!;
+    public static ITaskSchedulerService TaskSchedulerService { get; private set; } = null!;
+
+    private readonly SemaphoreSlim _automationEvalGate = new(1, 1);
 
     public static IFileDialogService FileDialogService { get; private set; } = null!;
     public static ITextFormatConversionService TextFormatConversionService { get; private set; } = null!;
@@ -88,6 +117,7 @@ public partial class App : Application
     public static IDownloadEngineResolver DownloadEngineResolver { get; private set; } = null!;
     public static IDownloadCoordinatorService DownloadCoordinatorService { get; private set; } = null!;
     public static IDownloaderFileDialogService DownloaderFileDialogService { get; private set; } = null!;
+    public static ISshRemoteToolService SshRemoteToolService { get; private set; } = null!;
 
     public static IQrCodeService QrCodeService { get; private set; } = null!;
     public static IQrCodeFileDialogService QrCodeFileDialogService { get; private set; } = null!;
@@ -96,6 +126,9 @@ public partial class App : Application
     public static IFileSplitJoinService FileSplitJoinService { get; private set; } = null!;
     public static IImageProcessingService ImageProcessingService { get; private set; } = null!;
     public static IUlidGenerator UlidGenerator { get; private set; } = null!;
+    public static ILogFileAnalyzerService LogFileAnalyzerService { get; private set; } = null!;
+    public static IMarkdownEditorService MarkdownEditorService { get; private set; } = null!;
+    public static IApiMockServerService ApiMockServerService { get; private set; } = null!;
 
     public static ISettingsService? TryGetSettingsService() => SettingsService;
     public static IThemeService? TryGetThemeService() => ThemeService;
@@ -114,6 +147,21 @@ public partial class App : Application
         UserDialogService = new UserDialogService();
         ClipboardService = new ClipboardService();
         VitalsService = new SystemVitalsService();
+        AppDataStoreService = new AppDataStoreService();
+        ActivityLogService = new ActivityLogService(AppDataStoreService);
+        WorkspaceProfileService = new WorkspaceProfileService(AppDataStoreService);
+        WorkspaceProfileCoordinator = new WorkspaceProfileCoordinator(WorkspaceProfileService, SettingsService, ActivityLogService);
+        CommandPaletteService = new CommandPaletteService();
+        BackgroundTaskService = new BackgroundTaskService();
+        ClipboardHistoryService = new ClipboardHistoryService(AppDataStoreService);
+        WindowsEventLogService = new WindowsEventLogService();
+        HotkeyService = new HotkeyService(SettingsService);
+        AutomationRuleService = new AutomationRuleService(AppDataStoreService);
+        ProcessExplorerService = new ProcessExplorerService();
+        RegistryEditorService = new RegistryEditorService();
+        TaskSchedulerService = new TaskSchedulerService();
+
+        VitalsService.Updated += OnVitalsUpdatedForAutomation;
 
         FileDialogService = new FileDialogService();
         TextFormatConversionService = new TextFormatConversionService();
@@ -138,6 +186,7 @@ public partial class App : Application
         DownloadHistoryService = new DownloadHistoryService();
         DownloadEventLogService = new DownloadEventLogService(() => DownloaderSettingsService.Load());
         DownloaderFileDialogService = new DownloaderFileDialogService();
+        SshRemoteToolService = new SshRemoteToolService(AppDataStoreService);
 
         var directHttpEngine = new DirectHttpDownloadEngine();
         var mediaEngine = new MediaDownloadEngine(DependencyManagerService);
@@ -169,6 +218,9 @@ public partial class App : Application
         FileSplitJoinService = new FileSplitJoinService();
         ImageProcessingService = new ImageProcessingService();
         UlidGenerator = new UlidGenerator();
+        LogFileAnalyzerService = new LogFileAnalyzerService();
+        MarkdownEditorService = new MarkdownEditorService();
+        ApiMockServerService = new ApiMockServerService();
 
         HomeDashboardService = new HomeDashboardService(SettingsService);
 
@@ -187,6 +239,16 @@ public partial class App : Application
                 {
                     HomeDashboardService.RecordToolLaunch(tool.Key);
                     HomeDashboardService.IncrementLaunchCount(tool.Key);
+                    _ = ActivityLogService.LogAsync("Navigation", "ToolOpened", tool.Key)
+                        .ContinueWith(
+                            static t =>
+                            {
+                                if (t.Exception is not null)
+                                {
+                                    App.TryGetLoggingService()?.LogError("Failed to write navigation activity event", t.Exception.Flatten());
+                                }
+                            },
+                            TaskContinuationOptions.OnlyOnFaulted);
                     break;
                 }
             }
@@ -198,11 +260,38 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         LoggingService.LogInfo("Application exiting.");
+        VitalsService.Updated -= OnVitalsUpdatedForAutomation;
         (ThemeService as IDisposable)?.Dispose();
         (NavigationService as IDisposable)?.Dispose();
         (DownloadCoordinatorService as IDisposable)?.Dispose();
         VitalsService.Dispose();
         base.OnExit(e);
+    }
+
+    private async void OnVitalsUpdatedForAutomation(object? sender, EventArgs e)
+    {
+        if (!await _automationEvalGate.WaitAsync(0).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        try
+        {
+            var alerts = await AutomationRuleService.EvaluateAsync(VitalsService).ConfigureAwait(true);
+            foreach (var alert in alerts)
+            {
+                NotificationService.ShowInfo(alert.Message);
+                _ = ActivityLogService.LogAsync("AutomationRules", "Triggered", alert.Rule.Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.LogError("Automation evaluation failed", ex);
+        }
+        finally
+        {
+            _automationEvalGate.Release();
+        }
     }
 
     private static void RegisterTools()
@@ -256,7 +345,8 @@ public partial class App : Application
                 DriveAnalysisService,
                 FolderPickerService,
                 UserDialogService,
-                ClipboardService),
+                ClipboardService,
+                BackgroundTaskService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -277,6 +367,96 @@ public partial class App : Application
             IconGlyph = "\uE946",
             Description = "View hardware, OS, runtime and drive summaries",
             Factory = () => new SystemInfoViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "activity-log",
+            Name = "Activity Log",
+            Category = "System Utilities",
+            IconGlyph = "\uE823",
+            Description = "Review, filter, and export internal application activity events",
+            Factory = () => new ActivityLogViewModel(ActivityLogService, ClipboardService, UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "background-task-monitor",
+            Name = "Background Task Monitor",
+            Category = "System Utilities",
+            IconGlyph = "\uE945",
+            Description = "Monitor and cancel long-running background tasks",
+            Factory = () => new BackgroundTaskMonitorViewModel(BackgroundTaskService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "event-log-viewer",
+            Name = "Event Log Viewer",
+            Category = "System Utilities",
+            IconGlyph = "\uE9D9",
+            Description = "Filter and review Windows event logs by source, level, and event ID",
+            Factory = () => new EventLogViewerViewModel(WindowsEventLogService, ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "hotkey-manager",
+            Name = "Hotkey Manager",
+            Category = "System Utilities",
+            IconGlyph = "\uE765",
+            Description = "Configure keyboard shortcuts and detect hotkey collisions",
+            Factory = () => new HotkeyManagerViewModel(HotkeyService, UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "automation-rules",
+            Name = "Automation Rules",
+            Category = "System Utilities",
+            IconGlyph = "\uE7BE",
+            Description = "Define and evaluate local If-X-Then-notify automation rules",
+            Factory = () => new AutomationRulesViewModel(AutomationRuleService, UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "process-explorer",
+            Name = "Process Explorer",
+            Category = "System Utilities",
+            IconGlyph = "\uE7F8",
+            Description = "Inspect running processes, filter by name/path, and terminate selected entries",
+            Factory = () => new ProcessExplorerViewModel(ProcessExplorerService, UserDialogService, ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "registry-editor",
+            Name = "Registry Editor",
+            Category = "System Utilities",
+            IconGlyph = "\uE943",
+            Description = "Safely inspect and edit HKCU\\Software keys with backup and restore",
+            Factory = () => new RegistryEditorViewModel(RegistryEditorService, UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "task-scheduler-ui",
+            Name = "Task Scheduler UI",
+            Category = "System Utilities",
+            IconGlyph = "\uE823",
+            Description = "Browse scheduled tasks and run selected tasks on demand",
+            Factory = () => new TaskSchedulerUiViewModel(TaskSchedulerService, UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "workspace-profiles",
+            Name = "Workspace Profiles",
+            Category = "System Utilities",
+            IconGlyph = "\uE7C1",
+            Description = "Save and apply reusable startup and favorites workspace profiles",
+            Factory = () => new WorkspaceProfilesViewModel(WorkspaceProfileCoordinator, UserDialogService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -418,7 +598,7 @@ public partial class App : Application
             Category = "Network & Internet",
             IconGlyph = "\uEC27",
             Description = "Scan local or remote ports with async cancellation",
-            Factory = () => new PortScannerViewModel(ClipboardService),
+            Factory = () => new PortScannerViewModel(ClipboardService, BackgroundTaskService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -439,6 +619,16 @@ public partial class App : Application
             IconGlyph = "\uE9D9",
             Description = "Run download/upload/latency speed checks",
             Factory = () => new NetworkSpeedTestViewModel(ClipboardService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "ssh-remote-tool",
+            Name = "SSH Remote Tool",
+            Category = "Network & Internet",
+            IconGlyph = "\uE945",
+            Description = "Manage SSH profiles, test host connectivity, and generate SSH commands",
+            Factory = () => new SshRemoteToolViewModel(SshRemoteToolService, UserDialogService, ClipboardService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition
@@ -490,6 +680,36 @@ public partial class App : Application
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
+            Key = "log-file-analyzer",
+            Name = "Log File Analyzer",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE9D2",
+            Description = "Parse and filter text logs with severity summaries and quick triage",
+            Factory = () => new LogFileAnalyzerViewModel(LogFileAnalyzerService, ClipboardService, UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "markdown-editor",
+            Name = "Markdown Editor",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uF000",
+            Description = "Edit markdown files with live HTML rendering and document stats",
+            Factory = () => new MarkdownEditorViewModel(MarkdownEditorService, ClipboardService, UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "api-mock-server",
+            Name = "API Mock Server",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE774",
+            Description = "Host local mock HTTP endpoints for integration and frontend testing",
+            Factory = () => new ApiMockServerViewModel(ApiMockServerService, UserDialogService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
             Key = "qr-code-generator",
             Name = "QR Code Generator",
             Category = "Developer & Productivity",
@@ -503,6 +723,16 @@ public partial class App : Application
                 ClipboardService,
                 UserDialogService,
                 SettingsService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "clipboard-manager",
+            Name = "Clipboard Manager",
+            Category = "Developer & Productivity",
+            IconGlyph = "\uE8C8",
+            Description = "Persistent clipboard history with quick reuse and search",
+            Factory = () => new ClipboardManagerViewModel(ClipboardService, ClipboardHistoryService, UserDialogService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition

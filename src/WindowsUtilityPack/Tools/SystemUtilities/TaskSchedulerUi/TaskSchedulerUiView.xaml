@@ -1,0 +1,52 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.SystemUtilities.TaskSchedulerUi.TaskSchedulerUiView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Task Scheduler UI" Style="{StaticResource PrimaryHeadingTextStyle}" Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" ToolTip="Filter by task name"/>
+                <Button Grid.Column="1" Margin="0,0,8,0" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Grid.Column="2" Content="Run Selected" Command="{Binding RunSelectedCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
+            <DataGrid ItemsSource="{Binding Tasks}"
+                      SelectedItem="{Binding SelectedTask, Mode=TwoWay}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      RowHeaderWidth="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Task Name" Binding="{Binding TaskName}" Width="*"/>
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                    <DataGridTextColumn Header="Next Run" Binding="{Binding NextRunTime}" Width="170"/>
+                    <DataGridTextColumn Header="Last Run" Binding="{Binding LastRunTime}" Width="170"/>
+                    <DataGridTextColumn Header="Last Result" Binding="{Binding LastResult}" Width="120"/>
+                    <DataGridTextColumn Header="Author" Binding="{Binding Author}" Width="180"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
+            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+        </Border>
+    </Grid>
+</UserControl>

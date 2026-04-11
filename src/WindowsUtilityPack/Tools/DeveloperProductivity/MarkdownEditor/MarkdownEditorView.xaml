@@ -1,0 +1,70 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.DeveloperProductivity.MarkdownEditor.MarkdownEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Markdown Editor" Style="{StaticResource PrimaryHeadingTextStyle}" Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="New" Command="{Binding NewDocumentCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Content="Open" Command="{Binding OpenCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <Button Content="Save As" Command="{Binding SaveAsCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Content="Render" Command="{Binding RenderCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Content="Copy HTML" Command="{Binding CopyHtmlCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Markdown" Style="{StaticResource SecondaryHeadingTextStyle}" Margin="0,0,0,8"/>
+                    <TextBox Text="{Binding MarkdownText, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True"
+                             AcceptsTab="True"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             TextWrapping="NoWrap"
+                             FontFamily="Consolas"
+                             FontSize="13"/>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource ToolPanelBorderStyle}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="HTML Preview" Style="{StaticResource SecondaryHeadingTextStyle}" Margin="0,0,0,8"/>
+                    <TextBox Text="{Binding RenderedHtml}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             TextWrapping="NoWrap"
+                             FontFamily="Consolas"
+                             FontSize="12"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,16,0"/>
+                <TextBlock Text="{Binding LineCount, StringFormat=Lines: {0:N0}}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding WordCount, StringFormat=Words: {0:N0}}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding CharacterCount, StringFormat=Chars: {0:N0}}" Style="{StaticResource MetadataTextStyle}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,99 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.DeveloperProductivity.ClipboardManager.ClipboardManagerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Clipboard Manager"
+                   Style="{StaticResource PrimaryHeadingTextStyle}"
+                   Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1"
+                Style="{StaticResource ToolPanelBorderStyle}"
+                Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0"
+                         Margin="0,0,10,0"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalContentAlignment="Center"
+                         MinHeight="36"
+                         ToolTip="Search history content"/>
+
+                <ToggleButton Grid.Column="1"
+                              Margin="0,0,10,0"
+                              IsChecked="{Binding IsMonitoring, Mode=TwoWay}"
+                              Content="Monitor"
+                              Style="{StaticResource SecondaryActionButtonStyle}"/>
+
+                <Button Grid.Column="2"
+                        Margin="0,0,10,0"
+                        Content="Refresh"
+                        Command="{Binding RefreshCommand}"
+                        Style="{StaticResource SecondaryActionButtonStyle}"/>
+
+                <Button Grid.Column="3"
+                        Margin="0,0,10,0"
+                        Content="Copy Selected"
+                        Command="{Binding CopySelectedCommand}"
+                        Style="{StaticResource PrimaryActionButtonStyle}"/>
+
+                <Button Grid.Column="4"
+                        Content="Clear All"
+                        Command="{Binding ClearAllCommand}"
+                        Style="{StaticResource DangerActionButtonStyle}"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2"
+                Style="{StaticResource ToolPanelBorderStyle}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Text="Recent clipboard entries"
+                           Style="{StaticResource PanelHeaderTextStyle}"
+                           Margin="0,0,0,8"/>
+
+                <ListView ItemsSource="{Binding Entries}"
+                          SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
+                          Background="{DynamicResource AppSurfaceAltBrush}"
+                          BorderBrush="{DynamicResource BorderBrush}"
+                          BorderThickness="1"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Captured" Width="170" DisplayMemberBinding="{Binding CapturedUtc}"/>
+                            <GridViewColumn Header="Type" Width="80" DisplayMemberBinding="{Binding ContentKind}"/>
+                            <GridViewColumn Header="Content" Width="780" DisplayMemberBinding="{Binding Content}"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="3"
+                Margin="0,12,0,0"
+                Style="{StaticResource StatusSurfaceStyle}">
+            <DockPanel>
+                <TextBlock Text="{Binding StatusMessage}"
+                           Style="{StaticResource MetadataTextStyle}"
+                           VerticalAlignment="Center"/>
+                <Button DockPanel.Dock="Right"
+                        Content="Delete Selected"
+                        Command="{Binding DeleteSelectedCommand}"
+                        Style="{StaticResource SecondaryActionButtonStyle}"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

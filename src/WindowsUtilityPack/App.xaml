@@ -5,6 +5,15 @@
              xmlns:vm="clr-namespace:WindowsUtilityPack.ViewModels"
              xmlns:views="clr-namespace:WindowsUtilityPack.Views"
              xmlns:storageMaster="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.StorageMaster"
+             xmlns:activityLog="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.ActivityLog"
+             xmlns:taskMonitor="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.BackgroundTaskMonitor"
+             xmlns:eventLogViewer="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.EventLogViewer"
+             xmlns:hotkeyManager="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.HotkeyManager"
+             xmlns:automationRules="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.AutomationRules"
+             xmlns:registryEditor="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.RegistryEditor"
+             xmlns:processExplorer="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.ProcessExplorer"
+             xmlns:taskSchedulerUi="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.TaskSchedulerUi"
+             xmlns:workspaceProfiles="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.WorkspaceProfiles"
              xmlns:startupManager="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.StartupManager"
              xmlns:systemInfo="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.SystemInfoDashboard"
              xmlns:envVars="clr-namespace:WindowsUtilityPack.Tools.SystemUtilities.EnvVarsEditor"
@@ -23,8 +32,13 @@
              xmlns:portScanner="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.PortScanner"
              xmlns:httpTester="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.HttpRequestTester"
              xmlns:speedTest="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.NetworkSpeedTest"
+             xmlns:sshRemoteTool="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.SshRemoteTool"
              xmlns:downloader="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.Downloader"
              xmlns:regexTester="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester"
+             xmlns:apiMockServer="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.ApiMockServer"
+             xmlns:clipboardManager="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.ClipboardManager"
+             xmlns:logFileAnalyzer="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.LogFileAnalyzer"
+             xmlns:markdownEditor="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.MarkdownEditor"
              xmlns:textFormatConverter="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.TextFormatConverter"
              xmlns:qrCodeGenerator="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.QrCodeGenerator"
              xmlns:colorPicker="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.ColorPicker"
@@ -64,6 +78,15 @@
             </DataTemplate>
 
             <DataTemplate DataType="{x:Type storageMaster:StorageMasterViewModel}"><storageMaster:StorageMasterView/></DataTemplate>
+            <DataTemplate DataType="{x:Type activityLog:ActivityLogViewModel}"><activityLog:ActivityLogView/></DataTemplate>
+            <DataTemplate DataType="{x:Type taskMonitor:BackgroundTaskMonitorViewModel}"><taskMonitor:BackgroundTaskMonitorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type eventLogViewer:EventLogViewerViewModel}"><eventLogViewer:EventLogViewerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type hotkeyManager:HotkeyManagerViewModel}"><hotkeyManager:HotkeyManagerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type automationRules:AutomationRulesViewModel}"><automationRules:AutomationRulesView/></DataTemplate>
+            <DataTemplate DataType="{x:Type registryEditor:RegistryEditorViewModel}"><registryEditor:RegistryEditorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type processExplorer:ProcessExplorerViewModel}"><processExplorer:ProcessExplorerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type taskSchedulerUi:TaskSchedulerUiViewModel}"><taskSchedulerUi:TaskSchedulerUiView/></DataTemplate>
+            <DataTemplate DataType="{x:Type workspaceProfiles:WorkspaceProfilesViewModel}"><workspaceProfiles:WorkspaceProfilesView/></DataTemplate>
             <DataTemplate DataType="{x:Type startupManager:StartupManagerViewModel}"><startupManager:StartupManagerView/></DataTemplate>
             <DataTemplate DataType="{x:Type systemInfo:SystemInfoViewModel}"><systemInfo:SystemInfoView/></DataTemplate>
             <DataTemplate DataType="{x:Type envVars:EnvVarsEditorViewModel}"><envVars:EnvVarsEditorView/></DataTemplate>
@@ -85,9 +108,14 @@
             <DataTemplate DataType="{x:Type portScanner:PortScannerViewModel}"><portScanner:PortScannerView/></DataTemplate>
             <DataTemplate DataType="{x:Type httpTester:HttpRequestTesterViewModel}"><httpTester:HttpRequestTesterView/></DataTemplate>
             <DataTemplate DataType="{x:Type speedTest:NetworkSpeedTestViewModel}"><speedTest:NetworkSpeedTestView/></DataTemplate>
+            <DataTemplate DataType="{x:Type sshRemoteTool:SshRemoteToolViewModel}"><sshRemoteTool:SshRemoteToolView/></DataTemplate>
             <DataTemplate DataType="{x:Type downloader:DownloaderViewModel}"><downloader:DownloaderView/></DataTemplate>
 
             <DataTemplate DataType="{x:Type regexTester:RegexTesterViewModel}"><regexTester:RegexTesterView/></DataTemplate>
+            <DataTemplate DataType="{x:Type apiMockServer:ApiMockServerViewModel}"><apiMockServer:ApiMockServerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type clipboardManager:ClipboardManagerViewModel}"><clipboardManager:ClipboardManagerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type logFileAnalyzer:LogFileAnalyzerViewModel}"><logFileAnalyzer:LogFileAnalyzerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type markdownEditor:MarkdownEditorViewModel}"><markdownEditor:MarkdownEditorView/></DataTemplate>
             <DataTemplate DataType="{x:Type textFormatConverter:TextFormatConverterViewModel}"><textFormatConverter:TextFormatConverterView/></DataTemplate>
             <DataTemplate DataType="{x:Type qrCodeGenerator:QrCodeGeneratorViewModel}"><qrCodeGenerator:QrCodeGeneratorView/></DataTemplate>
             <DataTemplate DataType="{x:Type colorPicker:ColorPickerViewModel}"><colorPicker:ColorPickerView/></DataTemplate>

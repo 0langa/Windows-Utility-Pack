@@ -27,7 +27,7 @@ The repo is also structured for ongoing hardening work: the solution builds clea
 | File & Data Tools | Bulk file operations, file integrity, metadata cleanup, file splitting | Bulk File Renamer, File Hash Calculator, Secure File Shredder, Metadata Viewer/Editor, File Splitter / Joiner |
 | Security & Privacy | Passwords, hashes, secret storage, certificate inspection | Password Generator, Hash Generator, Local Secret Vault, Certificate Inspector |
 | Network & Internet | Connectivity tests, HTTP inspection, speed tests, download orchestration | Ping Tool, DNS Lookup, Port Scanner, HTTP Request Tester, Network Speed Test, Downloader Studio |
-| Developer & Productivity | Text conversion, validation, encoding, IDs, QR, diffing, color workflows | Regex Tester, Text Format Converter, QR Code Generator, Color Picker, Timestamp Converter, UUID / ULID Generator, Base64 / URL Encoder-Decoder, Diff Tool, JSON / YAML Validator |
+| Developer & Productivity | Text conversion, validation, encoding, IDs, QR, diffing, color workflows | Regex Tester, Text Format Converter, QR Code Generator, Color Picker, Timestamp Converter, UUIdotnet publish src/WindowsUtilityPack/WindowsUtilityPack.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/releaseD / ULID Generator, Base64 / URL Encoder-Decoder, Diff Tool, JSON / YAML Validator |
 | Image Tools | Batch processing and screenshot workflows | Image Resizer & Compressor, Image Format Converter, Screenshot Annotator |
 
 ## Key Features

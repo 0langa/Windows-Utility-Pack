@@ -1,0 +1,77 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.SystemUtilities.ActivityLog.ActivityLogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Activity Log"
+                   Style="{StaticResource PrimaryHeadingTextStyle}"
+                   Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="180"/>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0"
+                         Margin="0,0,8,0"
+                         Text="{Binding CategoryFilter, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Optional category filter (for example: Navigation)"/>
+
+                <TextBox Grid.Column="1"
+                         Margin="0,0,8,0"
+                         Text="{Binding Limit, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Maximum entries to load"/>
+
+                <Button Grid.Column="2"
+                        Margin="0,0,8,0"
+                        Content="Refresh"
+                        Command="{Binding RefreshCommand}"
+                        Style="{StaticResource SecondaryActionButtonStyle}"/>
+
+                <Button Grid.Column="3"
+                        Margin="0,0,8,0"
+                        Content="Copy CSV"
+                        Command="{Binding CopyCsvCommand}"
+                        Style="{StaticResource PrimaryActionButtonStyle}"/>
+
+                <Button Grid.Column="4"
+                        Content="Clear"
+                        Command="{Binding ClearCommand}"
+                        Style="{StaticResource DangerActionButtonStyle}"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
+            <ListView ItemsSource="{Binding Entries}"
+                      BorderBrush="{DynamicResource BorderBrush}"
+                      BorderThickness="1"
+                      Background="{DynamicResource AppSurfaceAltBrush}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Time (UTC)" Width="190" DisplayMemberBinding="{Binding TimestampUtc}"/>
+                        <GridViewColumn Header="Category" Width="160" DisplayMemberBinding="{Binding Category}"/>
+                        <GridViewColumn Header="Action" Width="170" DisplayMemberBinding="{Binding Action}"/>
+                        <GridViewColumn Header="Details" Width="540" DisplayMemberBinding="{Binding Details}"/>
+                        <GridViewColumn Header="Sensitive" Width="90" DisplayMemberBinding="{Binding IsSensitive}"/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </Border>
+
+        <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
+            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+        </Border>
+    </Grid>
+</UserControl>

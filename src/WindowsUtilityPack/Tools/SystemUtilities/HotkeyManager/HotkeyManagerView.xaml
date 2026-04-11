@@ -1,0 +1,49 @@
+<UserControl x:Class="WindowsUtilityPack.Tools.SystemUtilities.HotkeyManager.HotkeyManagerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Hotkey Manager"
+                   Style="{StaticResource PrimaryHeadingTextStyle}"
+                   Margin="0,0,0,12"/>
+
+        <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <CheckBox IsChecked="{Binding HotkeysEnabled, Mode=TwoWay}"
+                          VerticalAlignment="Center"
+                          Content="Enable shell hotkeys"
+                          Margin="0,0,16,0"/>
+                <Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <Button Content="Reset Defaults" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button Content="Reload" Command="{Binding ReloadCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
+            <DataGrid ItemsSource="{Binding Bindings}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="False"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal"
+                      RowHeaderWidth="0">
+                <DataGrid.Columns>
+                    <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, Mode=TwoWay}" Width="90"/>
+                    <DataGridTextColumn Header="Action" Binding="{Binding Action}" IsReadOnly="True" Width="220"/>
+                    <DataGridTextColumn Header="Gesture" Binding="{Binding Gesture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="260"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
+            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+        </Border>
+    </Grid>
+</UserControl>
