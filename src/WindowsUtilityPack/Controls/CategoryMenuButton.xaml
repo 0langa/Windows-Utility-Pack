@@ -5,9 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:self="clr-namespace:WindowsUtilityPack.Controls"
              mc:Ignorable="d"
-             x:Name="Root"
-             MouseEnter="OnMouseEnter"
-             MouseLeave="OnMouseLeave">
+             x:Name="Root">
 
     <UserControl.Resources>
         <Style x:Key="DropdownItemStyle" TargetType="Button" BasedOn="{StaticResource SecondaryActionButtonStyle}">
@@ -98,9 +96,7 @@
             <!-- Outer transparent border bridges the 8px visual gap so the mouse
                  stays "over" the popup while crossing from the button to the content. -->
             <Border Background="Transparent"
-                    Padding="0,8,0,0"
-                    MouseEnter="OnPopupMouseEnter"
-                    MouseLeave="OnPopupMouseLeave">
+                    Padding="0,8,0,0">
                 <Border Background="{DynamicResource PopupBackgroundBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"

@@ -3,17 +3,42 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:models="clr-namespace:WindowsUtilityPack.Models">
     <UserControl.Resources>
-        <Style x:Key="HomeToolHoverLiftButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactCardButtonStyle}">
-            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-            <Setter Property="RenderTransform"><Setter.Value><TranslateTransform Y="0"/></Setter.Value></Setter>
-            <Style.Triggers>
-                <EventTrigger RoutedEvent="MouseEnter"><BeginStoryboard><Storyboard>
-                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" To="-2" Duration="0:0:0.15"/>
-                </Storyboard></BeginStoryboard></EventTrigger>
-                <EventTrigger RoutedEvent="MouseLeave"><BeginStoryboard><Storyboard>
-                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" To="0" Duration="0:0:0.15"/>
-                </Storyboard></BeginStoryboard></EventTrigger>
-            </Style.Triggers>
+        <Style x:Key="HomeToolHoverLiftButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactCardButtonStyle}"/>
+        <Style x:Key="HomeCategoryCardButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactCardButtonStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource DropShadowEffect}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource CardHoverBrush}"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource AccentCardBackgroundBrush}"/>
+                            </Trigger>
+                            <Trigger Property="Tag" Value="Selected">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource AccentCardBackgroundBrush}"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}"/>
+                                <Setter TargetName="Border" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="HeaderToggleIconButtonStyle" TargetType="Button" BasedOn="{StaticResource SectionActionLinkStyle}">
             <Setter Property="Width" Value="42"/>
@@ -256,7 +281,13 @@
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:HomeCategorySummary}">
-                                    <Button x:Name="CatButton" Margin="0,0,8,8" Style="{StaticResource HomeToolHoverLiftButtonStyle}" Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Category}">
+                                    <Button x:Name="CatButton" Margin="0,0,8,8" Style="{StaticResource HomeCategoryCardButtonStyle}" Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Category}">
+                                        <Button.Tag>
+                                            <MultiBinding Converter="{StaticResource EqualityToTagConverter}">
+                                                <Binding Path="Category"/>
+                                                <Binding Path="DataContext.SelectedCategory" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </MultiBinding>
+                                        </Button.Tag>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="4"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Border Grid.Column="0" Background="{DynamicResource AccentBrush}" CornerRadius="3" Margin="0,0,8,0"/>
@@ -269,11 +300,6 @@
                                             </StackPanel>
                                         </Grid>
                                     </Button>
-                                    <DataTemplate.Triggers>
-                                        <Trigger SourceName="CatButton" Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="PreviewList" Property="Visibility" Value="Visible"/>
-                                        </Trigger>
-                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
