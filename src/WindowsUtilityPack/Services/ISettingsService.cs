@@ -73,6 +73,27 @@ public class AppSettings
     /// <summary>Last N search queries for the homepage search dropdown (newest first).</summary>
     public List<string> HomeRecentSearches { get; set; } = [];
 
+    /// <summary>Last URL used by Pentesting tools as target/request origin.</summary>
+    public string PentestLastTargetUrl { get; set; } = string.Empty;
+
+    /// <summary>Last URL used in the Pentesting HTTP Request Builder.</summary>
+    public string PentestLastRequestUrl { get; set; } = string.Empty;
+
+    /// <summary>Last HTTP method used in the Pentesting HTTP Request Builder.</summary>
+    public string PentestLastRequestMethod { get; set; } = "GET";
+
+    /// <summary>Last request body used in the Pentesting HTTP Request Builder.</summary>
+    public string PentestLastRequestBody { get; set; } = string.Empty;
+
+    /// <summary>Last request content type used in the Pentesting HTTP Request Builder.</summary>
+    public string PentestLastRequestContentType { get; set; } = "application/json";
+
+    /// <summary>Serialized header pairs from the Pentesting HTTP Request Builder.</summary>
+    public string PentestLastRequestHeaders { get; set; } = string.Empty;
+
+    /// <summary>Serialized query parameter pairs from the Pentesting HTTP Request Builder.</summary>
+    public string PentestLastQueryParameters { get; set; } = string.Empty;
+
     /// <summary>
     /// Cumulative launch count per tool key.
     /// Used for the usage-frequency indicator on tool cards.

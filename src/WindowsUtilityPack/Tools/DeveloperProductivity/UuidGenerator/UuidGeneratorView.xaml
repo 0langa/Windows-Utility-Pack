@@ -2,9 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="8" MaxWidth="900">
-            <TextBlock Text="UUID / ULID Generator" FontSize="20" FontWeight="SemiBold"
-                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,16"/>
+        <StackPanel Margin="4" MaxWidth="900">
+            <TextBlock Text="UUID / ULID Generator" Style="{StaticResource ToolTitleTextStyle}" Margin="0,0,0,16"/>
 
             <!-- Format and Count Settings -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">

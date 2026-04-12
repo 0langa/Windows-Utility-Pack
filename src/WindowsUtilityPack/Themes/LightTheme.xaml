@@ -78,6 +78,8 @@
     <SolidColorBrush x:Key="DangerButtonBrush" Color="#D13F55"/>
     <SolidColorBrush x:Key="DangerButtonHoverBrush" Color="#BE3349"/>
     <SolidColorBrush x:Key="DangerButtonPressedBrush" Color="#9F2A3C"/>
+    <SolidColorBrush x:Key="DangerButtonForegroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="StatusSurfaceBrush" Color="#F6F8FC"/>
 
     <SolidColorBrush x:Key="TableHeaderBackgroundBrush" Color="#F6F8FC"/>
     <SolidColorBrush x:Key="TabItemHoverBrush" Color="#EEF4FF"/>

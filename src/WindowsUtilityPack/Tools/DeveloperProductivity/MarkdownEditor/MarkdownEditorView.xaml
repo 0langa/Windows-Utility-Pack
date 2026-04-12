@@ -1,7 +1,7 @@
 <UserControl x:Class="WindowsUtilityPack.Tools.DeveloperProductivity.MarkdownEditor.MarkdownEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Margin="8">
+    <Grid Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -9,7 +9,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Markdown Editor" Style="{StaticResource PrimaryHeadingTextStyle}" Margin="0,0,0,12"/>
+        <TextBlock Text="Markdown Editor" Style="{StaticResource ToolTitleTextStyle}" Margin="0,0,0,12"/>
 
         <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">

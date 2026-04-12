@@ -6,7 +6,7 @@
     <UserControl.Resources>
         <converters:ArrowHeadPointsConverter x:Key="ArrowHeadPointsConverter"/>
     </UserControl.Resources>
-    <Grid Margin="8">
+    <Grid Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -16,9 +16,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock Text="Screenshot Annotator"
-                   FontSize="22"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource PrimaryTextBrush}"
+                   Style="{StaticResource ToolTitleTextStyle}"
                    Margin="0,0,0,12"/>
 
         <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,10">

@@ -35,6 +35,11 @@
              xmlns:speedTest="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.NetworkSpeedTest"
              xmlns:sshRemoteTool="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.SshRemoteTool"
              xmlns:downloader="clr-namespace:WindowsUtilityPack.Tools.NetworkInternet.Downloader"
+             xmlns:pentestRequest="clr-namespace:WindowsUtilityPack.Tools.Pentesting.HttpRequestBuilder"
+             xmlns:pentestHeaders="clr-namespace:WindowsUtilityPack.Tools.Pentesting.HeaderCookieAnalyzer"
+             xmlns:pentestJwt="clr-namespace:WindowsUtilityPack.Tools.Pentesting.JwtInspector"
+             xmlns:pentestSitemap="clr-namespace:WindowsUtilityPack.Tools.Pentesting.SiteMapExplorer"
+             xmlns:pentestDiff="clr-namespace:WindowsUtilityPack.Tools.Pentesting.ResponseDiffViewer"
              xmlns:regexTester="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.RegexTester"
              xmlns:apiMockServer="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.ApiMockServer"
              xmlns:clipboardManager="clr-namespace:WindowsUtilityPack.Tools.DeveloperProductivity.ClipboardManager"
@@ -112,6 +117,11 @@
             <DataTemplate DataType="{x:Type speedTest:NetworkSpeedTestViewModel}"><speedTest:NetworkSpeedTestView/></DataTemplate>
             <DataTemplate DataType="{x:Type sshRemoteTool:SshRemoteToolViewModel}"><sshRemoteTool:SshRemoteToolView/></DataTemplate>
             <DataTemplate DataType="{x:Type downloader:DownloaderViewModel}"><downloader:DownloaderView/></DataTemplate>
+            <DataTemplate DataType="{x:Type pentestRequest:HttpRequestBuilderViewModel}"><pentestRequest:HttpRequestBuilderView/></DataTemplate>
+            <DataTemplate DataType="{x:Type pentestHeaders:HeaderCookieAnalyzerViewModel}"><pentestHeaders:HeaderCookieAnalyzerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type pentestJwt:JwtInspectorViewModel}"><pentestJwt:JwtInspectorView/></DataTemplate>
+            <DataTemplate DataType="{x:Type pentestSitemap:SiteMapExplorerViewModel}"><pentestSitemap:SiteMapExplorerView/></DataTemplate>
+            <DataTemplate DataType="{x:Type pentestDiff:ResponseDiffViewerViewModel}"><pentestDiff:ResponseDiffViewerView/></DataTemplate>
 
             <DataTemplate DataType="{x:Type regexTester:RegexTesterViewModel}"><regexTester:RegexTesterView/></DataTemplate>
             <DataTemplate DataType="{x:Type apiMockServer:ApiMockServerViewModel}"><apiMockServer:ApiMockServerView/></DataTemplate>

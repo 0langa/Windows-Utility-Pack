@@ -3,11 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              >
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="8" MaxWidth="900">
+        <StackPanel Margin="4" MaxWidth="900">
 
             <!-- Header -->
-            <TextBlock Text="Startup Manager" FontSize="20" FontWeight="SemiBold"
-                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+            <TextBlock Text="Startup Manager" Style="{StaticResource ToolTitleTextStyle}" Margin="0,0,0,4"/>
             <TextBlock Text="Programs that launch when Windows starts"
                        FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 

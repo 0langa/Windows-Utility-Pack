@@ -45,7 +45,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Grid Margin="8">
+    <Grid Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -54,13 +54,11 @@
 
         <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
             <TextBlock Text="{StaticResource IconTextConvert}"
-                       FontFamily="Segoe MDL2 Assets" FontSize="22"
+                       FontFamily="Segoe MDL2 Assets" FontSize="20"
                        Foreground="{DynamicResource AccentBrush}"
                        VerticalAlignment="Center" Margin="0,0,10,0"/>
             <TextBlock Text="Text Format Converter &amp; Formatter"
-                       FontSize="22" FontWeight="SemiBold"
-                       Foreground="{DynamicResource PrimaryTextBrush}"
-                       VerticalAlignment="Center"/>
+                       Style="{StaticResource ToolTitleTextStyle}"/>
         </StackPanel>
 
         <Border Grid.Row="1"

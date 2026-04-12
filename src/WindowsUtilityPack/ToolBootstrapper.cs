@@ -28,6 +28,11 @@ using WindowsUtilityPack.Tools.NetworkInternet.NetworkSpeedTest;
 using WindowsUtilityPack.Tools.NetworkInternet.PingTool;
 using WindowsUtilityPack.Tools.NetworkInternet.PortScanner;
 using WindowsUtilityPack.Tools.NetworkInternet.SshRemoteTool;
+using WindowsUtilityPack.Tools.Pentesting.HeaderCookieAnalyzer;
+using WindowsUtilityPack.Tools.Pentesting.HttpRequestBuilder;
+using WindowsUtilityPack.Tools.Pentesting.JwtInspector;
+using WindowsUtilityPack.Tools.Pentesting.ResponseDiffViewer;
+using WindowsUtilityPack.Tools.Pentesting.SiteMapExplorer;
 using WindowsUtilityPack.Tools.SecurityPrivacy.CertificateInspector;
 using WindowsUtilityPack.Tools.SecurityPrivacy.CertificateManager;
 using WindowsUtilityPack.Tools.SecurityPrivacy.HashGenerator;
@@ -60,6 +65,7 @@ internal static void RegisterTools()
         ToolRegistry.RegisterCategoryIcon("Network & Internet", "\uE774");
         ToolRegistry.RegisterCategoryIcon("Developer & Productivity", "\uE943");
         ToolRegistry.RegisterCategoryIcon("Image Tools", "\uEB9F");
+        ToolRegistry.RegisterCategoryIcon("Pentesting", "\uE72E");
 
         ToolRegistry.RegisterCategoryDescription("System Utilities", "Manage startup, environment, storage, and system info");
         ToolRegistry.RegisterCategoryDescription("File & Data Tools", "Rename, hash, shred, split, and inspect files");
@@ -67,6 +73,7 @@ internal static void RegisterTools()
         ToolRegistry.RegisterCategoryDescription("Network & Internet", "Ping, DNS, ports, HTTP, speed, and downloads");
         ToolRegistry.RegisterCategoryDescription("Developer & Productivity", "Regex, encoding, colour, QR, diff, and more");
         ToolRegistry.RegisterCategoryDescription("Image Tools", "Resize, convert, and annotate images");
+        ToolRegistry.RegisterCategoryDescription("Pentesting", "Authorized defensive web security assessment tools");
 
         ToolRegistry.Register(new Models.ToolDefinition
         {
@@ -418,6 +425,70 @@ internal static void RegisterTools()
                 ClipboardService,
                 UserDialogService,
                 NavigationService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "pentest-http-request-builder",
+            Name = "HTTP Request Builder",
+            Category = "Pentesting",
+            IconGlyph = "\uE8AB",
+            Description = "Compose HTTP requests with headers/query/body and inspect responses",
+            Keywords = ["api", "web", "request", "response", "headers", "cookies", "auth"],
+            DateAdded = new DateTime(2026, 4, 12),
+            Factory = () => new HttpRequestBuilderViewModel(
+                PentestHttpTransportService,
+                PentestSharedStateService,
+                ClipboardService,
+                SettingsService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "pentest-header-cookie-analyzer",
+            Name = "Header & Cookie Analyzer",
+            Category = "Pentesting",
+            IconGlyph = "\uE81E",
+            Description = "Parse response headers and highlight conservative hardening heuristics",
+            Keywords = ["headers", "cookies", "httponly", "samesite", "secure", "hsts", "csp"],
+            DateAdded = new DateTime(2026, 4, 12),
+            Factory = () => new HeaderCookieAnalyzerViewModel(HeaderCookieAnalyzerService, PentestSharedStateService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "pentest-jwt-inspector",
+            Name = "JWT Inspector",
+            Category = "Pentesting",
+            IconGlyph = "\uE8D7",
+            Description = "Offline decode and inspect JWT metadata and timestamp claims",
+            Keywords = ["jwt", "token", "bearer", "exp", "iat", "nbf", "alg"],
+            DateAdded = new DateTime(2026, 4, 12),
+            Factory = () => new JwtInspectorViewModel(JwtInspectorService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "pentest-site-map-explorer",
+            Name = "Site Map Explorer",
+            Category = "Pentesting",
+            IconGlyph = "\uE128",
+            Description = "Fetch robots/sitemap and run constrained same-origin passive crawl",
+            Keywords = ["robots", "sitemap", "crawl", "urls", "passive", "same-origin"],
+            DateAdded = new DateTime(2026, 4, 12),
+            Factory = () => new SiteMapExplorerViewModel(SiteMapExplorerService, SettingsService),
+        });
+
+        ToolRegistry.Register(new Models.ToolDefinition
+        {
+            Key = "pentest-response-diff-viewer",
+            Name = "Response Diff Viewer",
+            Category = "Pentesting",
+            IconGlyph = "\uE73E",
+            Description = "Compare two HTTP responses across status, headers, and body",
+            Keywords = ["compare", "response", "diff", "headers", "redirect", "content-length"],
+            DateAdded = new DateTime(2026, 4, 12),
+            Factory = () => new ResponseDiffViewerViewModel(ResponseDiffService, PentestSharedStateService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition

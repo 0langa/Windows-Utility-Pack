@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Net.Http;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.Services.Downloader;
 using WindowsUtilityPack.Services.Downloader.Engines;
@@ -9,6 +10,7 @@ using WindowsUtilityPack.Services.QrCode;
 using WindowsUtilityPack.Services.Storage;
 using WindowsUtilityPack.Services.StructuredData;
 using WindowsUtilityPack.Services.TextConversion;
+using WindowsUtilityPack.Services.Pentesting;
 using WindowsUtilityPack.Tools;
 
 namespace WindowsUtilityPack;
@@ -92,6 +94,12 @@ public partial class App : Application
     public static IQuickScreenshotService QuickScreenshotService { get; private set; } = null!;
     public static IQuickCaptureStateService QuickCaptureStateService { get; private set; } = null!;
     public static ITrayIconService TrayIconService { get; private set; } = null!;
+    public static IPentestSharedStateService PentestSharedStateService { get; private set; } = null!;
+    public static IPentestHttpTransportService PentestHttpTransportService { get; private set; } = null!;
+    public static IHeaderCookieAnalyzerService HeaderCookieAnalyzerService { get; private set; } = null!;
+    public static IJwtInspectorService JwtInspectorService { get; private set; } = null!;
+    public static ISiteMapExplorerService SiteMapExplorerService { get; private set; } = null!;
+    public static IResponseDiffService ResponseDiffService { get; private set; } = null!;
 
     public static ITrayService TrayService { get; private set; } = null!;
 
@@ -196,6 +204,13 @@ public partial class App : Application
         LogFileAnalyzerService = new LogFileAnalyzerService();
         MarkdownEditorService = new MarkdownEditorService();
         ApiMockServerService = new ApiMockServerService();
+        var pentestHttpClient = new HttpClient();
+        PentestSharedStateService = new PentestSharedStateService();
+        PentestHttpTransportService = new PentestHttpTransportService(pentestHttpClient);
+        HeaderCookieAnalyzerService = new HeaderCookieAnalyzerService();
+        JwtInspectorService = new JwtInspectorService();
+        SiteMapExplorerService = new SiteMapExplorerService(pentestHttpClient);
+        ResponseDiffService = new ResponseDiffService();
 
         HomeDashboardService = new HomeDashboardService(SettingsService);
 

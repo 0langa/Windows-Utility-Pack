@@ -21,11 +21,10 @@
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="8" MaxWidth="800">
+        <StackPanel Margin="4" MaxWidth="800">
 
             <!-- Header -->
-            <TextBlock Text="File Hash Calculator" FontSize="20" FontWeight="SemiBold"
-                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,4"/>
+            <TextBlock Text="File Hash Calculator" Style="{StaticResource ToolTitleTextStyle}" Margin="0,0,0,4"/>
             <TextBlock Text="Compute MD5, SHA-1, SHA-256, and SHA-512 checksums for any file"
                        FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,16"/>
 

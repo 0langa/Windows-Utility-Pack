@@ -55,8 +55,12 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="270"/>
+        </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="4,0,4,10">
+        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="4,0,4,10">
             <Border Style="{StaticResource SurfaceCardStyle}" Padding="14,10" Margin="0,0,0,10">
                 <Grid>
                     <StackPanel>
@@ -104,7 +108,7 @@
             </Grid>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1"
+        <ScrollViewer Grid.Row="1" Grid.Column="0"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       Margin="4,0,4,0">
@@ -132,9 +136,9 @@
                             <StackPanel Margin="14"><TextBlock Text="No favorites yet" FontWeight="SemiBold"/><TextBlock Text="Star tools to pin them here for one-click access." FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/></StackPanel>
                         </Grid>
                         <ItemsControl ItemsSource="{Binding FavoriteTools}" Visibility="{Binding HasFavorites, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate><DataTemplate>
-                                <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Width="280" Margin="0,0,10,10" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
+                                <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Margin="0,0,8,8" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
                                     <Button.ContextMenu><ContextMenu>
                                         <MenuItem Header="Open" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <MenuItem Header="Add/Remove Favorite" Command="{Binding DataContext.ToggleFavoriteCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
@@ -176,9 +180,9 @@
                             <StackPanel Margin="14"><TextBlock Text="No recent tools yet" FontWeight="SemiBold"/><TextBlock Text="Opened tools automatically appear here." FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/></StackPanel>
                         </Grid>
                         <ItemsControl ItemsSource="{Binding RecentTools}" Visibility="{Binding HasRecents, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate><DataTemplate>
-                                <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Width="280" Margin="0,0,10,10" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
+                                <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Margin="0,0,8,8" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
                                     <Button.ContextMenu><ContextMenu>
                                         <MenuItem Header="Open" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         <MenuItem Header="Add/Remove Favorite" Command="{Binding DataContext.ToggleFavoriteCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
@@ -212,9 +216,9 @@
                         </StackPanel>
                     </Grid>
                     <ItemsControl ItemsSource="{Binding RecommendedTools}" Visibility="{Binding RecommendedExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate><DataTemplate>
-                            <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Width="300" Margin="0,0,10,10" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
+                            <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Margin="0,0,8,8" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
                                 <Button.ContextMenu><ContextMenu>
                                     <MenuItem Header="Open" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     <MenuItem Header="Add/Remove Favorite" Command="{Binding DataContext.ToggleFavoriteCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
@@ -249,10 +253,10 @@
                     </Grid>
                     <StackPanel Visibility="{Binding CategoryBrowserExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl ItemsSource="{Binding CategorySummaries}">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:HomeCategorySummary}">
-                                    <Button x:Name="CatButton" Width="320" Margin="0,0,10,10" Style="{StaticResource HomeToolHoverLiftButtonStyle}" Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Category}">
+                                    <Button x:Name="CatButton" Margin="0,0,8,8" Style="{StaticResource HomeToolHoverLiftButtonStyle}" Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Category}">
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="4"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Border Grid.Column="0" Background="{DynamicResource AccentBrush}" CornerRadius="3" Margin="0,0,8,0"/>
@@ -289,13 +293,12 @@
                                 <ItemsControl ItemsSource="{Binding SelectedCategoryTools}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <WrapPanel/>
+                                            <UniformGrid Columns="3"/>
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Width="280"
-                                                    Margin="0,0,10,10"
+                                            <Button Margin="0,0,8,8"
                                                     Style="{StaticResource HomeToolHoverLiftButtonStyle}"
                                                     Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding Key}">
@@ -338,10 +341,10 @@
                     </Grid>
                     <ItemsControl ItemsSource="{Binding AllTools}" Visibility="{Binding AllToolsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            <ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate><DataTemplate>
-                            <Border x:Name="ToolCardBorder" Margin="0,0,10,10" Width="340">
+                            <Border x:Name="ToolCardBorder" Margin="0,0,8,8">
                                 <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
                                     <Button.ContextMenu><ContextMenu>
                                         <MenuItem Header="Open" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
@@ -369,10 +372,7 @@
         </ScrollViewer>
 
         <StackPanel x:Name="UtilityOverlay"
-                    Grid.RowSpan="2"
-                    Panel.ZIndex="4"
-                    Width="260"
-                    HorizontalAlignment="Right"
+                    Grid.Row="1" Grid.Column="1"
                     VerticalAlignment="Bottom"
                     Margin="0,0,4,8">
             <Border Style="{StaticResource SurfaceCardStyle}" Padding="8" Margin="0,0,0,8">

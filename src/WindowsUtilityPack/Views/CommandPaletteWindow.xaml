@@ -3,80 +3,113 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Command Palette"
         Width="760"
-        Height="540"
+        Height="560"
         MinWidth="560"
         MinHeight="420"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource AppBackgroundBrush}"
         KeyDown="OnWindowKeyDown">
-    <Grid Margin="14">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Command Palette"
-                   Style="{StaticResource SectionHeadingTextStyle}"/>
+        <!-- Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                       Foreground="{DynamicResource AccentBrush}"
+                       VerticalAlignment="Center" Margin="0,0,10,0"
+                       DockPanel.Dock="Left"/>
+            <TextBlock Text="Command Palette"
+                       Style="{StaticResource SectionHeadingTextStyle}"
+                       VerticalAlignment="Center"/>
+        </DockPanel>
 
+        <!-- Search input -->
         <TextBox x:Name="QueryBox"
                  Grid.Row="1"
-                 Margin="0,10,0,10"
+                 Margin="0,0,0,10"
                  Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
-                 MinHeight="40"
+                 MinHeight="42"
                  VerticalContentAlignment="Center"
                  FontSize="14"
+                 Padding="12,0"
                  ToolTip="Search tools and shell actions"/>
 
-        <ListBox x:Name="ItemsList"
-                 Grid.Row="2"
-                 ItemsSource="{Binding Items}"
-                 SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
-                 BorderThickness="1"
-                 BorderBrush="{DynamicResource BorderBrush}"
-                 Background="{DynamicResource AppSurfaceAltBrush}"
-                 MouseDoubleClick="OnListDoubleClick">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{Binding Title}" Style="{StaticResource PanelHeaderTextStyle}"/>
-                            <TextBlock Text="{Binding Subtitle}" Style="{StaticResource MetadataTextStyle}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Border Background="{DynamicResource CardBackgroundBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1"
-                                    Padding="8,3"
-                                    CornerRadius="8"
-                                    Margin="0,0,6,0">
-                                <TextBlock Text="{Binding Category}" Style="{StaticResource MetadataTextStyle}"/>
-                            </Border>
-                            <Border Background="{DynamicResource StatusSurfaceBrush}"
-                                    BorderBrush="{DynamicResource StrongBorderBrush}"
-                                    BorderThickness="1"
-                                    Padding="8,3"
-                                    CornerRadius="8">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ShortcutHint}" Value="">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <TextBlock Text="{Binding ShortcutHint}" Style="{StaticResource MetadataTextStyle}"/>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <!-- Results list -->
+        <Border Grid.Row="2"
+                Style="{StaticResource SurfaceCardStyle}"
+                Padding="4"
+                CornerRadius="12">
+            <ListBox x:Name="ItemsList"
+                     ItemsSource="{Binding Items}"
+                     SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     MouseDoubleClick="OnListDoubleClick">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="2,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="4,2">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource PanelHeaderTextStyle}"/>
+                                <TextBlock Text="{Binding Subtitle}" Style="{StaticResource MetadataTextStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,4,0">
+                                <Border Background="{DynamicResource CardBackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="8,3"
+                                        CornerRadius="8"
+                                        Margin="0,0,6,0">
+                                    <TextBlock Text="{Binding Category}" Style="{StaticResource MetadataTextStyle}"/>
+                                </Border>
+                                <Border Background="{DynamicResource StatusSurfaceBrush}"
+                                        BorderBrush="{DynamicResource StrongBorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="8,3"
+                                        CornerRadius="8">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ShortcutHint}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding ShortcutHint}" Style="{StaticResource MetadataTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- Footer hint -->
+        <Border Grid.Row="3" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,4,0">
+                    <TextBlock Text="↵ Enter" Style="{StaticResource MetadataTextStyle}"/>
+                </Border>
+                <TextBlock Text="to open" Style="{StaticResource MetadataTextStyle}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Border Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,4,0">
+                    <TextBlock Text="Esc" Style="{StaticResource MetadataTextStyle}"/>
+                </Border>
+                <TextBlock Text="to close" Style="{StaticResource MetadataTextStyle}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
