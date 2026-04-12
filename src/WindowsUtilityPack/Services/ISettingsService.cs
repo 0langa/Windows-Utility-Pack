@@ -55,9 +55,6 @@ public class AppSettings
 
     // ── Homepage view preferences ─────────────────────────────────────────
 
-    /// <summary>Whether the All Tools grid uses compact row layout (true) or rich card grid (false).</summary>
-    public bool HomeViewIsCompact { get; set; } = false;
-
     /// <summary>Whether the Favourites section is expanded on the homepage.</summary>
     public bool FavoritesExpanded { get; set; } = false;
 

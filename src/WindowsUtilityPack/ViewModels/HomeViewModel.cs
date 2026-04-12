@@ -12,7 +12,7 @@ namespace WindowsUtilityPack.ViewModels;
 /// <summary>
 /// ViewModel for the personalised home dashboard.
 /// Drives favourites, recents, category browsing, enhanced search, live system vitals,
-/// quick actions, collapsible sections, compact/expanded layout toggle, and usage tracking.
+/// quick actions, collapsible sections, and usage tracking.
 /// </summary>
 public class HomeViewModel : ViewModelBase, IDisposable
 {
@@ -52,7 +52,6 @@ public class HomeViewModel : ViewModelBase, IDisposable
     private bool _categoryBrowserExpanded;
     private bool _recommendedExpanded;
     private bool _allToolsExpanded;
-    private bool _isCompact;
 
     // Vitals
     private string _cpuDisplay = "—";
@@ -209,16 +208,6 @@ public class HomeViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public bool IsCompact
-    {
-        get => _isCompact;
-        set
-        {
-            if (SetProperty(ref _isCompact, value))
-                SaveViewPrefs();
-        }
-    }
-
     public bool RecommendedExpanded
     {
         get => _recommendedExpanded;
@@ -326,7 +315,6 @@ public class HomeViewModel : ViewModelBase, IDisposable
     public RelayCommand ToggleCategoryBrowserExpandedCommand { get; }
     public RelayCommand ToggleRecommendedExpandedCommand { get; }
     public RelayCommand ToggleAllToolsExpandedCommand { get; }
-    public RelayCommand ToggleCompactModeCommand { get; }
     public RelayCommand QuickGeneratePasswordCommand { get; }
     public RelayCommand QuickGenerateUuidCommand { get; }
     public RelayCommand InspectClipboardCommand { get; }
@@ -355,14 +343,12 @@ public class HomeViewModel : ViewModelBase, IDisposable
             SelectedCategory = Categories[0];
 
         // Load persisted view preferences.
-        var appSettings = _settings.Load();
         // Home dashboard sections always start collapsed for a cleaner startup layout.
         _favoritesExpanded = false;
         _recentsExpanded = false;
         _categoryBrowserExpanded = false;
         _recommendedExpanded = false;
         _allToolsExpanded = false;
-        _isCompact = appSettings.HomeViewIsCompact;
 
         RefreshPersonalisation();
         RefreshCategorySummaries();
@@ -441,7 +427,6 @@ public class HomeViewModel : ViewModelBase, IDisposable
         ToggleCategoryBrowserExpandedCommand = new RelayCommand(_ => CategoryBrowserExpanded = !CategoryBrowserExpanded);
         ToggleRecommendedExpandedCommand = new RelayCommand(_ => RecommendedExpanded = !RecommendedExpanded);
         ToggleAllToolsExpandedCommand = new RelayCommand(_ => AllToolsExpanded = !AllToolsExpanded);
-        ToggleCompactModeCommand = new RelayCommand(_ => IsCompact = !IsCompact);
 
         QuickGeneratePasswordCommand = new RelayCommand(_ =>
         {
@@ -705,7 +690,6 @@ public class HomeViewModel : ViewModelBase, IDisposable
         try
         {
             var appSettings = _settings.Load();
-            appSettings.HomeViewIsCompact = _isCompact;
             appSettings.FavoritesExpanded = _favoritesExpanded;
             appSettings.RecentsExpanded = _recentsExpanded;
             appSettings.CategoryBrowserExpanded = _categoryBrowserExpanded;
