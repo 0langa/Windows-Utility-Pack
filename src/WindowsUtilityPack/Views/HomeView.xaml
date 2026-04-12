@@ -41,14 +41,24 @@
             </Setter>
         </Style>
         <Style x:Key="HeaderToggleIconButtonStyle" TargetType="Button" BasedOn="{StaticResource SectionActionLinkStyle}">
-            <Setter Property="Width" Value="42"/>
-            <Setter Property="Height" Value="42"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="MinHeight" Value="0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SectionHeaderTitleButtonStyle" TargetType="Button" BasedOn="{StaticResource SectionActionLinkStyle}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
         </Style>
         <Style x:Key="SectionHeaderGridStyle" TargetType="Grid">
             <Setter Property="Margin" Value="0,0,0,8"/>
@@ -62,7 +72,8 @@
         <Style x:Key="SectionHeaderSubtitleTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
         </Style>
         <Style x:Key="SectionHeaderClearButtonStyle" TargetType="Button" BasedOn="{StaticResource SectionActionLinkStyle}">
             <Setter Property="Width" Value="30"/>
@@ -143,7 +154,7 @@
                 <StackPanel Margin="0,0,0,12">
                     <Grid Style="{StaticResource SectionHeaderGridStyle}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="36"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
@@ -153,7 +164,12 @@
                                 ToolTip="Expand or collapse Favorites">
                             <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
                         </Button>
-                        <TextBlock Grid.Column="1" Text="Favorites" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        <Button Grid.Column="1"
+                                Style="{StaticResource SectionHeaderTitleButtonStyle}"
+                                Command="{Binding ToggleFavoritesExpandedCommand}"
+                                ToolTip="Expand or collapse Favorites">
+                            <TextBlock Text="Favorites" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        </Button>
                     </Grid>
                     <StackPanel Visibility="{Binding FavoritesExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid Visibility="{Binding HasFavorites, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
@@ -180,7 +196,7 @@
                 <StackPanel Margin="0,0,0,12">
                     <Grid Style="{StaticResource SectionHeaderGridStyle}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="36"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
@@ -190,12 +206,29 @@
                                 ToolTip="Expand or collapse Recently Used">
                             <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
                         </Button>
-                        <TextBlock Grid.Column="1" Text="Recently Used" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        <Button Grid.Column="1"
+                                Style="{StaticResource SectionHeaderTitleButtonStyle}"
+                                Command="{Binding ToggleRecentsExpandedCommand}"
+                                ToolTip="Expand or collapse Recently Used">
+                            <TextBlock Text="Recently Used" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        </Button>
                         <Button Grid.Column="2"
-                                Style="{StaticResource SectionHeaderClearButtonStyle}"
                                 Command="{Binding ClearRecentCommand}"
-                                Visibility="{Binding HasRecents, Converter={StaticResource BoolToVisibilityConverter}}"
                                 ToolTip="Clear recently used tools">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SectionHeaderClearButtonStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding HasRecents}" Value="True"/>
+                                                <Condition Binding="{Binding RecentsExpanded}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
                             <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
                         </Button>
                     </Grid>
@@ -223,7 +256,7 @@
                 <StackPanel Margin="0,0,0,12" Visibility="{Binding HasRecommendations, Converter={StaticResource BoolToVisibilityConverter}}">
                     <Grid Style="{StaticResource SectionHeaderGridStyle}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="36"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
@@ -233,12 +266,16 @@
                                 ToolTip="Expand or collapse Recommended Next Tools">
                             <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
                         </Button>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Recommended Next Tools" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
-                            <TextBlock Text="Based on your usage patterns"
-                                       Style="{StaticResource SectionHeaderSubtitleTextStyle}"
-                                       Margin="10,2,0,0"/>
-                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Style="{StaticResource SectionHeaderTitleButtonStyle}"
+                                Command="{Binding ToggleRecommendedExpandedCommand}"
+                                ToolTip="Expand or collapse Recommended Next Tools">
+                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                                <TextBlock Text="Recommended Next Tools" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                                <TextBlock Text="Based on your usage patterns"
+                                           Style="{StaticResource SectionHeaderSubtitleTextStyle}"/>
+                            </StackPanel>
+                        </Button>
                     </Grid>
                     <ItemsControl ItemsSource="{Binding RecommendedTools}" Visibility="{Binding RecommendedExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -264,7 +301,7 @@
                 <StackPanel Margin="0,0,0,12">
                     <Grid Style="{StaticResource SectionHeaderGridStyle}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="36"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
@@ -274,7 +311,12 @@
                                 ToolTip="Expand or collapse Browse by Category">
                             <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
                         </Button>
-                        <TextBlock Grid.Column="1" Text="Browse by Category" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        <Button Grid.Column="1"
+                                Style="{StaticResource SectionHeaderTitleButtonStyle}"
+                                Command="{Binding ToggleCategoryBrowserExpandedCommand}"
+                                ToolTip="Expand or collapse Browse by Category">
+                            <TextBlock Text="Browse by Category" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        </Button>
                     </Grid>
                     <StackPanel Visibility="{Binding CategoryBrowserExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl ItemsSource="{Binding CategorySummaries}">
@@ -353,7 +395,7 @@
                 <StackPanel>
                     <Grid Style="{StaticResource SectionHeaderGridStyle}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="36"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
@@ -363,7 +405,12 @@
                                 ToolTip="Expand or collapse All Tools">
                             <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
                         </Button>
-                        <TextBlock Grid.Column="1" Text="All Tools" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        <Button Grid.Column="1"
+                                Style="{StaticResource SectionHeaderTitleButtonStyle}"
+                                Command="{Binding ToggleAllToolsExpandedCommand}"
+                                ToolTip="Expand or collapse All Tools">
+                            <TextBlock Text="All Tools" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        </Button>
                     </Grid>
                     <ItemsControl ItemsSource="{Binding AllTools}" Visibility="{Binding AllToolsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl.ItemsPanel>
