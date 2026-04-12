@@ -115,6 +115,47 @@ public class HomeViewModelTests
         Assert.Empty(vm.SelectedCategoryTools);
     }
 
+    [Fact]
+    public void ToggleCommands_FlipRecommendedAndAllToolsExpandedFlags()
+    {
+        var vm = CreateViewModel(new TestClipboardService(string.Empty));
+
+        var initialRecommended = vm.RecommendedExpanded;
+        var initialAllTools = vm.AllToolsExpanded;
+
+        vm.ToggleRecommendedExpandedCommand.Execute(null);
+        vm.ToggleAllToolsExpandedCommand.Execute(null);
+
+        Assert.Equal(!initialRecommended, vm.RecommendedExpanded);
+        Assert.Equal(!initialAllTools, vm.AllToolsExpanded);
+    }
+
+    [Fact]
+    public void Constructor_AlwaysStartsSectionsCollapsed()
+    {
+        var vm = new HomeViewModel(
+            new TestNavigationService(),
+            new TestDashboardService(),
+            new TestSettingsService
+            {
+                Settings = new AppSettings
+                {
+                    FavoritesExpanded = true,
+                    RecentsExpanded = true,
+                    CategoryBrowserExpanded = true,
+                    RecommendedExpanded = true,
+                    AllToolsExpanded = true,
+                }
+            },
+            new TestClipboardService(string.Empty));
+
+        Assert.False(vm.FavoritesExpanded);
+        Assert.False(vm.RecentsExpanded);
+        Assert.False(vm.CategoryBrowserExpanded);
+        Assert.False(vm.RecommendedExpanded);
+        Assert.False(vm.AllToolsExpanded);
+    }
+
     private static HomeViewModel CreateViewModel(TestClipboardService clipboard)
         => new(
             new TestNavigationService(),
@@ -198,7 +239,9 @@ public class HomeViewModelTests
 
     private sealed class TestSettingsService : ISettingsService
     {
-        public AppSettings Load() => new();
+        public AppSettings Settings { get; set; } = new();
+
+        public AppSettings Load() => Settings;
 
         public void Save(AppSettings settings) { }
     }

@@ -15,6 +15,39 @@
                 </Storyboard></BeginStoryboard></EventTrigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="HeaderToggleIconButtonStyle" TargetType="Button" BasedOn="{StaticResource SectionActionLinkStyle}">
+            <Setter Property="Width" Value="42"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SectionHeaderGridStyle" TargetType="Grid">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="MinHeight" Value="50"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SectionHeaderTitleTextStyle" TargetType="TextBlock" BasedOn="{StaticResource DashboardSectionHeaderStyle}">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SectionHeaderSubtitleTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SectionHeaderClearButtonStyle" TargetType="Button" BasedOn="{StaticResource SectionActionLinkStyle}">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid Style="{StaticResource PageRootStyle}">
@@ -93,17 +126,20 @@
                 </Border>
 
                 <StackPanel Margin="0,0,0,12">
-                    <DockPanel Margin="0,0,0,8">
-                        <Button Style="{StaticResource SectionActionLinkStyle}"
+                    <Grid Style="{StaticResource SectionHeaderGridStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Style="{StaticResource HeaderToggleIconButtonStyle}"
                                 Command="{Binding ToggleFavoritesExpandedCommand}"
-                                ToolTip="Expand or collapse Favorites"
-                                Padding="0"
-                                MinHeight="0"
-                                Margin="0,0,8,0">
-                            <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}"/>
+                                ToolTip="Expand or collapse Favorites">
+                            <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
                         </Button>
-                        <TextBlock Text="Favorites" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
-                    </DockPanel>
+                        <TextBlock Grid.Column="1" Text="Favorites" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                    </Grid>
                     <StackPanel Visibility="{Binding FavoritesExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid Visibility="{Binding HasFavorites, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
                             <Rectangle RadiusX="10" RadiusY="10" Stroke="{DynamicResource StrongBorderBrush}" StrokeThickness="1" StrokeDashArray="4 3"/>
@@ -127,26 +163,27 @@
                 </StackPanel>
 
                 <StackPanel Margin="0,0,0,12">
-                    <DockPanel Margin="0,0,0,8">
-                        <Button Style="{StaticResource SectionActionLinkStyle}"
+                    <Grid Style="{StaticResource SectionHeaderGridStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Style="{StaticResource HeaderToggleIconButtonStyle}"
                                 Command="{Binding ToggleRecentsExpandedCommand}"
-                                ToolTip="Expand or collapse Recently Used"
-                                Padding="0"
-                                MinHeight="0"
-                                Margin="0,0,8,0">
-                            <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}"/>
+                                ToolTip="Expand or collapse Recently Used">
+                            <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
                         </Button>
-                        <TextBlock Text="Recently Used" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
-                        <Button Style="{StaticResource SectionActionLinkStyle}"
+                        <TextBlock Grid.Column="1" Text="Recently Used" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                        <Button Grid.Column="2"
+                                Style="{StaticResource SectionHeaderClearButtonStyle}"
                                 Command="{Binding ClearRecentCommand}"
-                                DockPanel.Dock="Right"
                                 Visibility="{Binding HasRecents, Converter={StaticResource BoolToVisibilityConverter}}"
-                                ToolTip="Clear recently used tools"
-                                Padding="6,2"
-                                MinHeight="0">
-                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                ToolTip="Clear recently used tools">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
                         </Button>
-                    </DockPanel>
+                    </Grid>
                     <StackPanel Visibility="{Binding RecentsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid Visibility="{Binding HasRecents, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
                             <Rectangle RadiusX="10" RadiusY="10" Stroke="{DynamicResource StrongBorderBrush}" StrokeThickness="1" StrokeDashArray="4 3"/>
@@ -169,17 +206,26 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Margin="0,0,0,12" Visibility="{Binding HasRecommendations, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <DockPanel Margin="0,0,0,8">
-                        <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" Foreground="{DynamicResource AccentBrush}"/>
-                        <TextBlock Text="Recommended Next Tools" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
-                        <TextBlock Text="Based on your usage patterns"
-                                   DockPanel.Dock="Right"
-                                   Margin="12,2,0,0"
-                                   FontSize="11"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    </DockPanel>
-                    <ItemsControl ItemsSource="{Binding RecommendedTools}">
+                    <Grid Style="{StaticResource SectionHeaderGridStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Style="{StaticResource HeaderToggleIconButtonStyle}"
+                                Command="{Binding ToggleRecommendedExpandedCommand}"
+                                ToolTip="Expand or collapse Recommended Next Tools">
+                            <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
+                        </Button>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Recommended Next Tools" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                            <TextBlock Text="Based on your usage patterns"
+                                       Style="{StaticResource SectionHeaderSubtitleTextStyle}"
+                                       Margin="10,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding RecommendedTools}" Visibility="{Binding RecommendedExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate><DataTemplate>
                             <Button Style="{StaticResource HomeToolHoverLiftButtonStyle}" Width="300" Margin="0,0,10,10" Tag="{Binding Key}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding Key}">
@@ -201,17 +247,20 @@
                     </ItemsControl>
                 </StackPanel>
                 <StackPanel Margin="0,0,0,12">
-                    <DockPanel Margin="0,0,0,8">
-                        <Button Style="{StaticResource SectionActionLinkStyle}"
+                    <Grid Style="{StaticResource SectionHeaderGridStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Style="{StaticResource HeaderToggleIconButtonStyle}"
                                 Command="{Binding ToggleCategoryBrowserExpandedCommand}"
-                                ToolTip="Expand or collapse Browse by Category"
-                                Padding="0"
-                                MinHeight="0"
-                                Margin="0,0,8,0">
-                            <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}"/>
+                                ToolTip="Expand or collapse Browse by Category">
+                            <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
                         </Button>
-                        <TextBlock Text="Browse by Category" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/>
-                    </DockPanel>
+                        <TextBlock Grid.Column="1" Text="Browse by Category" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                    </Grid>
                     <StackPanel Visibility="{Binding CategoryBrowserExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl ItemsSource="{Binding CategorySummaries}">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -287,8 +336,21 @@
                 </StackPanel>
 
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,8"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" Margin="0,0,8,0" Foreground="{DynamicResource AccentBrush}"/><TextBlock Text="All Tools" Style="{StaticResource DashboardSectionHeaderStyle}" Margin="0"/></DockPanel>
-                    <ItemsControl ItemsSource="{Binding AllTools}">
+                    <Grid Style="{StaticResource SectionHeaderGridStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Style="{StaticResource HeaderToggleIconButtonStyle}"
+                                Command="{Binding ToggleAllToolsExpandedCommand}"
+                                ToolTip="Expand or collapse All Tools">
+                            <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
+                        </Button>
+                        <TextBlock Grid.Column="1" Text="All Tools" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding AllTools}" Visibility="{Binding AllToolsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>

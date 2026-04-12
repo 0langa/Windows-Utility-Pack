@@ -50,6 +50,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
     private bool _favoritesExpanded;
     private bool _recentsExpanded;
     private bool _categoryBrowserExpanded;
+    private bool _recommendedExpanded;
+    private bool _allToolsExpanded;
     private bool _isCompact;
 
     // Vitals
@@ -217,6 +219,30 @@ public class HomeViewModel : ViewModelBase, IDisposable
         }
     }
 
+    public bool RecommendedExpanded
+    {
+        get => _recommendedExpanded;
+        set
+        {
+            if (SetProperty(ref _recommendedExpanded, value))
+            {
+                SaveViewPrefs();
+            }
+        }
+    }
+
+    public bool AllToolsExpanded
+    {
+        get => _allToolsExpanded;
+        set
+        {
+            if (SetProperty(ref _allToolsExpanded, value))
+            {
+                SaveViewPrefs();
+            }
+        }
+    }
+
     // ── Vitals ────────────────────────────────────────────────────────────
 
     public string CpuDisplay
@@ -298,6 +324,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
     public RelayCommand ToggleFavoritesExpandedCommand { get; }
     public RelayCommand ToggleRecentsExpandedCommand { get; }
     public RelayCommand ToggleCategoryBrowserExpandedCommand { get; }
+    public RelayCommand ToggleRecommendedExpandedCommand { get; }
+    public RelayCommand ToggleAllToolsExpandedCommand { get; }
     public RelayCommand ToggleCompactModeCommand { get; }
     public RelayCommand QuickGeneratePasswordCommand { get; }
     public RelayCommand QuickGenerateUuidCommand { get; }
@@ -328,9 +356,12 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
         // Load persisted view preferences.
         var appSettings = _settings.Load();
-        _favoritesExpanded = appSettings.FavoritesExpanded;
-        _recentsExpanded = appSettings.RecentsExpanded;
-        _categoryBrowserExpanded = appSettings.CategoryBrowserExpanded;
+        // Home dashboard sections always start collapsed for a cleaner startup layout.
+        _favoritesExpanded = false;
+        _recentsExpanded = false;
+        _categoryBrowserExpanded = false;
+        _recommendedExpanded = false;
+        _allToolsExpanded = false;
         _isCompact = appSettings.HomeViewIsCompact;
 
         RefreshPersonalisation();
@@ -408,6 +439,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
         ToggleFavoritesExpandedCommand = new RelayCommand(_ => FavoritesExpanded = !FavoritesExpanded);
         ToggleRecentsExpandedCommand = new RelayCommand(_ => RecentsExpanded = !RecentsExpanded);
         ToggleCategoryBrowserExpandedCommand = new RelayCommand(_ => CategoryBrowserExpanded = !CategoryBrowserExpanded);
+        ToggleRecommendedExpandedCommand = new RelayCommand(_ => RecommendedExpanded = !RecommendedExpanded);
+        ToggleAllToolsExpandedCommand = new RelayCommand(_ => AllToolsExpanded = !AllToolsExpanded);
         ToggleCompactModeCommand = new RelayCommand(_ => IsCompact = !IsCompact);
 
         QuickGeneratePasswordCommand = new RelayCommand(_ =>
@@ -676,6 +709,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
             appSettings.FavoritesExpanded = _favoritesExpanded;
             appSettings.RecentsExpanded = _recentsExpanded;
             appSettings.CategoryBrowserExpanded = _categoryBrowserExpanded;
+            appSettings.RecommendedExpanded = _recommendedExpanded;
+            appSettings.AllToolsExpanded = _allToolsExpanded;
             _settings.Save(appSettings);
         }
         catch (Exception ex)

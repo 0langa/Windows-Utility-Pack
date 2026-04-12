@@ -59,13 +59,19 @@ public class AppSettings
     public bool HomeViewIsCompact { get; set; } = false;
 
     /// <summary>Whether the Favourites section is expanded on the homepage.</summary>
-    public bool FavoritesExpanded { get; set; } = true;
+    public bool FavoritesExpanded { get; set; } = false;
 
     /// <summary>Whether the Recently Used section is expanded on the homepage.</summary>
-    public bool RecentsExpanded { get; set; } = true;
+    public bool RecentsExpanded { get; set; } = false;
 
     /// <summary>Whether the Browse by Category section is expanded on the homepage.</summary>
-    public bool CategoryBrowserExpanded { get; set; } = true;
+    public bool CategoryBrowserExpanded { get; set; } = false;
+
+    /// <summary>Whether the Recommended Next Tools section is expanded on the homepage.</summary>
+    public bool RecommendedExpanded { get; set; } = false;
+
+    /// <summary>Whether the All Tools section is expanded on the homepage.</summary>
+    public bool AllToolsExpanded { get; set; } = false;
 
     /// <summary>Last N search queries for the homepage search dropdown (newest first).</summary>
     public List<string> HomeRecentSearches { get; set; } = [];
