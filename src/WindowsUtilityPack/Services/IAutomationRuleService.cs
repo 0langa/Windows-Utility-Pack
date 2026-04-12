@@ -38,8 +38,13 @@ public sealed class AutomationRuleService : IAutomationRuleService
             switch (rule.ActionType)
             {
                 case AutomationActionType.LaunchTool:
-                    // Use rule.Name as tool key (or extend rule model for a ToolKey property if needed)
-                    var toolKey = rule.Name; // This assumes rule.Name is the tool key; adjust as needed
+                    var toolKey = string.IsNullOrWhiteSpace(rule.ActionTarget) ? string.Empty : rule.ActionTarget.Trim();
+                    if (string.IsNullOrWhiteSpace(toolKey))
+                    {
+                        App.LoggingService.LogWarning($"Automation: Rule '{rule.Name}' has no tool target configured.");
+                        break;
+                    }
+
                     var def = WindowsUtilityPack.Tools.ToolRegistry.GetByKey(toolKey);
                     if (def != null)
                     {
@@ -71,8 +76,13 @@ public sealed class AutomationRuleService : IAutomationRuleService
                     }
                     break;
                 case AutomationActionType.KillProcess:
-                    // Use rule.Name as process name (or extend rule model for a ProcessName property if needed)
-                    var processName = rule.Name;
+                    var processName = string.IsNullOrWhiteSpace(rule.ActionTarget) ? string.Empty : rule.ActionTarget.Trim();
+                    if (string.IsNullOrWhiteSpace(processName))
+                    {
+                        App.LoggingService.LogWarning($"Automation: Rule '{rule.Name}' has no process target configured.");
+                        break;
+                    }
+
                     var processes = await App.ProcessExplorerService.GetProcessesAsync(processName, cancellationToken);
                     if (processes.Count == 0)
                     {
@@ -145,7 +155,7 @@ public sealed class AutomationRuleService : IAutomationRuleService
         await using var connection = _store.CreateConnection();
         await using var command = connection.CreateCommand();
         command.CommandText = @"
-SELECT id, name, trigger_type, threshold, cooldown_minutes, enabled, action_type, created_utc, updated_utc
+SELECT id, name, trigger_type, threshold, cooldown_minutes, enabled, action_type, action_target, action_parameters_json, created_utc, updated_utc
 FROM automation_rules
 ORDER BY updated_utc DESC, id DESC;";
 
@@ -162,8 +172,10 @@ ORDER BY updated_utc DESC, id DESC;";
                 CooldownMinutes = reader.GetInt32(4),
                 Enabled = reader.GetInt64(5) == 1,
                 ActionType = Enum.TryParse<AutomationActionType>(reader.GetString(6), out var action) ? action : AutomationActionType.ShowNotification,
-                CreatedUtc = ParseDate(reader.GetString(7)),
-                UpdatedUtc = ParseDate(reader.GetString(8)),
+                ActionTarget = reader.IsDBNull(7) ? string.Empty : reader.GetString(7),
+                ActionParametersJson = reader.IsDBNull(8) ? "{}" : reader.GetString(8),
+                CreatedUtc = ParseDate(reader.GetString(9)),
+                UpdatedUtc = ParseDate(reader.GetString(10)),
             });
         }
 
@@ -184,8 +196,8 @@ ORDER BY updated_utc DESC, id DESC;";
         await using var connection = _store.CreateConnection();
         await using var command = connection.CreateCommand();
         command.CommandText = @"
-INSERT INTO automation_rules(id, name, trigger_type, threshold, cooldown_minutes, enabled, action_type, created_utc, updated_utc)
-VALUES($id, $name, $trigger, $threshold, $cooldown, $enabled, $action, $created, $updated)
+INSERT INTO automation_rules(id, name, trigger_type, threshold, cooldown_minutes, enabled, action_type, action_target, action_parameters_json, created_utc, updated_utc)
+VALUES($id, $name, $trigger, $threshold, $cooldown, $enabled, $action, $actionTarget, $actionParametersJson, $created, $updated)
 ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     trigger_type = excluded.trigger_type,
@@ -193,6 +205,8 @@ ON CONFLICT(id) DO UPDATE SET
     cooldown_minutes = excluded.cooldown_minutes,
     enabled = excluded.enabled,
     action_type = excluded.action_type,
+    action_target = excluded.action_target,
+    action_parameters_json = excluded.action_parameters_json,
     updated_utc = excluded.updated_utc;
 SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
 
@@ -203,6 +217,8 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
         command.Parameters.AddWithValue("$cooldown", Math.Max(0, rule.CooldownMinutes));
         command.Parameters.AddWithValue("$enabled", rule.Enabled ? 1 : 0);
         command.Parameters.AddWithValue("$action", rule.ActionType.ToString());
+        command.Parameters.AddWithValue("$actionTarget", ResolveActionTarget(rule));
+        command.Parameters.AddWithValue("$actionParametersJson", string.IsNullOrWhiteSpace(rule.ActionParametersJson) ? "{}" : rule.ActionParametersJson);
         command.Parameters.AddWithValue("$created", created.ToString("O"));
         command.Parameters.AddWithValue("$updated", now.ToString("O"));
 
@@ -217,6 +233,8 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
             CooldownMinutes = Math.Max(0, rule.CooldownMinutes),
             Enabled = rule.Enabled,
             ActionType = rule.ActionType,
+            ActionTarget = ResolveActionTarget(rule),
+            ActionParametersJson = string.IsNullOrWhiteSpace(rule.ActionParametersJson) ? "{}" : rule.ActionParametersJson,
             CreatedUtc = created,
             UpdatedUtc = now,
         };
@@ -317,6 +335,8 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
             CooldownMinutes = template.CooldownMinutes,
             Enabled = true,
             ActionType = AutomationActionType.ShowNotification,
+            ActionTarget = string.Empty,
+            ActionParametersJson = "{}",
             CreatedUtc = DateTime.UtcNow,
             UpdatedUtc = DateTime.UtcNow,
         };
@@ -398,5 +418,18 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
         return DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out var parsed)
             ? (parsed.Kind == DateTimeKind.Utc ? parsed : parsed.ToUniversalTime())
             : DateTime.UtcNow;
+    }
+
+    private static string ResolveActionTarget(AutomationRule rule)
+    {
+        if (!string.IsNullOrWhiteSpace(rule.ActionTarget))
+        {
+            return rule.ActionTarget.Trim();
+        }
+
+        // Backward compatibility: older rule versions reused Name as action target.
+        return rule.ActionType is AutomationActionType.LaunchTool or AutomationActionType.KillProcess
+            ? rule.Name.Trim()
+            : string.Empty;
     }
 }

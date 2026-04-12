@@ -572,7 +572,7 @@ internal static void RegisterTools()
             Category = "Developer & Productivity",
             IconGlyph = "\uE8C8",
             Description = "Persistent clipboard history with quick reuse and search",
-            Factory = () => new ClipboardManagerViewModel(ClipboardService, ClipboardHistoryService, UserDialogService),
+            Factory = () => new ClipboardManagerViewModel(ClipboardService, ClipboardHistoryService, UserDialogService, SettingsService),
         });
 
         ToolRegistry.Register(new Models.ToolDefinition

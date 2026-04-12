@@ -42,6 +42,18 @@ public sealed class AutomationRule
 
     public AutomationActionType ActionType { get; init; }
 
+    /// <summary>
+    /// Action-specific target identifier:
+    /// for <see cref="AutomationActionType.LaunchTool"/> this is a tool key;
+    /// for <see cref="AutomationActionType.KillProcess"/> this is a process name.
+    /// </summary>
+    public string ActionTarget { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Optional serialized action parameters for future expansion.
+    /// </summary>
+    public string ActionParametersJson { get; init; } = "{}";
+
     public DateTime CreatedUtc { get; init; }
 
     public DateTime UpdatedUtc { get; init; }

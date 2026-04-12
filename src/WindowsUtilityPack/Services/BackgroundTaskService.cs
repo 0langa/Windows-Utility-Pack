@@ -19,7 +19,10 @@ public sealed class BackgroundTaskService : IBackgroundTaskService
     public void StartAutomationRuleLoop(int? pollSeconds = null)
     {
         if (_automationLoopTask is { IsCompleted: false })
+        {
             return;
+        }
+
         _automationPollSeconds = pollSeconds ?? 60;
         _automationLoopCts = new CancellationTokenSource();
         _automationLoopTask = Task.Run(() => AutomationLoopAsync(_automationLoopCts.Token));
@@ -28,10 +31,36 @@ public sealed class BackgroundTaskService : IBackgroundTaskService
     /// <summary>
     /// Stops the background automation rule evaluation loop.
     /// </summary>
-    public void StopAutomationRuleLoop()
+    public async Task StopAutomationRuleLoopAsync(CancellationToken cancellationToken = default)
     {
-        _automationLoopCts?.Cancel();
-        _automationLoopTask = null;
+        var cts = _automationLoopCts;
+        var loopTask = _automationLoopTask;
+
+        if (loopTask is null || loopTask.IsCompleted)
+        {
+            return;
+        }
+
+        cts?.Cancel();
+
+        try
+        {
+            await loopTask.WaitAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Caller requested cancellation.
+        }
+        catch (TimeoutException)
+        {
+            App.LoggingService.LogWarning("Automation rule loop did not stop within the shutdown timeout.");
+        }
+        finally
+        {
+            _automationLoopTask = null;
+            cts?.Dispose();
+            _automationLoopCts = null;
+        }
     }
 
     private async Task AutomationLoopAsync(CancellationToken cancellationToken)
@@ -55,7 +84,15 @@ public sealed class BackgroundTaskService : IBackgroundTaskService
             {
                 App.LoggingService.LogError("Automation rule background loop error", ex);
             }
-            await Task.Delay(TimeSpan.FromSeconds(_automationPollSeconds), cancellationToken).ContinueWith(_ => { });
+
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(_automationPollSeconds), cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
     private const int MaxFinishedHistory = 200;
@@ -178,7 +215,7 @@ public sealed class BackgroundTaskService : IBackgroundTaskService
         {
             envelope.Cts.Dispose();
         }
-        catch
+        catch (ObjectDisposedException)
         {
             // Best-effort dispose.
         }

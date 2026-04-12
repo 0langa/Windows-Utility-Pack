@@ -24,3 +24,9 @@ desktop.ini
 
 # Publish output
 publish/
+
+# Local runtime/output artifacts
+output/
+tmp/
+TestResults/
+coverage/

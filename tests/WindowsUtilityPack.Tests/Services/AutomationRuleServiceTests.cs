@@ -24,6 +24,7 @@ public class AutomationRuleServiceTests
                 CooldownMinutes = 10,
                 Enabled = true,
                 ActionType = AutomationActionType.ShowNotification,
+                ActionTarget = string.Empty,
                 CreatedUtc = DateTime.UtcNow,
                 UpdatedUtc = DateTime.UtcNow,
             });
@@ -53,6 +54,7 @@ public class AutomationRuleServiceTests
                 CooldownMinutes = 60,
                 Enabled = true,
                 ActionType = AutomationActionType.ShowNotification,
+                ActionTarget = string.Empty,
                 CreatedUtc = DateTime.UtcNow,
                 UpdatedUtc = DateTime.UtcNow,
             });
@@ -109,6 +111,7 @@ public class AutomationRuleServiceTests
                 CooldownMinutes = 15,
                 Enabled = true,
                 ActionType = AutomationActionType.ShowNotification,
+                ActionTarget = string.Empty,
                 CreatedUtc = DateTime.UtcNow,
                 UpdatedUtc = DateTime.UtcNow,
             });
@@ -123,6 +126,34 @@ public class AutomationRuleServiceTests
             var result = Assert.Single(results);
             Assert.True(result.Triggered);
             Assert.Contains("would trigger", result.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public async Task SaveRuleAsync_LaunchToolWithoutTarget_BackfillsFromNameForCompatibility()
+    {
+        var path = GetTempDatabasePath();
+        try
+        {
+            var service = new AutomationRuleService(new AppDataStoreService(path));
+            var saved = await service.SaveRuleAsync(new AutomationRule
+            {
+                Name = "clipboard-manager",
+                TriggerType = AutomationTriggerType.HighCpuPercent,
+                Threshold = 90,
+                CooldownMinutes = 5,
+                Enabled = true,
+                ActionType = AutomationActionType.LaunchTool,
+                ActionTarget = string.Empty,
+                CreatedUtc = DateTime.UtcNow,
+                UpdatedUtc = DateTime.UtcNow,
+            });
+
+            Assert.Equal("clipboard-manager", saved.ActionTarget);
         }
         finally
         {

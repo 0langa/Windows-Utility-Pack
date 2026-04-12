@@ -38,8 +38,7 @@ public class SettingsService : ISettingsService
         catch (Exception ex)
         {
             PreserveCorruptSettingsCopy();
-            // Log through the static accessor if the logging service is already initialised.
-            try { App.LoggingService?.LogError("Failed to load settings", ex); } catch { }
+            SafeLogError("Failed to load settings", ex);
         }
         return new AppSettings();
     }
@@ -55,7 +54,7 @@ public class SettingsService : ISettingsService
         }
         catch (Exception ex)
         {
-            try { App.LoggingService?.LogError("Failed to save settings", ex); } catch { }
+            SafeLogError("Failed to save settings", ex);
         }
     }
 
@@ -82,7 +81,19 @@ public class SettingsService : ISettingsService
         }
         catch (Exception ex)
         {
-            try { App.LoggingService?.LogError("Failed to preserve corrupt settings copy", ex); } catch { }
+            SafeLogError("Failed to preserve corrupt settings copy", ex);
+        }
+    }
+
+    private static void SafeLogError(string message, Exception ex)
+    {
+        try
+        {
+            App.TryGetLoggingService()?.LogError(message, ex);
+        }
+        catch
+        {
+            // Settings persistence should never crash startup/shutdown.
         }
     }
 }

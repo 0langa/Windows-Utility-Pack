@@ -75,6 +75,9 @@
                                                 Width="170"
                                                 SelectedItemBinding="{Binding ActionType, Mode=TwoWay}"
                                                 ItemsSource="{Binding DataContext.ActionTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <DataGridTextColumn Header="Action Target"
+                                            Width="220"
+                                            Binding="{Binding ActionTarget, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Border>

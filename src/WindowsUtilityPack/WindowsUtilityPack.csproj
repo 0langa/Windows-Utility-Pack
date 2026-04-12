@@ -24,20 +24,20 @@
     <Using Remove="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="DnsClient" Version="1.8.0" />
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
-    <PackageReference Include="Markdig" Version="1.1.2" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.8" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="PdfPig" Version="0.1.14" />
-    <PackageReference Include="PDFsharp" Version="6.2.4" />
-    <PackageReference Include="QRCoder" Version="1.6.0" />
-    <PackageReference Include="ReverseMarkdown" Version="5.2.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
-    <PackageReference Include="TagLibSharp" Version="2.3.0" />
-    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    <PackageReference Include="DnsClient" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="HtmlAgilityPack" />
+    <PackageReference Include="Markdig" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="PdfPig" />
+    <PackageReference Include="PDFsharp" />
+    <PackageReference Include="QRCoder" />
+    <PackageReference Include="ReverseMarkdown" />
+    <PackageReference Include="SixLabors.ImageSharp" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" />
+    <PackageReference Include="TagLibSharp" />
+    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
   <ItemGroup>
     <PublishProfile Include="folderProfile" />

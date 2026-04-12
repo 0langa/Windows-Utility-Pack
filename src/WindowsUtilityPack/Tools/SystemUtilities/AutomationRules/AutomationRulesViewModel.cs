@@ -122,6 +122,8 @@ public sealed class AutomationRulesViewModel : ViewModelBase
             CooldownMinutes = 15,
             Enabled = true,
             ActionType = AutomationActionType.ShowNotification,
+            ActionTarget = string.Empty,
+            ActionParametersJson = "{}",
             CreatedUtc = DateTime.UtcNow,
             UpdatedUtc = DateTime.UtcNow,
         };
@@ -148,6 +150,12 @@ public sealed class AutomationRulesViewModel : ViewModelBase
     {
         if (SelectedRule is null)
         {
+            return;
+        }
+
+        if (!ValidateActionTarget(SelectedRule, out var validationError))
+        {
+            StatusMessage = validationError;
             return;
         }
 
@@ -202,6 +210,21 @@ public sealed class AutomationRulesViewModel : ViewModelBase
 
         var triggered = SimulationResults.Count(r => r.Triggered);
         StatusMessage = $"Dry-run complete: {triggered:N0} of {SimulationResults.Count:N0} rules would trigger.";
+    }
+
+    private static bool ValidateActionTarget(AutomationRule rule, out string message)
+    {
+        if (rule.ActionType is AutomationActionType.LaunchTool or AutomationActionType.KillProcess
+            && string.IsNullOrWhiteSpace(rule.ActionTarget))
+        {
+            message = rule.ActionType == AutomationActionType.LaunchTool
+                ? "LaunchTool rules require an action target (tool key)."
+                : "KillProcess rules require an action target (process name).";
+            return false;
+        }
+
+        message = string.Empty;
+        return true;
     }
 
     private bool TryParseSimulationSnapshot(out AutomationVitalsSnapshot snapshot, out string error)

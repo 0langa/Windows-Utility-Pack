@@ -5,6 +5,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -58,6 +59,48 @@
         </Border>
 
         <Border Grid.Row="2"
+                Style="{StaticResource ToolPanelBorderStyle}"
+                Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Vertical"
+                            Grid.Column="0"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Privacy Controls"
+                               Style="{StaticResource PanelHeaderTextStyle}"/>
+                    <TextBlock Text="Monitoring is opt-in. Sensitive entries are skipped unless you explicitly allow them."
+                               Style="{StaticResource MetadataTextStyle}"
+                               Margin="0,4,0,0"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="12,0,12,0">
+                    <TextBlock Text="Retention (days)"
+                               Style="{StaticResource MetadataTextStyle}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                    <TextBox Width="72"
+                             MinHeight="32"
+                             VerticalContentAlignment="Center"
+                             Text="{Binding RetentionDays, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <CheckBox Grid.Column="2"
+                          IsChecked="{Binding CaptureSensitiveContent, Mode=TwoWay}"
+                          Content="Capture sensitive content"
+                          VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3"
                 Style="{StaticResource ToolPanelBorderStyle}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top"
@@ -82,7 +125,7 @@
             </DockPanel>
         </Border>
 
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Margin="0,12,0,0"
                 Style="{StaticResource StatusSurfaceStyle}">
             <DockPanel>

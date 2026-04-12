@@ -1020,17 +1020,6 @@ public sealed class DownloadCoordinatorService : IDownloadCoordinatorService, ID
 
         _disposed = true;
         _scheduler.ActionTriggered -= OnScheduledActionTriggered;
-
-        try
-        {
-            StopQueueAsync().GetAwaiter().GetResult();
-        }
-        catch
-        {
-            // Best effort during app shutdown.
-        }
-
-        _queueCts?.Dispose();
-        _queueCts = null;
+        _ = StopQueueAsync();
     }
 }

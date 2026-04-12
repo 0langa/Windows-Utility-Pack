@@ -127,7 +127,7 @@ public partial class App : Application
         CommandPaletteService = new CommandPaletteService();
         CommandPaletteHostService = new CommandPaletteHostService(CommandPaletteService);
         BackgroundTaskService = new BackgroundTaskService();
-        ClipboardHistoryService = new ClipboardHistoryService(AppDataStoreService);
+        ClipboardHistoryService = new ClipboardHistoryService(AppDataStoreService, SettingsService);
         WindowsEventLogService = new WindowsEventLogService();
         HotkeyService = new HotkeyService(SettingsService);
         GlobalHotkeyService = new GlobalHotkeyService(HotkeyService, LoggingService);
@@ -250,13 +250,20 @@ public partial class App : Application
         LoggingService.LogInfo("Application started.");
 
         // Start background automation rule evaluation loop
-        (BackgroundTaskService as WindowsUtilityPack.Services.BackgroundTaskService)?.StartAutomationRuleLoop();
+        BackgroundTaskService.StartAutomationRuleLoop();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         LoggingService.LogInfo("Application exiting.");
-        try { (BackgroundTaskService as WindowsUtilityPack.Services.BackgroundTaskService)?.StopAutomationRuleLoop(); } catch { }
+        try
+        {
+            BackgroundTaskService.StopAutomationRuleLoopAsync().GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            LoggingService.LogError("Failed to stop automation loop cleanly during shutdown.", ex);
+        }
         VitalsService.Updated -= OnVitalsUpdatedForAutomation;
         (ThemeService as IDisposable)?.Dispose();
         (NavigationService as IDisposable)?.Dispose();

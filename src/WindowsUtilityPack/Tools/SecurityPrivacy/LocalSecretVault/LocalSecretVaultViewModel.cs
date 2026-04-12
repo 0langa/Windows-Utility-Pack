@@ -35,6 +35,10 @@ internal class VaultFile
 public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
 {
     private static readonly string VaultPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "WindowsUtilityPack", "vault.json");
+
+    private static readonly string LegacyRoamingVaultPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "WindowsUtilityPack", "vault.json");
 
@@ -169,6 +173,7 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
 
         try
         {
+            MigrateLegacyVaultIfNeeded();
             Directory.CreateDirectory(Path.GetDirectoryName(VaultPath)!);
 
             if (!File.Exists(VaultPath))
@@ -388,6 +393,22 @@ public class LocalSecretVaultViewModel : ViewModelBase, IDisposable
 
         var output = JsonSerializer.Serialize(vaultFile, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(VaultPath, output);
+    }
+
+    private static void MigrateLegacyVaultIfNeeded()
+    {
+        if (File.Exists(VaultPath) || !File.Exists(LegacyRoamingVaultPath))
+        {
+            return;
+        }
+
+        var destinationDirectory = Path.GetDirectoryName(VaultPath);
+        if (!string.IsNullOrWhiteSpace(destinationDirectory))
+        {
+            Directory.CreateDirectory(destinationDirectory);
+        }
+
+        File.Copy(LegacyRoamingVaultPath, VaultPath, overwrite: false);
     }
 
     internal static TimeSpan GetUnlockBackoffDelay(int failedAttempts)

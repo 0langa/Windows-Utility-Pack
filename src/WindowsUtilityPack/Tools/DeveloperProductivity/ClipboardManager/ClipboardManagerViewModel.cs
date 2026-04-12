@@ -15,11 +15,14 @@ public sealed class ClipboardManagerViewModel : ViewModelBase, IDisposable
     private readonly IClipboardService _clipboardService;
     private readonly IClipboardHistoryService _historyService;
     private readonly IUserDialogService _dialogService;
+    private readonly ISettingsService _settingsService;
     private readonly DispatcherTimer _pollTimer;
 
     private ClipboardHistoryEntry? _selectedEntry;
     private string _statusMessage = "Ready";
-    private bool _isMonitoring = true;
+    private bool _isMonitoring;
+    private bool _captureSensitiveContent;
+    private int _retentionDays = 30;
     private string _searchText = string.Empty;
     private string _lastObservedText = string.Empty;
 
@@ -44,6 +47,13 @@ public sealed class ClipboardManagerViewModel : ViewModelBase, IDisposable
         {
             if (SetProperty(ref _isMonitoring, value))
             {
+                if (value && !EnsureMonitoringConsent())
+                {
+                    _isMonitoring = false;
+                    OnPropertyChanged(nameof(IsMonitoring));
+                    return;
+                }
+
                 if (_isMonitoring)
                 {
                     _pollTimer.Start();
@@ -54,6 +64,33 @@ public sealed class ClipboardManagerViewModel : ViewModelBase, IDisposable
                     _pollTimer.Stop();
                     StatusMessage = "Clipboard monitoring paused.";
                 }
+
+                PersistPrivacySettings();
+            }
+        }
+    }
+
+    public bool CaptureSensitiveContent
+    {
+        get => _captureSensitiveContent;
+        set
+        {
+            if (SetProperty(ref _captureSensitiveContent, value))
+            {
+                PersistPrivacySettings();
+            }
+        }
+    }
+
+    public int RetentionDays
+    {
+        get => _retentionDays;
+        set
+        {
+            var normalized = Math.Clamp(value, 0, 3650);
+            if (SetProperty(ref _retentionDays, normalized))
+            {
+                PersistPrivacySettings();
             }
         }
     }
@@ -78,11 +115,18 @@ public sealed class ClipboardManagerViewModel : ViewModelBase, IDisposable
     public ClipboardManagerViewModel(
         IClipboardService clipboardService,
         IClipboardHistoryService historyService,
-        IUserDialogService dialogService)
+        IUserDialogService dialogService,
+        ISettingsService settingsService)
     {
         _clipboardService = clipboardService;
         _historyService = historyService;
         _dialogService = dialogService;
+        _settingsService = settingsService;
+
+        var settings = _settingsService.Load();
+        _isMonitoring = settings.ClipboardMonitoringEnabled && settings.ClipboardMonitoringConsentAccepted;
+        _captureSensitiveContent = settings.ClipboardCaptureSensitiveContent;
+        _retentionDays = Math.Clamp(settings.ClipboardHistoryRetentionDays, 0, 3650);
 
         RefreshCommand = new AsyncRelayCommand(_ => RefreshAsync());
         CopySelectedCommand = new RelayCommand(_ => CopySelected(), _ => SelectedEntry is not null);
@@ -94,7 +138,10 @@ public sealed class ClipboardManagerViewModel : ViewModelBase, IDisposable
             Interval = TimeSpan.FromSeconds(1.5),
         };
         _pollTimer.Tick += OnPollTimerTick;
-        _pollTimer.Start();
+        if (_isMonitoring)
+        {
+            _pollTimer.Start();
+        }
 
         _ = RefreshAsync();
     }
@@ -122,6 +169,10 @@ public sealed class ClipboardManagerViewModel : ViewModelBase, IDisposable
         {
             await RefreshAsync().ConfigureAwait(true);
             StatusMessage = "Captured clipboard entry.";
+        }
+        else
+        {
+            StatusMessage = "Clipboard entry skipped by privacy policy or duplicate filtering.";
         }
     }
 
@@ -190,7 +241,45 @@ public sealed class ClipboardManagerViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        PersistPrivacySettings();
         _pollTimer.Tick -= OnPollTimerTick;
         _pollTimer.Stop();
+    }
+
+    private bool EnsureMonitoringConsent()
+    {
+        var settings = _settingsService.Load();
+        if (settings.ClipboardMonitoringConsentAccepted)
+        {
+            return true;
+        }
+
+        var accepted = _dialogService.Confirm(
+            "Enable clipboard monitoring",
+            "Clipboard monitoring can capture sensitive content copied from other applications. Enable monitoring?");
+        if (!accepted)
+        {
+            return false;
+        }
+
+        settings.ClipboardMonitoringConsentAccepted = true;
+        _settingsService.Save(settings);
+        return true;
+    }
+
+    private void PersistPrivacySettings()
+    {
+        try
+        {
+            var settings = _settingsService.Load();
+            settings.ClipboardMonitoringEnabled = _isMonitoring;
+            settings.ClipboardCaptureSensitiveContent = _captureSensitiveContent;
+            settings.ClipboardHistoryRetentionDays = Math.Clamp(_retentionDays, 0, 3650);
+            _settingsService.Save(settings);
+        }
+        catch (Exception ex)
+        {
+            App.TryGetLoggingService()?.LogError("Failed to persist clipboard privacy settings.", ex);
+        }
     }
 }

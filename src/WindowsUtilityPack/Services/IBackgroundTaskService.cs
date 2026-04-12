@@ -46,4 +46,14 @@ public interface IBackgroundTaskService
     /// Returns tracked active and recently finished tasks.
     /// </summary>
     IReadOnlyList<BackgroundTaskInfo> GetTasks();
+
+    /// <summary>
+    /// Starts the automation rule evaluation loop if not already running.
+    /// </summary>
+    void StartAutomationRuleLoop(int? pollSeconds = null);
+
+    /// <summary>
+    /// Requests automation loop shutdown and waits for completion.
+    /// </summary>
+    Task StopAutomationRuleLoopAsync(CancellationToken cancellationToken = default);
 }

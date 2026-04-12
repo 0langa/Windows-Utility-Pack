@@ -34,6 +34,18 @@ public class AppDataStoreServiceTests
 
             Assert.Contains("activity_log", found);
             Assert.Contains("workspace_profiles", found);
+
+            using var pragma = connection.CreateCommand();
+            pragma.CommandText = "PRAGMA table_info(automation_rules);";
+            using var schemaReader = pragma.ExecuteReader();
+            var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (schemaReader.Read())
+            {
+                columns.Add(schemaReader.GetString(1));
+            }
+
+            Assert.Contains("action_target", columns);
+            Assert.Contains("action_parameters_json", columns);
         }
         finally
         {

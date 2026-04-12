@@ -159,7 +159,40 @@ CREATE INDEX IF NOT EXISTS idx_ssh_profiles_updated ON ssh_profiles(updated_utc 
 ");
 
             ExecuteNonQuery(connection, "PRAGMA user_version = 4;");
+            currentVersion = 4;
         }
+
+        if (currentVersion < 5)
+        {
+            if (!ColumnExists(connection, "automation_rules", "action_target"))
+            {
+                ExecuteNonQuery(connection, "ALTER TABLE automation_rules ADD COLUMN action_target TEXT NOT NULL DEFAULT '';");
+            }
+
+            if (!ColumnExists(connection, "automation_rules", "action_parameters_json"))
+            {
+                ExecuteNonQuery(connection, "ALTER TABLE automation_rules ADD COLUMN action_parameters_json TEXT NOT NULL DEFAULT '{}';");
+            }
+
+            ExecuteNonQuery(connection, "PRAGMA user_version = 5;");
+        }
+    }
+
+    private static bool ColumnExists(SqliteConnection connection, string tableName, string columnName)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA table_info({tableName});";
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var existingName = reader.GetString(1);
+            if (string.Equals(existingName, columnName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void ExecuteNonQuery(SqliteConnection connection, string sql)

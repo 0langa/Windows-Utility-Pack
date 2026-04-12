@@ -73,6 +73,29 @@ public class AppSettings
     /// <summary>Last N search queries for the homepage search dropdown (newest first).</summary>
     public List<string> HomeRecentSearches { get; set; } = [];
 
+    /// <summary>
+    /// Whether clipboard monitoring starts enabled for Clipboard Manager.
+    /// Default is disabled for safer privacy posture.
+    /// </summary>
+    public bool ClipboardMonitoringEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Whether the user has acknowledged clipboard monitoring privacy consent.
+    /// </summary>
+    public bool ClipboardMonitoringConsentAccepted { get; set; }
+
+    /// <summary>
+    /// Number of days clipboard history entries are retained.
+    /// Set to 0 to keep indefinitely.
+    /// </summary>
+    public int ClipboardHistoryRetentionDays { get; set; } = 30;
+
+    /// <summary>
+    /// Whether likely sensitive clipboard content should be persisted.
+    /// Disabled by default to reduce accidental secret retention.
+    /// </summary>
+    public bool ClipboardCaptureSensitiveContent { get; set; } = false;
+
     /// <summary>Last URL used by Pentesting tools as target/request origin.</summary>
     public string PentestLastTargetUrl { get; set; } = string.Empty;
 
