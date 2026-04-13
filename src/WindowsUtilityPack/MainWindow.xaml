@@ -466,27 +466,6 @@
             </Border>
         </Grid>
 
-        <!-- ── Status bar ────────────────────────────────────────────────────── -->
-        <Border Grid.Row="2"
-                Style="{StaticResource ElevatedSurfaceStyle}"
-                Padding="14,10"
-                Margin="0,12,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding StatusMessage}"
-                           Foreground="{DynamicResource SecondaryTextBrush}"
-                           FontSize="12"
-                           VerticalAlignment="Center"
-                           TextTrimming="CharacterEllipsis"/>
-                <TextBlock Grid.Column="1"
-                           Text="{Binding ThemeSummary}"
-                           Foreground="{DynamicResource TertiaryTextBrush}"
-                           FontSize="11"
-                           VerticalAlignment="Center"/>
-            </Grid>
-        </Border>
+
     </Grid>
 </Window>

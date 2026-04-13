@@ -58,7 +58,23 @@ public sealed class TrayIconService : ITrayIconService
         }
 
         _icon.Text = "Windows Utility Pack";
-        _icon.Icon = System.Drawing.SystemIcons.Application;
+        try
+        {
+            // Try to load the app icon from resources (Assets/WindowsUtilityPackLogo.ico)
+            var iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "WindowsUtilityPackLogo.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                _icon.Icon = new System.Drawing.Icon(iconPath);
+            }
+            else
+            {
+                _icon.Icon = System.Drawing.SystemIcons.Application;
+            }
+        }
+        catch
+        {
+            _icon.Icon = System.Drawing.SystemIcons.Application;
+        }
         _icon.Visible = true;
 
         _menu.Items.Add(CreateActionItem("Open Main Window", TrayMenuAction.OpenMainWindow));

@@ -10,7 +10,7 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.SystemUtilities.SystemInfoDashboard;
 
-public class SystemInfoViewModel : ViewModelBase
+public class SystemInfoViewModel : ViewModelBase, IDisposable
 {
     // P/Invoke for GlobalMemoryStatusEx
     [StructLayout(LayoutKind.Sequential)]
@@ -87,6 +87,8 @@ public class SystemInfoViewModel : ViewModelBase
     private readonly IClipboardService _clipboard;
     private readonly ISystemInfoReportService _reports;
     private SystemInfoSnapshot? _latestSnapshot;
+    private readonly System.Windows.Threading.DispatcherTimer? _refreshTimer;
+    private bool _disposed;
 
     public SystemInfoViewModel(IClipboardService clipboard, ISystemInfoReportService reports)
     {
@@ -97,7 +99,26 @@ public class SystemInfoViewModel : ViewModelBase
         CopyDiagnosticsCommand = new RelayCommand(CopyAll);
         ExportJsonCommand = new AsyncRelayCommand(_ => ExportJsonAsync());
 
+        // Start periodic refresh
+        _refreshTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _refreshTimer.Tick += async (s, e) => await LoadInfoAsync();
+        _refreshTimer.Start();
+
         LoadCommand.Execute(null);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        if (_refreshTimer != null)
+        {
+            _refreshTimer.Stop();
+            _refreshTimer.Tick -= async (s, e) => await LoadInfoAsync();
+        }
     }
 
     private async Task LoadInfoAsync()

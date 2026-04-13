@@ -45,10 +45,11 @@
             <Setter Property="Height" Value="32"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="MinHeight" Value="0"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
         </Style>
         <Style x:Key="SectionHeaderTitleButtonStyle" TargetType="Button" BasedOn="{StaticResource SectionActionLinkStyle}">
             <Setter Property="Background" Value="Transparent"/>
@@ -167,7 +168,9 @@
                         <Button Grid.Column="1"
                                 Style="{StaticResource SectionHeaderTitleButtonStyle}"
                                 Command="{Binding ToggleFavoritesExpandedCommand}"
-                                ToolTip="Expand or collapse Favorites">
+                                ToolTip="Expand or collapse Favorites"
+                                HorizontalAlignment="Left"
+                                HorizontalContentAlignment="Left">
                             <TextBlock Text="Favorites" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
                         </Button>
                     </Grid>
@@ -209,7 +212,9 @@
                         <Button Grid.Column="1"
                                 Style="{StaticResource SectionHeaderTitleButtonStyle}"
                                 Command="{Binding ToggleRecentsExpandedCommand}"
-                                ToolTip="Expand or collapse Recently Used">
+                                ToolTip="Expand or collapse Recently Used"
+                                HorizontalAlignment="Left"
+                                HorizontalContentAlignment="Left">
                             <TextBlock Text="Recently Used" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
                         </Button>
                         <Button Grid.Column="2"
@@ -269,7 +274,9 @@
                         <Button Grid.Column="1"
                                 Style="{StaticResource SectionHeaderTitleButtonStyle}"
                                 Command="{Binding ToggleRecommendedExpandedCommand}"
-                                ToolTip="Expand or collapse Recommended Next Tools">
+                                ToolTip="Expand or collapse Recommended Next Tools"
+                                HorizontalAlignment="Left"
+                                HorizontalContentAlignment="Left">
                             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                                 <TextBlock Text="Recommended Next Tools" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
                                 <TextBlock Text="Based on your usage patterns"
@@ -314,7 +321,9 @@
                         <Button Grid.Column="1"
                                 Style="{StaticResource SectionHeaderTitleButtonStyle}"
                                 Command="{Binding ToggleCategoryBrowserExpandedCommand}"
-                                ToolTip="Expand or collapse Browse by Category">
+                                ToolTip="Expand or collapse Browse by Category"
+                                HorizontalAlignment="Left"
+                                HorizontalContentAlignment="Left">
                             <TextBlock Text="Browse by Category" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
                         </Button>
                     </Grid>
@@ -408,7 +417,9 @@
                         <Button Grid.Column="1"
                                 Style="{StaticResource SectionHeaderTitleButtonStyle}"
                                 Command="{Binding ToggleAllToolsExpandedCommand}"
-                                ToolTip="Expand or collapse All Tools">
+                                ToolTip="Expand or collapse All Tools"
+                                HorizontalAlignment="Left"
+                                HorizontalContentAlignment="Left">
                             <TextBlock Text="All Tools" Style="{StaticResource SectionHeaderTitleTextStyle}"/>
                         </Button>
                     </Grid>
