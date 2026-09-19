@@ -1,46 +1,46 @@
 # Copilot Instructions for Windows Utility Pack
 
-This repository is a Windows desktop app built with C# / .NET 10 / WPF / MVVM.
+Windows desktop app: C# / .NET 10 / WPF / MVVM.
 
 ## General Guidelines
-- Agents should use the self-learning and memory-saving capability whenever they think it might be a good idea, not just when explicitly instructed. This encourages proactive adaptation and continuous improvement.
-- Minimize unnecessary confirmation prompts and focus on delivering complete solutions autonomously, completing tasks end-to-end without asking for confirmation at every step.
+- Use self-learning and memory-saving capability proactively, not only when instructed.
+- Minimize confirmation prompts. Deliver complete solutions end-to-end without per-step confirmation.
 
 ## Prompt Optimization First
-- Only run prompt optimization when the original user prompt includes `optimize prompt first` (case-insensitive).
-- When triggered, rewrite the request into a concise execution brief.
-- Keep user intent unchanged; only improve clarity, constraints, acceptance criteria, and missing assumptions.
-- Do not ask the user to confirm the rewritten brief unless requirements are ambiguous or risky.
-- Use `.github/skills/prompt-optimizer/SKILL.md` as the canonical workflow.
-- Include an `Optimized Prompt` section in output whenever optimization is triggered.
+- Run prompt optimization only when user prompt includes `optimize prompt first` (case-insensitive).
+- When triggered, rewrite request into concise execution brief.
+- Keep user intent unchanged; improve only clarity, constraints, acceptance criteria, missing assumptions.
+- Do not ask user to confirm rewritten brief unless requirements ambiguous or risky.
+- Use `.github/skills/prompt-optimizer/SKILL.md` as canonical workflow.
+- Include an `Optimized Prompt` section in output whenever optimization triggered.
 
 ## Project Priorities
-- Preserve MVVM boundaries: keep logic in services and view models, keep code-behind minimal.
+- Preserve MVVM boundaries: logic in services and view models, code-behind minimal.
 - Prefer incremental refactors over broad rewrites.
 - Keep startup/tool wiring consistent with `ToolRegistry` and `App.xaml` DataTemplates.
 - Optimize for reliability and maintainability over novelty.
 
 ## Implementation Rules
-- Use constructor injection when possible; avoid introducing new global/static coupling.
+- Constructor injection when possible; no new global/static coupling.
 - Validate all user input and all file/network operations.
-- Use async for I/O or long-running work to keep UI responsive.
-- Keep feature code in `Tools/<Category>/<ToolName>` and shared logic in `Services/`.
-- Add XML docs for new public APIs and non-obvious behavior.
+- Async for I/O or long-running work to keep UI responsive.
+- Feature code in `Tools/<Category>/<ToolName>`, shared logic in `Services/`.
+- XML docs for new public APIs and non-obvious behavior.
 
 ## WPF/UI Rules
 - Use `DynamicResource` brushes so dark/light themes keep working.
-- Ensure keyboard and tab navigation remain usable.
-- Avoid hard-coded colors/sizes unless there is a clear reason.
-- Use existing styles from `Resources/Styles.xaml` before adding new styles.
+- Keyboard and tab navigation remain usable.
+- No hard-coded colors/sizes without clear reason.
+- Use existing styles from `Resources/Styles.xaml` before adding new.
 
 ## Testing Rules
 - Add or update xUnit tests for all new service/domain logic.
-- Keep tests deterministic and avoid OS-specific flakiness when possible.
+- Tests deterministic; avoid OS-specific flakiness when possible.
 - Validate edge cases (invalid input, cancellation, file failures, null/empty values).
 
 ## Delivery Checklist
 - Build succeeds (`dotnet build WindowsUtilityPack.sln`).
 - Tests pass (`dotnet test tests/WindowsUtilityPack.Tests/WindowsUtilityPack.Tests.csproj`).
-- New feature is registered in `App.xaml.cs` and mapped in `App.xaml` DataTemplate.
-- User-facing messages are clear and actionable.
+- New feature registered in `App.xaml.cs` and mapped in `App.xaml` DataTemplate.
+- User-facing messages clear and actionable.
 
