@@ -22,7 +22,6 @@ dotnet build WindowsUtilityPack.sln
 dotnet test tests/WindowsUtilityPack.Tests/WindowsUtilityPack.Tests.csproj
 ```
 
-Required validation commands (per `AGENTS.md`) are the same as above.
 
 ## Run the App
 

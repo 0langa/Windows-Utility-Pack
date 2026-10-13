@@ -24,7 +24,6 @@ Last updated: 2026-04-11
 |---|---|
 | [DOWNLOADER_ARCHITECTURE.md](DOWNLOADER_ARCHITECTURE.md) | Current service-oriented architecture of the downloader — components, wiring, and constraints. |
 | [DOWNLOADER_PHASE2_REFINEMENT.md](DOWNLOADER_PHASE2_REFINEMENT.md) | Phase 2 spec — UX fixes and behavior corrections. Verify against current code before acting on it. |
-| [DOWNLOADER_REWRITE_PROMPT.md](DOWNLOADER_REWRITE_PROMPT.md) | Original rewrite specification. Historical context for original goals; superseded by Phase 2 for current issues. |
 
 ## Feature Docs
 
