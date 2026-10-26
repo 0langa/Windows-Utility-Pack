@@ -23,18 +23,21 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <ComboBox Grid.Column="0" Margin="0,0,8,0" ItemsSource="{Binding LogNames}" SelectedItem="{Binding SelectedLogName, Mode=TwoWay}"/>
-                <TextBox Grid.Column="1" Margin="0,0,8,0" Text="{Binding SourceFilter, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source contains"/>
-                <TextBox Grid.Column="2" Margin="0,0,8,0" Text="{Binding LevelFilter, UpdateSourceTrigger=PropertyChanged}" ToolTip="Level contains"/>
-                <TextBox Grid.Column="3" Margin="0,0,8,0" Text="{Binding EventIdFilterText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Event ID"/>
-                <TextBox Grid.Column="4" Margin="0,0,8,0" Text="{Binding Limit, UpdateSourceTrigger=PropertyChanged}" ToolTip="Result limit"/>
-                <Button Grid.Column="5" Margin="0,0,8,0" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Grid.Column="6" Content="Copy CSV" Command="{Binding CopyCsvCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <ComboBox AutomationProperties.AutomationId="SelectedLogName" Grid.Column="0" Margin="0,0,8,0" ItemsSource="{Binding LogNames}" SelectedItem="{Binding SelectedLogName, Mode=TwoWay}"/>
+                <TextBox AutomationProperties.AutomationId="SourceFilter" Grid.Column="1" Margin="0,0,8,0" Text="{Binding SourceFilter, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source contains"/>
+                <TextBox AutomationProperties.AutomationId="LevelFilter" Grid.Column="2" Margin="0,0,8,0" Text="{Binding LevelFilter, UpdateSourceTrigger=PropertyChanged}" ToolTip="Level contains"/>
+                <TextBox AutomationProperties.AutomationId="EventIdFilterText" Grid.Column="3" Margin="0,0,8,0" Text="{Binding EventIdFilterText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Event ID"/>
+                <TextBox AutomationProperties.AutomationId="Limit" Grid.Column="4" Margin="0,0,8,0" Text="{Binding Limit, UpdateSourceTrigger=PropertyChanged}" ToolTip="Result limit"/>
+                <Button AutomationProperties.AutomationId="RefreshCommand" Grid.Column="5" Margin="0,0,8,0" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <StackPanel Grid.Column="6" Orientation="Horizontal">
+                    <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="CopyCsvCommand" Content="Copy CSV" Command="{Binding CopyCsvCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                </StackPanel>
             </Grid>
         </Border>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
-            <ListView ItemsSource="{Binding Entries}">
+            <ListView AutomationProperties.AutomationId="Entries" ItemsSource="{Binding Entries}">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Header="Time (UTC)" Width="190" DisplayMemberBinding="{Binding TimestampUtc}"/>
@@ -48,7 +51,7 @@
         </Border>
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

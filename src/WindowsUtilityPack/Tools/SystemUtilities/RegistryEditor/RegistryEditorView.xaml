@@ -6,7 +6,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="2*"/>
-            <RowDefinition Height="2*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -22,11 +22,11 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding KeyPath, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                <Button Grid.Column="1" Margin="0,0,8,0" Content="Load" Command="{Binding LoadKeyCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Grid.Column="2" Margin="0,0,8,0" Content="Backup" Command="{Binding BackupCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Grid.Column="3" Margin="0,0,8,0" Content="Restore" Command="{Binding RestoreCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Grid.Column="4" Content="Save Value" Command="{Binding SaveValueCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <TextBox AutomationProperties.AutomationId="KeyPath" Grid.Column="0" Margin="0,0,8,0" Text="{Binding KeyPath, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                <Button AutomationProperties.AutomationId="LoadKeyCommand" Grid.Column="1" Margin="0,0,8,0" Content="Load" Command="{Binding LoadKeyCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="BackupCommand" Grid.Column="2" Margin="0,0,8,0" Content="Backup" Command="{Binding BackupCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="RestoreCommand" Grid.Column="3" Margin="0,0,8,0" Content="Restore" Command="{Binding RestoreCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="SaveValueCommand" Grid.Column="4" Content="Save Value" Command="{Binding SaveValueCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
             </Grid>
         </Border>
 
@@ -44,18 +44,18 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <ListBox Grid.Row="0"
+                    <ListBox AutomationProperties.AutomationId="SelectedSubKey" Grid.Row="0"
                              Margin="0,0,0,8"
                              ItemsSource="{Binding SubKeys}"
                              SelectedItem="{Binding SelectedSubKey, Mode=TwoWay}"/>
-                    <Button Grid.Row="1"
+                    <Button AutomationProperties.AutomationId="NavigateSubKeyCommand" Grid.Row="1"
                             Content="Open Subkey"
                             Command="{Binding NavigateSubKeyCommand}"
                             Style="{StaticResource SecondaryActionButtonStyle}"/>
                 </Grid>
 
                 <Border Grid.Column="2" Style="{StaticResource ToolPanelBorderStyle}">
-                    <DataGrid ItemsSource="{Binding Values}"
+                    <DataGrid AutomationProperties.AutomationId="SelectedValue" ItemsSource="{Binding Values}"
                               SelectedItem="{Binding SelectedValue, Mode=TwoWay}"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -82,15 +82,15 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding EditValueName, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                <ComboBox Grid.Column="1" Margin="0,0,8,0" ItemsSource="{Binding SupportedKinds}" SelectedItem="{Binding EditValueKind, Mode=TwoWay}"/>
-                <TextBox Grid.Column="2" Margin="0,0,8,0" Text="{Binding EditValueData, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                <Button Grid.Column="3" Content="Delete Value" Command="{Binding DeleteValueCommand}" Style="{StaticResource DangerActionButtonStyle}"/>
+                <TextBox AutomationProperties.AutomationId="EditValueName" Grid.Column="0" Margin="0,0,8,0" Text="{Binding EditValueName, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                <ComboBox AutomationProperties.AutomationId="EditValueKind" Grid.Column="1" Margin="0,0,8,0" ItemsSource="{Binding SupportedKinds}" SelectedItem="{Binding EditValueKind, Mode=TwoWay}"/>
+                <TextBox AutomationProperties.AutomationId="EditValueData" Grid.Column="2" Margin="0,0,8,0" Text="{Binding EditValueData, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                <Button AutomationProperties.AutomationId="DeleteValueCommand" Grid.Column="3" Content="Delete Value" Command="{Binding DeleteValueCommand}" Style="{StaticResource DangerActionButtonStyle}"/>
             </Grid>
         </Border>
 
         <Border Grid.Row="4" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

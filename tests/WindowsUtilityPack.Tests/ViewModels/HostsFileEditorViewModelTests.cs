@@ -7,6 +7,39 @@ namespace WindowsUtilityPack.Tests.ViewModels;
 public class HostsFileEditorViewModelTests
 {
     [Fact]
+    public async Task Save_PreservesUnicodeAliasesAndUnchangedLines()
+    {
+        using var sandbox = HostsSandbox.Create();
+        var original = "# Grüß dich 🌍\r\n\r\n127.0.0.1 localhost alias.test # literal\r\n";
+        await File.WriteAllTextAsync(sandbox.HostsPath, original, new System.Text.UTF8Encoding(true));
+        var bytes = await File.ReadAllBytesAsync(sandbox.HostsPath);
+        var vm = new HostsFileEditorViewModel(sandbox.HostsPath, sandbox.BackupPath, false);
+        vm.LoadCommand.Execute(null);
+        await WaitUntilAsync(() => vm.StatusMessage.StartsWith("Loaded"));
+        vm.NewIp = "0.0.0.0"; vm.NewHostname = "added.test"; vm.AddEntryCommand.Execute(null);
+        vm.SaveCommand.Execute(null);
+        await WaitUntilAsync(() => vm.StatusMessage.Contains("saved successfully"));
+        Assert.StartsWith(original, await File.ReadAllTextAsync(sandbox.HostsPath));
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(sandbox.BackupPath));
+        Assert.Equal(new byte[] { 239, 187, 191 }, (await File.ReadAllBytesAsync(sandbox.HostsPath)).Take(3));
+    }
+
+    [Fact]
+    public async Task Save_WhenBackupFails_PreservesOriginalAndDraft()
+    {
+        using var sandbox = HostsSandbox.Create();
+        await File.WriteAllTextAsync(sandbox.HostsPath, "127.0.0.1 localhost");
+        Directory.CreateDirectory(sandbox.BackupPath); // A directory cannot be replaced by the backup file.
+        var vm = new HostsFileEditorViewModel(sandbox.HostsPath, sandbox.BackupPath, false);
+        vm.LoadCommand.Execute(null); await WaitUntilAsync(() => vm.StatusMessage.StartsWith("Loaded"));
+        vm.NewIp = "0.0.0.0"; vm.NewHostname = "added.test"; vm.AddEntryCommand.Execute(null);
+        vm.SaveCommand.Execute(null);
+        await WaitUntilAsync(() => vm.StatusMessage.Contains("failed", StringComparison.OrdinalIgnoreCase) || !vm.IsModified);
+        Assert.True(vm.IsModified);
+        Assert.Equal("127.0.0.1 localhost", await File.ReadAllTextAsync(sandbox.HostsPath));
+    }
+
+    [Fact]
     public void AddEntryCommand_RejectsInvalidIpAddress()
     {
         using var sandbox = HostsSandbox.Create();
@@ -55,6 +88,8 @@ public class HostsFileEditorViewModelTests
             NewHostname = "ads.example.test",
             NewComment = "block"
         };
+        vm.LoadCommand.Execute(null);
+        await WaitUntilAsync(() => vm.StatusMessage.StartsWith("Loaded", StringComparison.Ordinal));
         vm.AddEntryCommand.Execute(null);
 
         vm.SaveCommand.Execute(null);
@@ -75,7 +110,7 @@ public class HostsFileEditorViewModelTests
         File.WriteAllText(sandbox.HostsPath, "0.0.0.0 bad.test");
         File.WriteAllText(sandbox.BackupPath, "127.0.0.1 localhost");
 
-        var vm = new HostsFileEditorViewModel(sandbox.HostsPath, sandbox.BackupPath, autoLoad: false);
+        var vm = new HostsFileEditorViewModel(sandbox.HostsPath, sandbox.BackupPath, autoLoad: false, new ConfirmDialogs());
 
         vm.RestoreBackupCommand.Execute(null);
         await WaitUntilAsync(() => vm.StatusMessage.Contains("restored", StringComparison.OrdinalIgnoreCase));
@@ -97,6 +132,12 @@ public class HostsFileEditorViewModelTests
         }
     }
 
+    private sealed class ConfirmDialogs : WindowsUtilityPack.Services.IUserDialogService
+    {
+        public bool Confirm(string title, string message) => true;
+        public void ShowInfo(string title, string message) { }
+        public void ShowError(string title, string message) { }
+    }
     private sealed class HostsSandbox : IDisposable
     {
         private readonly string _root;

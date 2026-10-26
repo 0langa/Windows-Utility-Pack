@@ -17,6 +17,18 @@ namespace WindowsUtilityPack.Tests.ViewModels;
 /// </summary>
 public sealed class MainWindowViewModelTests
 {
+    [Fact]
+    public void DetachedTool_UsesRegisteredIdentityWhenDisplayNameDiffersFromViewModel()
+    {
+        var key = "identity-" + Guid.NewGuid().ToString("N");
+        ToolRegistry.Register(new ToolDefinition { Key = key, Name = "Visible Fixture Name", Category = "Test", Factory = () => new StubToolViewModel() });
+        var nav = new StubNavigationService { CurrentToolKey = key };
+        var host = new StubToolWindowHostService();
+        using var vm = CreateVm(navigation: nav, toolWindowHost: host);
+        nav.SimulateNavigation(typeof(StubToolViewModel));
+        vm.PopOutCurrentToolCommand.Execute(null);
+        Assert.Equal(key, host.LastToolKey);
+    }
     // ── Command palette — open / close ────────────────────────────────────────
 
     [Fact]
@@ -472,6 +484,7 @@ public sealed class MainWindowViewModelTests
 
     private sealed class StubNavigationService : INavigationService
     {
+        public string? CurrentToolKey { get; set; }
         public string? LastNavigatedKey { get; private set; }
 
         public object? CurrentView => null;

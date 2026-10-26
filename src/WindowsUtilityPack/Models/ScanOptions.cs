@@ -14,15 +14,15 @@ public class ScanOptions
 
     /// <summary>
     /// Minimum file size in bytes to include in results.
-    /// Files smaller than this are tracked in directory aggregates but excluded
-    /// from the flat file list to reduce noise.
+    /// Smaller files are excluded from the displayed tree and its aggregates;
+    /// affected directories are marked incomplete and cannot be recommended as empty.
     /// Default 0 = include all.
     /// </summary>
     public long MinFileSizeBytes { get; init; } = 0;
 
     /// <summary>
     /// Maximum scan depth relative to the root path.
-    /// 0 = unlimited. Higher values improve performance for shallow scans.
+    /// 0 = the safety ceiling of 256 levels. Higher values improve performance for shallow scans.
     /// </summary>
     public int MaxDepth { get; init; } = 0;
 

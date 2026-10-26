@@ -48,7 +48,7 @@ public class CleanupRecommendationService : ICleanupRecommendationService
         CancellationToken ct)
     {
         var recommendations = new List<CleanupRecommendation>();
-        var tempPath = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
+        var tempPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.GetTempPath())) + Path.DirectorySeparatorChar;
 
         // Collect all files into a flat list for analysis
         var allFiles = new List<StorageItem>(512);
@@ -57,11 +57,11 @@ public class CleanupRecommendationService : ICleanupRecommendationService
         ct.ThrowIfCancellationRequested();
 
         // ── Category 1: temporary files ───────────────────────────────────────
-        foreach (var item in allFiles.Where(i => !i.IsDirectory))
+        foreach (var item in allFiles.Where(i => !i.IsDirectory && (i.Attributes & FileAttributes.ReparsePoint) == 0))
         {
             ct.ThrowIfCancellationRequested();
 
-            bool inTempFolder = item.FullPath.StartsWith(tempPath, StringComparison.OrdinalIgnoreCase);
+            bool inTempFolder = Path.GetFullPath(item.FullPath).StartsWith(tempPath, StringComparison.OrdinalIgnoreCase);
             bool isTempExt    = TempExtensions.Contains(item.Extension);
             bool isCacheExt   = CacheExtensions.Contains(item.Extension);
 
@@ -73,8 +73,8 @@ public class CleanupRecommendationService : ICleanupRecommendationService
                     Item     = item,
                     Rationale = inTempFolder
                         ? "Located in the system temporary folder."
-                        : $"File has a temporary file extension ({item.Extension}).",
-                    Risk     = CleanupRisk.Low,
+                        : $"Extension {item.Extension} may be temporary, but can also contain important data. Review before deleting.",
+                    Risk     = inTempFolder ? CleanupRisk.Low : CleanupRisk.Medium,
                 });
             }
             else if (isCacheExt)
@@ -115,6 +115,9 @@ public class CleanupRecommendationService : ICleanupRecommendationService
             foreach (var group in duplicates)
             {
                 ct.ThrowIfCancellationRequested();
+                if (group.Confidence != DuplicateConfidence.FullHash) continue;
+                var evidence = group.Files.Select(f => new DuplicateFileEvidence(
+                    Path.GetFullPath(f.FullPath), f.SizeBytes, f.LastModified)).ToArray();
 
                 // Recommend all but the "original" (earliest file)
                 var original = group.Original;
@@ -124,6 +127,8 @@ public class CleanupRecommendationService : ICleanupRecommendationService
                     {
                         Category  = CleanupCategory.DuplicateFiles,
                         Item      = file,
+                        DuplicateSha256 = group.GroupKey,
+                        DuplicateFiles = evidence,
                         Rationale = $"Duplicate of {original?.Name} — identical content confirmed by SHA-256.",
                         Risk      = CleanupRisk.Low,
                         IsSelected = false, // duplicates require explicit opt-in
@@ -134,6 +139,9 @@ public class CleanupRecommendationService : ICleanupRecommendationService
 
         // ── Category 4: empty directories ─────────────────────────────────────
         foreach (var item in allFiles.Where(i => i.IsDirectory
+            && i.IsScanComplete
+            && (i.Attributes & FileAttributes.ReparsePoint) == 0
+            && i.Children.Count == 0
             && i.FileCount == 0
             && i.DirectoryCount == 0))
         {

@@ -55,7 +55,6 @@ public class NetworkSpeedTestViewModel : ViewModelBase
     {
         Timeout = Timeout.InfiniteTimeSpan,
     };
-    private const string DefaultUploadUrl = "https://speed.cloudflare.com/__up";
 
     private readonly IClipboardService _clipboard;
     private readonly HttpClient _httpClient;
@@ -65,6 +64,7 @@ public class NetworkSpeedTestViewModel : ViewModelBase
     private string _uploadSpeed     = "-- Mbps";
     private string _latency         = "-- ms";
     private string _serverUrl       = "https://speed.cloudflare.com/__down?bytes=25000000";
+    private string _uploadUrl       = "https://speed.cloudflare.com/__up";
     private double _downloadProgress;
     private double _uploadProgress;
     private bool   _isTesting;
@@ -128,7 +128,32 @@ public class NetworkSpeedTestViewModel : ViewModelBase
     public string ServerUrl
     {
         get => _serverUrl;
-        set => SetProperty(ref _serverUrl, value);
+        set
+        {
+            if (!SetProperty(ref _serverUrl, value)) return;
+            if (_selectedProfile is not null && value != _selectedProfile.DownloadUrl)
+            {
+                _selectedProfile = null;
+                OnPropertyChanged(nameof(SelectedProfile));
+                UploadUrl = string.Empty;
+                MethodologySummary = "Custom endpoints: streamed HTTP download and upload; enter both URLs. Latency uses ICMP to the download host.";
+            }
+        }
+    }
+
+    public string UploadUrl
+    {
+        get => _uploadUrl;
+        set
+        {
+            if (!SetProperty(ref _uploadUrl, value)) return;
+            if (_selectedProfile is not null && value != _selectedProfile.UploadUrl)
+            {
+                _selectedProfile = null;
+                OnPropertyChanged(nameof(SelectedProfile));
+                MethodologySummary = "Custom endpoints: streamed HTTP download and upload; latency uses ICMP to the download host.";
+            }
+        }
     }
 
     public double DownloadProgress
@@ -196,6 +221,7 @@ public class NetworkSpeedTestViewModel : ViewModelBase
             }
 
             ServerUrl = value.DownloadUrl;
+            UploadUrl = value.UploadUrl;
             MethodologySummary = BuildMethodologySummary(value);
         }
     }
@@ -225,6 +251,8 @@ public class NetworkSpeedTestViewModel : ViewModelBase
 
     private async Task RunTestAsync()
     {
+        if (!IsHttpUrl(ServerUrl)) { StatusMessage = "Enter an absolute HTTP or HTTPS download URL."; return; }
+        if (!IsHttpUrl(UploadUrl)) { StatusMessage = "Enter an absolute HTTP or HTTPS upload URL for this test."; return; }
         _cts = new CancellationTokenSource();
         IsTesting        = true;
         DownloadComplete = false;
@@ -245,15 +273,15 @@ public class NetworkSpeedTestViewModel : ViewModelBase
             // Step 1: Latency
             StatusMessage = "Measuring latency…";
             await MeasureLatencyAsync(ct);
-            if (ct.IsCancellationRequested) return;
+            ct.ThrowIfCancellationRequested();
 
             // Step 2: Download
             StatusMessage = "Measuring download speed…";
             await MeasureDownloadAsync(ct);
-            if (ct.IsCancellationRequested) return;
+            ct.ThrowIfCancellationRequested();
             DownloadComplete = true;
 
-            // Step 3: Upload (simulated)
+            // Step 3: Upload
             StatusMessage = "Measuring upload speed…";
             await MeasureUploadAsync(ct);
             UploadComplete = true;
@@ -288,6 +316,7 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         finally
         {
             IsTesting = false;
+            _cts?.Dispose();
             _cts      = null;
         }
     }
@@ -371,6 +400,7 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         catch (Exception ex)
         {
             DownloadSpeed = $"Error: {ex.Message}";
+            throw;
         }
 
         sw.Stop();
@@ -429,14 +459,14 @@ public class NetworkSpeedTestViewModel : ViewModelBase
         {
             UploadSpeed = $"Not measured ({ex.Message})";
             UploadProgress = 0;
-            return;
+            throw;
         }
 
         sw.Stop();
         var elapsedSeconds = sw.Elapsed.TotalSeconds <= 0 ? 0.001 : sw.Elapsed.TotalSeconds;
         if (uploadedBytes <= 0)
         {
-            uploadedBytes = uploadSizeBytes;
+            throw new InvalidOperationException("The upload request sent no bytes.");
         }
 
         var mbps = uploadedBytes * 8.0 / elapsedSeconds / 1_000_000;
@@ -446,19 +476,11 @@ public class NetworkSpeedTestViewModel : ViewModelBase
 
     private string ResolveUploadEndpoint()
     {
-        if (SelectedProfile is not null && Uri.TryCreate(SelectedProfile.UploadUrl, UriKind.Absolute, out _))
-        {
-            return SelectedProfile.UploadUrl;
-        }
-
-        if (Uri.TryCreate(ServerUrl, UriKind.Absolute, out var sourceUri)
-            && sourceUri.Host.Contains("speed.cloudflare.com", StringComparison.OrdinalIgnoreCase))
-        {
-            return DefaultUploadUrl;
-        }
-
-        return DefaultUploadUrl;
+        return UploadUrl;
     }
+
+    private static bool IsHttpUrl(string value) => Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
     private sealed class UploadMeasurementContent : HttpContent
     {

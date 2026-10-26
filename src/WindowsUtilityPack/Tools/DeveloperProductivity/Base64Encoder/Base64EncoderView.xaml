@@ -11,25 +11,25 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <TextBlock Text="Mode:" Width="80" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}"
+                        <ComboBox AutomationProperties.AutomationId="Mode" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}"
                                   Width="160" Padding="8,4"/>
                         <TextBlock Text="Encoding:" Width="80" VerticalAlignment="Center" Margin="20,0,0,0"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <ComboBox ItemsSource="{Binding Encodings}" SelectedItem="{Binding Encoding}"
+                        <ComboBox AutomationProperties.AutomationId="Encoding" ItemsSource="{Binding Encodings}" SelectedItem="{Binding Encoding}"
                                   Width="100" Padding="8,4"
                                   IsEnabled="{Binding IsBase64Mode}"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Encode" Command="{Binding EncodeCommand}"
+                        <Button AutomationProperties.AutomationId="EncodeCommand" Content="Encode" Command="{Binding EncodeCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
-                        <Button Content="Decode" Command="{Binding DecodeCommand}"
+                        <Button AutomationProperties.AutomationId="DecodeCommand" Content="Decode" Command="{Binding DecodeCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                        <Button Content="⇅ Swap" Command="{Binding SwapCommand}"
+                        <Button AutomationProperties.AutomationId="SwapCommand" Content="⇅ Swap" Command="{Binding SwapCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                        <Button Content="Copy Output" Command="{Binding CopyOutputCommand}"
+                        <Button AutomationProperties.AutomationId="CopyOutputCommand" Content="Copy Output" Command="{Binding CopyOutputCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                        <Button Content="Clear" Command="{Binding ClearCommand}"
+                        <Button AutomationProperties.AutomationId="ClearCommand" Content="Clear" Command="{Binding ClearCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
                     </StackPanel>
                 </StackPanel>
@@ -48,7 +48,7 @@
                         <TextBlock Text="Input" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"/>
                     </Border>
-                    <TextBox Grid.Row="1" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox AutomationProperties.AutomationId="InputText" Grid.Row="1" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto"
                              FontFamily="Consolas" FontSize="12"
@@ -74,7 +74,7 @@
                         <TextBlock Text="Output" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"/>
                     </Border>
-                    <TextBox Grid.Row="1" Text="{Binding OutputText, Mode=OneWay}"
+                    <TextBox AutomationProperties.AutomationId="OutputText" Grid.Row="1" Text="{Binding OutputText, Mode=OneWay}"
                              IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto"
                              FontFamily="Consolas" FontSize="12"
@@ -84,7 +84,7 @@
             </Border>
 
             <!-- Status -->
-            <TextBlock Text="{Binding StatusMessage}"
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                        Foreground="{DynamicResource SecondaryTextBrush}"
                        FontSize="11" Margin="4,0,0,0"/>
         </StackPanel>

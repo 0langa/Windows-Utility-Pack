@@ -9,7 +9,7 @@ namespace WindowsUtilityPack.Tools.DeveloperProductivity.MarkdownEditor;
 /// <summary>
 /// ViewModel for markdown editing and preview rendering.
 /// </summary>
-public sealed class MarkdownEditorViewModel : ViewModelBase
+public sealed class MarkdownEditorViewModel : ViewModelBase, INavigationGuard
 {
     private readonly IMarkdownEditorService _service;
     private readonly IClipboardService _clipboard;
@@ -23,6 +23,9 @@ public sealed class MarkdownEditorViewModel : ViewModelBase
     private int _lineCount;
     private int _wordCount;
     private int _characterCount;
+    private string _savedText = string.Empty;
+    public bool IsDirty => !string.Equals(_savedText, MarkdownText, StringComparison.Ordinal);
+    public bool CanNavigateAway() => !IsBusy && (!IsDirty || _dialogs.Confirm("Unsaved Markdown", "Discard unsaved changes?"));
 
     public string FilePath
     {
@@ -38,6 +41,8 @@ public sealed class MarkdownEditorViewModel : ViewModelBase
             if (SetProperty(ref _markdownText, value))
             {
                 RefreshStats();
+                RenderedHtml = string.Empty;
+                OnPropertyChanged(nameof(IsDirty));
             }
         }
     }
@@ -82,7 +87,7 @@ public sealed class MarkdownEditorViewModel : ViewModelBase
     public AsyncRelayCommand OpenCommand { get; }
     public AsyncRelayCommand SaveCommand { get; }
     public AsyncRelayCommand SaveAsCommand { get; }
-    public RelayCommand RenderCommand { get; }
+    public AsyncRelayCommand RenderCommand { get; }
     public RelayCommand CopyHtmlCommand { get; }
 
     public MarkdownEditorViewModel(IMarkdownEditorService service, IClipboardService clipboard, IUserDialogService dialogs)
@@ -91,24 +96,34 @@ public sealed class MarkdownEditorViewModel : ViewModelBase
         _clipboard = clipboard ?? throw new ArgumentNullException(nameof(clipboard));
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
 
-        NewDocumentCommand = new RelayCommand(_ => NewDocument());
-        OpenCommand = new AsyncRelayCommand(_ => OpenAsync());
-        SaveCommand = new AsyncRelayCommand(_ => SaveAsync());
-        SaveAsCommand = new AsyncRelayCommand(_ => SaveAsAsync());
-        RenderCommand = new RelayCommand(_ => Render());
+        NewDocumentCommand = new RelayCommand(_ => NewDocument(), _ => !IsBusy);
+        OpenCommand = new AsyncRelayCommand(_ => OpenAsync(), _ => !IsBusy);
+        SaveCommand = new AsyncRelayCommand(_ => SaveAsync(), _ => !IsBusy);
+        SaveAsCommand = new AsyncRelayCommand(_ => SaveAsAsync(), _ => !IsBusy);
+        RenderCommand = new AsyncRelayCommand(_ => RenderAsync(), _ => !IsBusy);
         CopyHtmlCommand = new RelayCommand(_ => CopyHtml());
 
         RefreshStats();
     }
 
-    internal void Render()
+    internal async Task RenderAsync()
     {
-        RenderedHtml = _service.RenderHtml(MarkdownText);
-        StatusMessage = "Markdown rendered to HTML preview.";
+        var text = MarkdownText;
+        IsBusy = true;
+        try
+        {
+            var rendered = await Task.Run(() => _service.RenderHtml(text));
+            if (MarkdownText != text) { StatusMessage = "The document changed. Generate HTML again for the current text."; return; }
+            RenderedHtml = rendered;
+            StatusMessage = "HTML source generated.";
+        }
+        catch (Exception ex) { RenderedHtml = ""; StatusMessage = $"Could not generate HTML: {ex.Message}"; }
+        finally { IsBusy = false; }
     }
 
     internal async Task OpenAsync()
     {
+        if (!CanNavigateAway()) return;
         var dialog = new OpenFileDialog
         {
             Title = "Open markdown file",
@@ -125,9 +140,12 @@ public sealed class MarkdownEditorViewModel : ViewModelBase
         IsBusy = true;
         try
         {
+            var text = await _service.LoadAsync(dialog.FileName).ConfigureAwait(true);
             FilePath = dialog.FileName;
-            MarkdownText = await _service.LoadAsync(FilePath).ConfigureAwait(true);
-            Render();
+            MarkdownText = text;
+            _savedText = text;
+            OnPropertyChanged(nameof(IsDirty));
+            await RenderAsync();
             StatusMessage = $"Loaded {Path.GetFileName(FilePath)}.";
         }
         catch (Exception ex)
@@ -149,10 +167,19 @@ public sealed class MarkdownEditorViewModel : ViewModelBase
             return;
         }
 
+        await SaveToAsync(FilePath).ConfigureAwait(true);
+    }
+
+    internal async Task SaveToAsync(string path)
+    {
         IsBusy = true;
         try
         {
-            await _service.SaveAsync(FilePath, MarkdownText).ConfigureAwait(true);
+            var saved = MarkdownText;
+            await _service.SaveAsync(path, saved).ConfigureAwait(true);
+            FilePath = path;
+            _savedText = saved;
+            OnPropertyChanged(nameof(IsDirty));
             StatusMessage = $"Saved {Path.GetFileName(FilePath)}.";
         }
         catch (Exception ex)
@@ -183,12 +210,13 @@ public sealed class MarkdownEditorViewModel : ViewModelBase
             return;
         }
 
-        FilePath = dialog.FileName;
-        await SaveAsync().ConfigureAwait(true);
+        await SaveToAsync(dialog.FileName).ConfigureAwait(true);
     }
 
     private void NewDocument()
     {
+        if (!CanNavigateAway()) return;
+        _savedText = string.Empty;
         FilePath = string.Empty;
         MarkdownText = string.Empty;
         RenderedHtml = string.Empty;

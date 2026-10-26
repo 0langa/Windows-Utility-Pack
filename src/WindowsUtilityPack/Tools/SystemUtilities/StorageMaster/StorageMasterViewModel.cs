@@ -831,7 +831,11 @@ public class StorageMasterViewModel : ViewModelBase
 
     private async Task DeleteCleanupItemsAsync(bool permanent)
     {
-        var selected = CleanupItems.Where(i => i.IsSelected).ToList();
+        // A file can appear under multiple categories. Preserve the stronger duplicate-survivor
+        // requirement when that recommendation is selected, and only delete each path once.
+        var selected = CleanupItems.Where(i => i.IsSelected)
+            .GroupBy(i => Path.GetFullPath(i.Recommendation.Item.FullPath), StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.FirstOrDefault(i => i.Recommendation.Category == CleanupCategory.DuplicateFiles) ?? g.First()).ToList();
         if (!selected.Any()) return;
         var savings = StorageItem.FormatBytes(selected.Sum(i => i.Recommendation.PotentialSavingsBytes));
         var verb    = permanent ? "permanently delete" : "send to Recycle Bin";
@@ -842,6 +846,8 @@ public class StorageMasterViewModel : ViewModelBase
           + $"{(permanent ? "WARNING: PERMANENT DELETION - cannot be undone!" : "Items will be sent to the Recycle Bin.")}"))
             return;
         int success = 0, failed = 0;
+        var errors = new List<string>();
+        bool canceled = false;
         var deletedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         await Task.Run(() =>
@@ -850,27 +856,34 @@ public class StorageMasterViewModel : ViewModelBase
             {
                 try
                 {
-                    ShellFileOperations.Delete(
-                        item.Recommendation.Item.FullPath, recycle: !permanent);
+                    using var validation = CleanupCandidateValidator.AcquireDeletionLease(item.Recommendation,
+                        selected.Select(i => i.Recommendation).ToArray());
+                    if (permanent && item.Recommendation.Item.IsDirectory)
+                        Directory.Delete(item.Recommendation.Item.FullPath, recursive: false);
+                    else
+                        ShellFileOperations.Delete(item.Recommendation.Item.FullPath, recycle: !permanent);
                     lock (deletedPaths)
                     {
                         deletedPaths.Add(item.Recommendation.Item.FullPath);
                     }
                     success++;
                 }
-                catch
+                catch (OperationCanceledException) { canceled = true; break; }
+                catch (Exception ex)
                 {
                     failed++;
+                    errors.Add($"{item.Recommendation.Item.FullPath}: {ex.Message}");
                 }
             }
         });
 
-        foreach (var item in selected.Where(i => deletedPaths.Contains(i.Recommendation.Item.FullPath)))
+        foreach (var item in CleanupItems.Where(i => deletedPaths.Contains(i.Recommendation.Item.FullPath)).ToList())
         {
             CleanupItems.Remove(item);
         }
 
-        ScanStatusText = $"Deleted {success} items.{(failed > 0 ? $" {failed} failed." : string.Empty)}";
+        ScanStatusText = $"{(permanent ? "Deleted" : "Recycled")} {success} items.{(failed > 0 ? $" {failed} failed." : string.Empty)}{(canceled ? " Operation canceled." : string.Empty)}";
+        if (errors.Count > 0) _dialogService.ShowError("Some items were not removed", string.Join("\n", errors.Take(20)));
         NotifyScanMetrics();
     }
 

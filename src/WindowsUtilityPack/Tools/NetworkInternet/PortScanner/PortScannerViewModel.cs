@@ -25,7 +25,7 @@ public class PortResult
 /// ViewModel for the Port Scanner tool.
 /// Scans a range of TCP ports concurrently with configurable timeout and concurrency.
 /// </summary>
-public class PortScannerViewModel : ViewModelBase
+public class PortScannerViewModel : ViewModelBase, IDisposable
 {
     internal const int MaxSafeConcurrency = 100;
 
@@ -50,6 +50,7 @@ public class PortScannerViewModel : ViewModelBase
     private readonly IClipboardService _clipboard;
     private readonly IBackgroundTaskService _backgroundTaskService;
     private Guid? _scanTaskId;
+    private readonly Func<string, int, TimeSpan, CancellationToken, Task<bool>> _probe;
 
     private string _host           = "localhost";
     private string _portRangeText  = "1-1024";
@@ -74,7 +75,7 @@ public class PortScannerViewModel : ViewModelBase
     public int TimeoutMs
     {
         get => _timeoutMs;
-        set => SetProperty(ref _timeoutMs, Math.Max(50, value));
+        set => SetProperty(ref _timeoutMs, Math.Clamp(value, 50, 10000));
     }
 
     public int Concurrency
@@ -108,7 +109,12 @@ public class PortScannerViewModel : ViewModelBase
     public RelayCommand      CopyOpenPortsCommand { get; }
 
     public PortScannerViewModel(IClipboardService clipboard, IBackgroundTaskService backgroundTaskService)
+        : this(clipboard, backgroundTaskService, ProbeAsync) { }
+
+    internal PortScannerViewModel(IClipboardService clipboard, IBackgroundTaskService backgroundTaskService,
+        Func<string, int, TimeSpan, CancellationToken, Task<bool>> probe)
     {
+        _probe = probe;
         _clipboard = clipboard;
         _backgroundTaskService = backgroundTaskService;
 
@@ -145,126 +151,77 @@ public class PortScannerViewModel : ViewModelBase
         return [.. ports.OrderBy(x => x)];
     }
 
-    private async Task RunScanAsync()
+    internal async Task RunScanAsync()
     {
-        if (string.IsNullOrWhiteSpace(Host)) return;
-
+        if (IsScanning) return;
+        var host = Host.Trim();
+        if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
+        { StatusMessage = "Enter a hostname or IP address without a URL path."; return; }
         var ports = ParsePorts(PortRangeText);
-        if (ports.Count == 0)
-        {
-            StatusMessage = "No valid ports in range.";
-            return;
-        }
-
-        if (_scanTaskId is Guid previousTask)
-        {
-            _backgroundTaskService.CancelTask(previousTask, "Superseded by a new scan request.");
-        }
-
+        if (ports.Count == 0) { StatusMessage = "No valid ports in range."; return; }
         var taskId = _backgroundTaskService.BeginTask("Port scan");
         _scanTaskId = taskId;
-
         IsScanning = true;
         Results.Clear();
         Progress = 0;
-        StatusMessage = $"Scanning {ports.Count} port(s) on {Host}…";
-        _backgroundTaskService.ReportProgress(taskId, new BackgroundTaskProgress
+        var ct = _backgroundTaskService.GetCancellationToken(taskId);
+        var scanned = 0;
+        var openCount = 0;
+        var timeout = TimeSpan.FromMilliseconds(TimeoutMs);
+        StatusMessage = $"Scanning {ports.Count} port(s) on {host}…";
+        try
         {
-            Percent = 0,
-            Message = "Port scan started",
-            Detail = Host,
-        });
-
-        var ct          = _backgroundTaskService.GetCancellationToken(taskId);
-        var sem         = new SemaphoreSlim(Math.Clamp(Concurrency, 1, MaxSafeConcurrency));
-        var scanned     = 0;
-        var openCount   = 0;
-        var total       = ports.Count;
-        var timeout     = TimeoutMs;
-        var host        = Host;
-        var tasks       = new List<Task>(total);
-
-        foreach (var port in ports)
-        {
-            if (ct.IsCancellationRequested) break;
-
-            await sem.WaitAsync(ct).ConfigureAwait(false);
-
-            var capturedPort = port;
-            tasks.Add(Task.Run(async () =>
+            await Parallel.ForEachAsync(ports, new ParallelOptions
             {
-                try
+                MaxDegreeOfParallelism = Concurrency, CancellationToken = ct
+            }, async (port, token) =>
+            {
+                var sw = Stopwatch.StartNew();
+                var open = await _probe(host, port, timeout, token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                if (open) Interlocked.Increment(ref openCount);
+                var done = Interlocked.Increment(ref scanned);
+                void Update()
                 {
-                    var sw     = Stopwatch.StartNew();
-                    var isOpen = false;
-
-                    try
+                    if (open) Results.Add(new PortResult
                     {
-                        using var tcp = new TcpClient();
-                        var connectTask = tcp.ConnectAsync(host, capturedPort);
-                        var won         = await Task.WhenAny(connectTask, Task.Delay(timeout, ct));
-                        isOpen = won == connectTask && connectTask.IsCompletedSuccessfully;
-                    }
-                    catch { /* closed / error */ }
-
-                    sw.Stop();
-
-                    var result = new PortResult
-                    {
-                        Port       = capturedPort,
-                        IsOpen     = isOpen,
-                        Status     = isOpen ? "Open" : "Closed",
-                        Service    = WellKnownServices.TryGetValue(capturedPort, out var svc) ? svc : string.Empty,
-                        ResponseMs = sw.ElapsedMilliseconds,
-                    };
-
-                    if (isOpen)
-                    {
-                        Interlocked.Increment(ref openCount);
-                        Application.Current.Dispatcher.Invoke(() => Results.Add(result));
-                    }
-
-                    var done = Interlocked.Increment(ref scanned);
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        Progress      = done * 100.0 / total;
-                        StatusMessage = $"{openCount} open port(s) found, {done} scanned of {total}";
+                        Port = port, IsOpen = true, Status = "Open", ResponseMs = sw.ElapsedMilliseconds,
+                        Service = WellKnownServices.GetValueOrDefault(port, string.Empty)
                     });
-
-                    _backgroundTaskService.ReportProgress(taskId, new BackgroundTaskProgress
-                    {
-                        Percent = (int)Math.Round(done * 100.0 / total),
-                        Message = "Scanning ports",
-                        Detail = $"{done}/{total} scanned",
-                    });
+                    Progress = Math.Max(Progress, done * 100.0 / ports.Count);
+                    StatusMessage = $"{openCount} open port(s) found, {scanned} scanned of {ports.Count}";
                 }
-                finally
-                {
-                    sem.Release();
-                }
-            }, ct));
-        }
-
-        try { await Task.WhenAll(tasks); }
-        catch (OperationCanceledException) { /* user stopped */ }
-
-        IsScanning    = false;
-        Progress      = 100;
-        var cancelled = ct.IsCancellationRequested;
-        StatusMessage = cancelled
-            ? $"Scan stopped. {openCount} open port(s) found."
-            : $"Scan complete. {openCount} open port(s) found of {total} scanned.";
-
-        if (cancelled)
-        {
-            _backgroundTaskService.CancelTask(taskId, "Port scan cancelled.");
-        }
-        else
-        {
+                var dispatcher = Application.Current?.Dispatcher;
+                if (dispatcher is not null) await dispatcher.InvokeAsync(Update);
+                else lock (Results) Update();
+                _backgroundTaskService.ReportProgress(taskId, new BackgroundTaskProgress
+                { Percent = (int)(done * 100.0 / ports.Count), Message = "Scanning ports", Detail = $"{done}/{ports.Count}" });
+            });
+            StatusMessage = $"Scan complete. {openCount} open port(s) found of {ports.Count} scanned.";
             _backgroundTaskService.CompleteTask(taskId, "Port scan completed.");
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            StatusMessage = $"Scan stopped. {openCount} open port(s) found; {scanned}/{ports.Count} scanned.";
+            _backgroundTaskService.CancelTask(taskId, "Port scan canceled.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Scan failed: {ex.Message}";
+            _backgroundTaskService.FailTask(taskId, ex);
+        }
+        finally { IsScanning = false; _scanTaskId = null; }
+    }
 
-        _scanTaskId = null;
+    public void Dispose() => StopScan();
+    private static async Task<bool> ProbeAsync(string host, int port, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(timeout);
+        using var tcp = new TcpClient();
+        try { await tcp.ConnectAsync(host, port, deadline.Token).ConfigureAwait(false); return true; }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { return false; }
+        catch (SocketException) { return false; }
     }
 
     private void StopScan()

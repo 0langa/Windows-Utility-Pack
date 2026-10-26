@@ -10,7 +10,7 @@ namespace WindowsUtilityPack.Tools.SystemUtilities.ProcessExplorer;
 /// <summary>
 /// ViewModel for process explorer capabilities.
 /// </summary>
-public sealed class ProcessExplorerViewModel : ViewModelBase
+public sealed class ProcessExplorerViewModel : ViewModelBase, IDisposable, IViewLifetime
 {
     private readonly IProcessExplorerService _service;
     private readonly IUserDialogService _dialogs;
@@ -28,6 +28,8 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
     private List<ProcessSnapshot> _previousSnapshots = new();
     private readonly int _processorCount = Environment.ProcessorCount;
     private bool _autoRefreshEnabled = true;
+    private bool _disposed;
+    private readonly CancellationTokenSource _lifetime = new();
 
     public ObservableCollection<ProcessSnapshot> Processes { get; } = [];
 
@@ -75,7 +77,7 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
         {
             if (SetProperty(ref _autoRefreshEnabled, value))
             {
-                _refreshTimer.IsEnabled = value;
+                _refreshTimer.IsEnabled = value && !_disposed;
             }
         }
     }
@@ -95,7 +97,7 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
         CopyDetailsCommand = new AsyncRelayCommand(_ => CopyDetailsAsync(), _ => SelectedProcess is not null);
 
         _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(_refreshIntervalSeconds) };
-        _refreshTimer.Tick += async (s, e) => { if (_autoRefreshEnabled) await RefreshAsync(); };
+        _refreshTimer.Tick += OnRefreshTimerTick;
         _refreshTimer.Start();
 
         _ = RefreshAsync();
@@ -103,6 +105,7 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
 
     internal async Task RefreshAsync()
     {
+        if (_disposed || IsBusy) return;
         IsBusy = true;
         try
         {
@@ -110,13 +113,16 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
             var elapsed = _lastRefreshTime == DateTime.MinValue ? 1.0 : (now - _lastRefreshTime).TotalSeconds;
             _lastRefreshTime = now;
 
-            var rows = (await _service.GetProcessesAsync(SearchQuery).ConfigureAwait(true)).ToList();
+            var rows = (await _service.GetProcessesAsync(SearchQuery, _lifetime.Token).ConfigureAwait(true)).ToList();
+            if (_disposed) return;
+            var previousByPid = _previousSnapshots.ToDictionary(p => p.ProcessId);
+            var selection = SelectedProcess;
 
             // Compute CPU% for each process by matching with previous snapshot
             foreach (var row in rows)
             {
-                var prev = _previousSnapshots.FirstOrDefault(p => p.ProcessId == row.ProcessId);
-                if (prev != null && elapsed > 0)
+                if (previousByPid.TryGetValue(row.ProcessId, out var prev)
+                    && prev.StartTimeLocal == row.StartTimeLocal && elapsed > 0)
                 {
                     var cpuDelta = row.CpuTimeSeconds - prev.CpuTimeSeconds;
                     row.CpuPercent = Math.Max(0, Math.Min(100, (cpuDelta / elapsed / _processorCount) * 100));
@@ -147,11 +153,15 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
             {
                 Processes.Add(row);
             }
+            SelectedProcess = selection is null ? null : rows.FirstOrDefault(row =>
+                row.ProcessId == selection.ProcessId && row.StartTimeLocal == selection.StartTimeLocal);
 
             StatusMessage = $"Loaded {Processes.Count:N0} processes.";
         }
+        catch (OperationCanceledException) when (_disposed) { }
         catch (Exception ex)
         {
+            if (_disposed) return;
             StatusMessage = "Unable to load processes.";
             _dialogs.ShowError("Process Explorer", ex.Message);
         }
@@ -160,6 +170,24 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
             IsBusy = false;
         }
     }
+
+    private async void OnRefreshTimerTick(object? sender, EventArgs e)
+    {
+        if (_autoRefreshEnabled) await RefreshAsync();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _refreshTimer.Stop();
+        _refreshTimer.Tick -= OnRefreshTimerTick;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    public void Activate() { if (!_disposed && AutoRefreshEnabled) _refreshTimer.Start(); }
+    public void Deactivate() => _refreshTimer.Stop();
 
     internal async Task CopyDetailsAsync()
     {
@@ -194,7 +222,7 @@ public sealed class ProcessExplorerViewModel : ViewModelBase
             return;
         }
 
-        var success = await _service.TryTerminateAsync(target.ProcessId).ConfigureAwait(true);
+        var success = await _service.TryTerminateAsync(target, _lifetime.Token).ConfigureAwait(true);
         if (!success)
         {
             StatusMessage = "Unable to terminate selected process.";

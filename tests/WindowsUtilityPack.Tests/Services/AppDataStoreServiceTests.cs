@@ -8,6 +8,17 @@ namespace WindowsUtilityPack.Tests.Services;
 public class AppDataStoreServiceTests
 {
     [Fact]
+    public void NativeSqlite_UsesPatchedLibrary()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT sqlite_version();";
+        var version = Version.Parse((string)command.ExecuteScalar()!);
+        Assert.True(version >= new Version(3, 50, 2), $"Vulnerable native SQLite loaded: {version}");
+    }
+
+    [Fact]
     public void EnsureInitialized_CreatesDatabaseAndTables()
     {
         var path = GetTempDatabasePath();

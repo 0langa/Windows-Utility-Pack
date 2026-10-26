@@ -29,21 +29,21 @@
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                     <TextBlock Text="Pattern:" Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center" Width="70"/>
-                    <TextBox Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox AutomationProperties.AutomationId="Pattern" Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged}"
                              Width="350" FontFamily="Consolas" FontSize="13"
                              Foreground="{DynamicResource AccentBrush}"
                              Padding="8,6"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}"
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center" Margin="16,0,0,0" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Row="1" Orientation="Horizontal">
                     <TextBlock Text="Options:" Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center" Width="70"/>
-                    <CheckBox Content="Ignore Case" IsChecked="{Binding IgnoreCase}"
+                    <CheckBox AutomationProperties.AutomationId="IgnoreCase" Content="Ignore Case" IsChecked="{Binding IgnoreCase}"
                               Margin="0,0,16,0" VerticalAlignment="Center"/>
-                    <CheckBox Content="Multiline" IsChecked="{Binding Multiline}"
+                    <CheckBox AutomationProperties.AutomationId="Multiline" Content="Multiline" IsChecked="{Binding Multiline}"
                               Margin="0,0,16,0" VerticalAlignment="Center"/>
-                    <CheckBox Content="Single Line" IsChecked="{Binding SingleLine}"
+                    <CheckBox AutomationProperties.AutomationId="SingleLine" Content="Single Line" IsChecked="{Binding SingleLine}"
                               VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
@@ -60,7 +60,7 @@
                 <Border Style="{StaticResource TableHeaderBorderStyle}">
                     <TextBlock Text="Input Text" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                 </Border>
-                <TextBox Grid.Row="1" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox AutomationProperties.AutomationId="InputText" Grid.Row="1" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
                          AcceptsReturn="True" TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
                          FontFamily="Consolas" FontSize="12"
@@ -107,10 +107,10 @@
                                         <ColumnDefinition Width="200"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding Index}" Foreground="{DynamicResource SecondaryTextBrush}" FontFamily="Consolas"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding Length}" Foreground="{DynamicResource SecondaryTextBrush}" FontFamily="Consolas"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding Value}" Foreground="{DynamicResource AccentBrush}" FontFamily="Consolas" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Grid.Column="3" Text="{Binding Groups}" Foreground="{DynamicResource PrimaryTextBrush}" FontFamily="Consolas" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock AutomationProperties.AutomationId="Index" Text="{Binding Index}" Foreground="{DynamicResource SecondaryTextBrush}" FontFamily="Consolas"/>
+                                    <TextBlock AutomationProperties.AutomationId="Length" Grid.Column="1" Text="{Binding Length}" Foreground="{DynamicResource SecondaryTextBrush}" FontFamily="Consolas"/>
+                                    <TextBlock AutomationProperties.AutomationId="Value" Grid.Column="2" Text="{Binding Value}" Foreground="{DynamicResource AccentBrush}" FontFamily="Consolas" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock AutomationProperties.AutomationId="Groups" Grid.Column="3" Text="{Binding Groups}" Foreground="{DynamicResource PrimaryTextBrush}" FontFamily="Consolas" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

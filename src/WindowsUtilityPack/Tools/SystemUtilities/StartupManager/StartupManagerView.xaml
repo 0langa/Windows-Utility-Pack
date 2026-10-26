@@ -31,7 +31,7 @@
 
             <!-- DataGrid panel -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="0" Margin="0,0,0,12">
-                <DataGrid ItemsSource="{Binding Entries}"
+                <DataGrid AutomationProperties.AutomationId="SelectedEntry" ItemsSource="{Binding Entries}"
                           SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
@@ -66,35 +66,35 @@
             <!-- Toolbar -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="12" Margin="0,0,0,8">
                 <WrapPanel Orientation="Horizontal">
-                    <Button Content="Enable / Disable"
+                    <Button AutomationProperties.AutomationId="ToggleCommand" Content="Enable / Disable"
                             Style="{StaticResource PrimaryActionButtonStyle}"
                             Command="{Binding ToggleCommand}"
                             Margin="0,0,8,0"/>
-                    <Button Content="Remove"
+                    <Button AutomationProperties.AutomationId="RemoveCommand" Content="Remove"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding RemoveCommand}"
                             Margin="0,0,8,0"/>
-                    <Button Content="Refresh"
+                    <Button AutomationProperties.AutomationId="RefreshCommand" Content="Refresh"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding RefreshCommand}" Margin="0,0,8,0"/>
-                        <Button Content="Export CSV"
+                        <Button AutomationProperties.AutomationId="ExportCsvCommand" Content="Export CSV"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding ExportCsvCommand}" Margin="0,0,8,0"/>
-                        <Button Content="Copy Diagnostics"
+                        <Button AutomationProperties.AutomationId="CopyDiagnosticsCommand" Content="Copy Diagnostics"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding CopyDiagnosticsCommand}"/>
                 </WrapPanel>
             </Border>
 
                     <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6" Margin="0,0,0,8">
-                    <TextBlock Text="{Binding EntryDiagnosticsSummary}"
+                    <TextBlock AutomationProperties.AutomationId="EntryDiagnosticsSummary" Text="{Binding EntryDiagnosticsSummary}"
                            Foreground="{DynamicResource SecondaryTextBrush}"
                            FontSize="12"/>
                     </Border>
 
             <!-- Status bar -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6">
-                <TextBlock Text="{Binding StatusMessage}"
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                            Foreground="{DynamicResource SecondaryTextBrush}"
                            FontSize="12"/>
             </Border>

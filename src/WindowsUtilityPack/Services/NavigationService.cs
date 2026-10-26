@@ -21,6 +21,7 @@ namespace WindowsUtilityPack.Services
         private readonly List<ViewModelBase> _backStack = [];
         private readonly Dictionary<Type, Func<ViewModelBase>> _factories = new();
         private readonly Dictionary<string, Func<ViewModelBase>> _keyFactories = new();
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ViewModelBase, NavigationIdentity> _identities = new();
         private ViewModelBase? _currentViewModel;
         private bool _disposed;
 
@@ -36,7 +37,9 @@ namespace WindowsUtilityPack.Services
             }
         }
 
-        public object? CurrentView => CurrentViewModel;
+        public object? CurrentView => _currentViewModel;
+        public string? CurrentToolKey => _currentViewModel is not null && _identities.TryGetValue(_currentViewModel, out var identity) ? identity.Key : null;
+        private sealed record NavigationIdentity(string Key);
 
         public event EventHandler? CurrentViewModelChanged;
         public event EventHandler? CurrentViewChanged;
@@ -56,6 +59,7 @@ namespace WindowsUtilityPack.Services
         public void Navigate<TViewModel>() where TViewModel : ViewModelBase
         {
             ThrowIfDisposed();
+            if (_currentViewModel is not null && !CanNavigateAway(_currentViewModel)) return;
 
             var type = typeof(TViewModel);
             ViewModelBase viewModel;
@@ -74,30 +78,26 @@ namespace WindowsUtilityPack.Services
                     $"No factory registered for {type.Name} and no service provider is available.");
             }
 
-            if (_currentViewModel is not null)
-            {
-                if (!CanNavigateAway(_currentViewModel))
-                {
-                    return;
-                }
-
-                PushToBackStack(_currentViewModel);
-            }
-
-            CurrentViewModel = viewModel;
-            Navigated?.Invoke(this, type);
+            NavigateResolved(viewModel ?? throw new InvalidOperationException($"No instance available for {type.Name}."));
         }
 
         public void NavigateTo(object viewModel)
         {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(viewModel);
+            if (viewModel is not string && viewModel is not ViewModelBase) return;
+            if (ReferenceEquals(viewModel, _currentViewModel)) return;
+            if (viewModel is string requestedKey && !_keyFactories.ContainsKey(requestedKey)) return;
+            if (_currentViewModel is not null && !CanNavigateAway(_currentViewModel)) return;
 
             // If a string key is passed, resolve from registered key-based factories
             if (viewModel is string key)
             {
                 if (_keyFactories.TryGetValue(key, out var keyFactory))
+                {
                     viewModel = keyFactory();
+                    _identities.AddOrUpdate((ViewModelBase)viewModel, new NavigationIdentity(key));
+                }
                 else
                 {
                     System.Diagnostics.Debug.WriteLine(
@@ -107,28 +107,19 @@ namespace WindowsUtilityPack.Services
                 }
             }
 
-            if (_currentViewModel is not null)
-            {
-                if (!CanNavigateAway(_currentViewModel))
-                {
-                    return;
-                }
+            NavigateResolved((ViewModelBase)viewModel);
+        }
 
-                PushToBackStack(_currentViewModel);
-            }
-
-            if (viewModel is not ViewModelBase vm)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[NavigationService] NavigateTo: expected ViewModelBase but received {viewModel.GetType().Name}.");
-                return;
-            }
-
-            CurrentViewModel = vm;
+        private void NavigateResolved(ViewModelBase viewModel)
+        {
+            if (ReferenceEquals(viewModel, _currentViewModel)) return;
+            _backStack.Remove(viewModel);
+            if (_currentViewModel is IViewLifetime oldLifetime) oldLifetime.Deactivate();
+            if (_currentViewModel is not null) PushToBackStack(_currentViewModel);
+            CurrentViewModel = viewModel;
+            if (viewModel is IViewLifetime lifetime) lifetime.Activate();
+            if (_contentHost is not null) _contentHost.Content = viewModel;
             Navigated?.Invoke(this, viewModel.GetType());
-
-            if (_contentHost is not null)
-                _contentHost.Content = viewModel;
         }
 
         public void GoBack()
@@ -149,9 +140,11 @@ namespace WindowsUtilityPack.Services
 
             DisposeViewModel(current);
             CurrentViewModel = previous;
+            if (previous is IViewLifetime lifetime) lifetime.Activate();
 
             if (_contentHost is not null)
                 _contentHost.Content = CurrentViewModel;
+            Navigated?.Invoke(this, previous.GetType());
         }
 
         public void ClearHistory()

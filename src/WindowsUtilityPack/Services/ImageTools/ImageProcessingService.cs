@@ -1,57 +1,72 @@
 using System.Drawing.Imaging;
 using System.IO;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using ImageMagick;
+using ImageMagick.Drawing;
 using SD = System.Drawing;
-using SLFonts = SixLabors.Fonts;
 using WpfSystemParameters = System.Windows.SystemParameters;
 
 namespace WindowsUtilityPack.Services.ImageTools;
 
-/// <summary>
-/// Image processing implementation used by Image Tools.
-/// </summary>
+/// <summary>Raster image processing for conversion, resizing, and annotation.</summary>
 public sealed class ImageProcessingService : IImageProcessingService
 {
-    public async Task<IReadOnlyList<ImageProcessResult>> ResizeAsync(ImageResizeRequest request, CancellationToken cancellationToken)
+    private const uint MaxDimension = 32768;
+    private const ulong MaxTotalPixels = 64_000_000;
+    private const uint MaxFrames = 256;
+
+    // Native limits also apply while reading headers, before we can inspect dimensions.
+    private static readonly Lazy<bool> CodecLimits = new(() =>
     {
+        ResourceLimits.Width = MaxDimension;
+        ResourceLimits.Height = MaxDimension;
+        ResourceLimits.ListLength = MaxFrames;
+        ResourceLimits.Memory = 256UL * 1024 * 1024;
+        ResourceLimits.Disk = 512UL * 1024 * 1024;
+        ResourceLimits.Thread = 2;
+        return true;
+    });
+
+    public Task<IReadOnlyList<ImageProcessResult>> ResizeAsync(ImageResizeRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
         ValidateBatchRequest(request.InputPaths, request.OutputDirectory);
-        if (request.Width <= 0 || request.Height <= 0)
-            throw new ArgumentOutOfRangeException(nameof(request), "Width and height must be greater than zero.");
+        if (request.Width <= 0 || request.Height <= 0 || request.Width > MaxDimension || request.Height > MaxDimension
+            || (ulong)request.Width * (ulong)request.Height > MaxTotalPixels)
+            throw new ArgumentOutOfRangeException(nameof(request), "Dimensions must be positive, at most 32768 per side and 64 million pixels.");
 
-        var output = new List<ImageProcessResult>(request.InputPaths.Count);
-        Directory.CreateDirectory(request.OutputDirectory);
-
-        foreach (var inputPath in request.InputPaths)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            output.Add(await ResizeOneAsync(inputPath, request, cancellationToken).ConfigureAwait(false));
-        }
-
-        return output;
+        var inputs = request.InputPaths.ToArray();
+        return Task.Run(() => ProcessBatchAsync(inputs, request.OutputDirectory, request.OutputFormat, request.Quality,
+            request.Overwrite, images =>
+            {
+                ulong projectedPixels = 0;
+                foreach (var image in images)
+                {
+                    var scale = Math.Min((double)request.Width / image.Width, (double)request.Height / image.Height);
+                    var width = request.KeepAspectRatio ? Math.Max(1, Math.Ceiling(image.Width * scale)) : request.Width;
+                    var height = request.KeepAspectRatio ? Math.Max(1, Math.Ceiling(image.Height * scale)) : request.Height;
+                    projectedPixels += (ulong)width * (ulong)height;
+                    if (projectedPixels > MaxTotalPixels)
+                        throw new InvalidDataException("Resized frames exceed the 64 million pixel processing limit.");
+                }
+                foreach (var image in images)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    image.Resize(new MagickGeometry((uint)request.Width, (uint)request.Height)
+                    {
+                        IgnoreAspectRatio = !request.KeepAspectRatio,
+                    }, FilterType.Lanczos);
+                    image.ResetPage();
+                }
+            }, cancellationToken), cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ImageProcessResult>> ConvertAsync(ImageConvertRequest request, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<ImageProcessResult>> ConvertAsync(ImageConvertRequest request, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         ValidateBatchRequest(request.InputPaths, request.OutputDirectory);
-        var output = new List<ImageProcessResult>(request.InputPaths.Count);
-        Directory.CreateDirectory(request.OutputDirectory);
-
-        foreach (var inputPath in request.InputPaths)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            output.Add(await ConvertOneAsync(inputPath, request, cancellationToken).ConfigureAwait(false));
-        }
-
-        return output;
+        var inputs = request.InputPaths.ToArray();
+        return Task.Run(() => ProcessBatchAsync(inputs, request.OutputDirectory, request.OutputFormat, request.Quality,
+            request.Overwrite, null, cancellationToken), cancellationToken);
     }
 
     public Task<ScreenshotCaptureResult> CaptureScreenshotAsync(string outputPath, CancellationToken cancellationToken)
@@ -97,184 +112,241 @@ public sealed class ImageProcessingService : IImageProcessingService
         }, cancellationToken);
     }
 
-    public async Task<ImageProcessResult> AnnotateAsync(
-        string inputPath,
-        string outputPath,
-        IReadOnlyList<ImageAnnotation> annotations,
-        ImageOutputFormat outputFormat,
-        int quality,
-        CancellationToken cancellationToken)
+
+    public Task<ImageProcessResult> AnnotateAsync(string inputPath, string outputPath,
+        IReadOnlyList<ImageAnnotation> annotations, ImageOutputFormat outputFormat, int quality, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(inputPath))
-            throw new ArgumentException("Input path is required.", nameof(inputPath));
+        ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        ArgumentNullException.ThrowIfNull(annotations);
         if (!File.Exists(inputPath))
             throw new FileNotFoundException("Input image not found.", inputPath);
-        if (string.IsNullOrWhiteSpace(outputPath))
-            throw new ArgumentException("Output path is required.", nameof(outputPath));
-
-        var inputBytes = new FileInfo(inputPath).Length;
-
-        try
+        var overlays = annotations.ToArray();
+        return Task.Run(() => ProcessOneAsync(inputPath, outputPath, outputFormat, quality, true, images =>
         {
-            await using var stream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-            using var image = await Image.LoadAsync<Rgba32>(stream, cancellationToken).ConfigureAwait(false);
-
-            image.Mutate(ctx =>
+            foreach (var image in images)
             {
-                foreach (var annotation in annotations)
+                foreach (var annotation in overlays)
                 {
-                    ApplyAnnotation(ctx, annotation, image.Width, image.Height);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ApplyAnnotation(image, annotation);
                 }
-            });
-
-            var encoder = GetEncoder(outputFormat, quality);
-            var outputDir = Path.GetDirectoryName(outputPath);
-            if (!string.IsNullOrWhiteSpace(outputDir))
-                Directory.CreateDirectory(outputDir);
-
-            await image.SaveAsync(outputPath, encoder, cancellationToken).ConfigureAwait(false);
-
-            return new ImageProcessResult
-            {
-                InputPath = inputPath,
-                OutputPath = outputPath,
-                Success = true,
-                InputBytes = inputBytes,
-                OutputBytes = new FileInfo(outputPath).Length,
-                Width = image.Width,
-                Height = image.Height,
-            };
-        }
-        catch (Exception ex)
-        {
-            return new ImageProcessResult
-            {
-                InputPath = inputPath,
-                OutputPath = outputPath,
-                Success = false,
-                ErrorMessage = ex.Message,
-                InputBytes = inputBytes,
-            };
-        }
+                // Embedded previews and profiles must not retain an unredacted copy.
+                image.Strip();
+            }
+        }, cancellationToken), cancellationToken);
     }
 
     private static void ValidateBatchRequest(IReadOnlyList<string> inputPaths, string outputDirectory)
     {
+        ArgumentNullException.ThrowIfNull(inputPaths);
         if (inputPaths.Count == 0)
             throw new ArgumentException("At least one input file is required.", nameof(inputPaths));
-        if (string.IsNullOrWhiteSpace(outputDirectory))
-            throw new ArgumentException("Output directory is required.", nameof(outputDirectory));
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
     }
 
-    private static async Task<ImageProcessResult> ResizeOneAsync(string inputPath, ImageResizeRequest request, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<ImageProcessResult>> ProcessBatchAsync(IReadOnlyList<string> inputs,
+        string directory, ImageOutputFormat format, int quality, bool overwrite,
+        Action<MagickImageCollection>? transform, CancellationToken cancellationToken)
     {
-        var inputBytes = File.Exists(inputPath) ? new FileInfo(inputPath).Length : 0;
-        var outputPath = BuildOutputPath(inputPath, request.OutputDirectory, request.OutputFormat);
+        var results = new List<ImageProcessResult>(inputs.Count);
+        foreach (var input in inputs)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            results.Add(await ProcessOneAsync(input, BuildOutputPath(input, directory, format), format,
+                quality, overwrite, transform, cancellationToken).ConfigureAwait(false));
+        }
+        return results;
+    }
 
+    private static async Task<ImageProcessResult> ProcessOneAsync(string inputPath, string outputPath,
+        ImageOutputFormat format, int quality, bool overwrite, Action<MagickImageCollection>? transform,
+        CancellationToken cancellationToken)
+    {
+        long inputBytes = 0;
         try
         {
-            if (!File.Exists(inputPath))
-                throw new FileNotFoundException("Input file not found.", inputPath);
-
-            if (!request.Overwrite && File.Exists(outputPath))
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = CodecLimits.Value;
+            inputBytes = new FileInfo(inputPath).Length;
+            outputPath = Path.GetFullPath(outputPath);
+            if (!overwrite)
                 outputPath = BuildNonConflictingPath(outputPath);
 
-            await using var stream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-            using var image = await Image.LoadAsync<Rgba32>(stream, cancellationToken).ConfigureAwait(false);
-
-            var size = new Size(request.Width, request.Height);
-            var options = new ResizeOptions
+            using var images = await ReadRasterAsync(inputPath, cancellationToken).ConfigureAwait(false);
+            foreach (var image in images)
+                image.Progress += (_, progress) => progress.Cancel = cancellationToken.IsCancellationRequested;
+            cancellationToken.ThrowIfCancellationRequested();
+            transform?.Invoke(images);
+            foreach (var image in images)
             {
-                Size = size,
-                Sampler = KnownResamplers.Lanczos3,
-                Mode = request.KeepAspectRatio ? ResizeMode.Max : ResizeMode.Stretch,
-            };
-
-            image.Mutate(ctx => ctx.Resize(options));
-
-            var encoder = GetEncoder(request.OutputFormat, request.Quality);
-            await image.SaveAsync(outputPath, encoder, cancellationToken).ConfigureAwait(false);
-
+                cancellationToken.ThrowIfCancellationRequested();
+                image.Quality = (uint)Math.Clamp(quality, 1, 100);
+                if (format == ImageOutputFormat.Jpeg)
+                {
+                    image.BackgroundColor = MagickColors.White;
+                    image.Alpha(AlphaAction.Remove);
+                }
+            }
+            ValidateFrames(images);
+            await WriteAtomicallyAsync(images, outputPath, GetFormat(format), overwrite, cancellationToken).ConfigureAwait(false);
             return new ImageProcessResult
             {
-                InputPath = inputPath,
-                OutputPath = outputPath,
-                Success = true,
-                InputBytes = inputBytes,
-                OutputBytes = new FileInfo(outputPath).Length,
-                Width = image.Width,
-                Height = image.Height,
+                InputPath = inputPath, OutputPath = outputPath, Success = true, InputBytes = inputBytes,
+                OutputBytes = new FileInfo(outputPath).Length, Width = (int)images[0].Width, Height = (int)images[0].Height,
             };
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(cancellationToken);
         }
         catch (Exception ex)
         {
             return new ImageProcessResult
             {
-                InputPath = inputPath,
-                OutputPath = outputPath,
-                Success = false,
-                ErrorMessage = ex.Message,
-                InputBytes = inputBytes,
+                InputPath = inputPath, OutputPath = outputPath, InputBytes = inputBytes, ErrorMessage = ex.Message,
             };
         }
     }
 
-    private static async Task<ImageProcessResult> ConvertOneAsync(string inputPath, ImageConvertRequest request, CancellationToken cancellationToken)
+    internal static async Task<MagickImageCollection> ReadRasterAsync(string path, CancellationToken cancellationToken)
     {
-        var inputBytes = File.Exists(inputPath) ? new FileInfo(inputPath).Length : 0;
-        var outputPath = BuildOutputPath(inputPath, request.OutputDirectory, request.OutputFormat);
-
+        _ = CodecLimits.Value;
+        // Pass bytes with an explicit raster decoder, never a native pseudo-filename or document delegate.
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+        var format = DetectRasterFormat(stream);
+        var settings = new MagickReadSettings { Format = format };
+        using (var metadata = new MagickImageCollection())
+        {
+            await metadata.PingAsync(stream, settings, cancellationToken).ConfigureAwait(false);
+            ValidateFrames(metadata);
+            if (metadata.Count > 1 && format is MagickFormat.Gif or MagickFormat.WebP)
+            {
+                var canvasWidth = Math.Max(metadata[0].Width, metadata[0].Page.Width);
+                var canvasHeight = Math.Max(metadata[0].Height, metadata[0].Page.Height);
+                if ((ulong)canvasWidth * canvasHeight * (ulong)metadata.Count > MaxTotalPixels)
+                    throw new InvalidDataException("Animation canvas exceeds the 64 million pixel processing limit.");
+            }
+        }
+        stream.Position = 0;
+        var images = new MagickImageCollection();
         try
         {
-            if (!File.Exists(inputPath))
-                throw new FileNotFoundException("Input file not found.", inputPath);
-
-            if (!request.Overwrite && File.Exists(outputPath))
-                outputPath = BuildNonConflictingPath(outputPath);
-
-            await using var stream = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-            using var image = await Image.LoadAsync<Rgba32>(stream, cancellationToken).ConfigureAwait(false);
-            var encoder = GetEncoder(request.OutputFormat, request.Quality);
-            await image.SaveAsync(outputPath, encoder, cancellationToken).ConfigureAwait(false);
-
-            return new ImageProcessResult
-            {
-                InputPath = inputPath,
-                OutputPath = outputPath,
-                Success = true,
-                InputBytes = inputBytes,
-                OutputBytes = new FileInfo(outputPath).Length,
-                Width = image.Width,
-                Height = image.Height,
-            };
+            await images.ReadAsync(stream, settings, cancellationToken).ConfigureAwait(false);
+            if (images.Count > 1 && format is MagickFormat.Gif or MagickFormat.WebP)
+                images.Coalesce();
+            ValidateFrames(images);
+            return images;
         }
-        catch (Exception ex)
+        catch { images.Dispose(); throw; }
+    }
+
+    public Task StripMetadataAsync(string inputPath, string outputPath, CancellationToken cancellationToken = default) => Task.Run(async () =>
+    {
+        outputPath = Path.GetFullPath(outputPath);
+        using var images = await ReadRasterAsync(inputPath, cancellationToken).ConfigureAwait(false);
+        var format = Path.GetExtension(outputPath).ToLowerInvariant() switch
         {
-            return new ImageProcessResult
-            {
-                InputPath = inputPath,
-                OutputPath = outputPath,
-                Success = false,
-                ErrorMessage = ex.Message,
-                InputBytes = inputBytes,
-            };
+            ".png" => MagickFormat.Png, ".jpg" or ".jpeg" => MagickFormat.Jpeg,
+            ".bmp" => MagickFormat.Bmp, ".tif" or ".tiff" => MagickFormat.Tiff,
+            _ => throw new NotSupportedException("Metadata removal supports PNG, JPEG, BMP and TIFF images.")
+        };
+        if (images[0].Format != format) throw new InvalidDataException("Keep the original image format when removing metadata.");
+        if (images.Count > 1 && format != MagickFormat.Tiff)
+            throw new NotSupportedException("Only TIFF supports multiple frames in metadata removal.");
+        foreach (var frame in images)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            frame.AutoOrient();
+            frame.Strip();
+        }
+        await WriteAtomicallyAsync(images, outputPath, format, true, cancellationToken).ConfigureAwait(false);
+    }, cancellationToken);
+
+    private static MagickFormat DetectRasterFormat(Stream stream)
+    {
+        Span<byte> header = stackalloc byte[16];
+        var count = stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false);
+        stream.Position = 0;
+        var bytes = header[..count];
+        if (bytes.StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })) return MagickFormat.Png;
+        if (bytes.StartsWith(new byte[] { 255, 216, 255 })) return MagickFormat.Jpeg;
+        if (bytes.StartsWith("GIF87a"u8) || bytes.StartsWith("GIF89a"u8)) return MagickFormat.Gif;
+        if (bytes.StartsWith("BM"u8)) return MagickFormat.Bmp;
+        if (bytes.StartsWith("II\x2a\0"u8) || bytes.StartsWith("MM\0\x2a"u8)
+            || bytes.StartsWith("II\x2b\0"u8) || bytes.StartsWith("MM\0\x2b"u8)) return MagickFormat.Tiff;
+        if (count >= 12 && bytes[..4].SequenceEqual("RIFF"u8) && bytes[8..12].SequenceEqual("WEBP"u8)) return MagickFormat.WebP;
+        if (count >= 12 && bytes[4..8].SequenceEqual("ftyp"u8))
+        {
+            var brand = System.Text.Encoding.ASCII.GetString(bytes[8..12]);
+            if (brand is "heic" or "heix" or "hevc" or "hevx" or "mif1" or "msf1") return MagickFormat.Heic;
+        }
+        throw new InvalidDataException("Unsupported image. Choose PNG, JPEG, WebP, BMP, TIFF, GIF, or HEIC raster data.");
+    }
+
+    private static void ValidateFrames(IMagickImageCollection<byte> images)
+    {
+        if (images.Count == 0 || images.Count > MaxFrames)
+            throw new InvalidDataException("An image must contain between 1 and 256 frames.");
+        ulong pixels = 0;
+        foreach (var image in images)
+        {
+            if (image.Width == 0 || image.Height == 0 || image.Width > MaxDimension || image.Height > MaxDimension)
+                throw new InvalidDataException("Image dimensions must be positive and at most 32768 per side.");
+            pixels += (ulong)image.Width * image.Height;
+            if (pixels > MaxTotalPixels)
+                throw new InvalidDataException("Image exceeds the 64 million pixel processing limit across all frames.");
         }
     }
 
-    private static string BuildOutputPath(string inputPath, string outputDirectory, ImageOutputFormat format)
+    private static async Task WriteAtomicallyAsync(MagickImageCollection images, string outputPath,
+        MagickFormat format, bool overwrite, CancellationToken cancellationToken)
+    {
+        var directory = Path.GetDirectoryName(outputPath)!;
+        Directory.CreateDirectory(directory);
+        var temporary = Path.Combine(directory, $".wup-image-{Guid.NewGuid():N}.tmp");
+        try
+        {
+            // Multi-page TIFF updates directory offsets by seeking and reading its output.
+            await using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 81920, true))
+            {
+                // TIFF and WebP support multiple pages/frames. Other export formats use the first frame.
+                if (format is MagickFormat.Tiff or MagickFormat.WebP)
+                    await images.WriteAsync(stream, format, cancellationToken).ConfigureAwait(false);
+                else
+                    await images[0].WriteAsync(stream, format, cancellationToken).ConfigureAwait(false);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporary, outputPath, overwrite);
+        }
+        finally
+        {
+            try { File.Delete(temporary); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    private static MagickFormat GetFormat(ImageOutputFormat format) => format switch
+    {
+        ImageOutputFormat.Jpeg => MagickFormat.Jpeg,
+        ImageOutputFormat.Png => MagickFormat.Png,
+        ImageOutputFormat.Webp => MagickFormat.WebP,
+        ImageOutputFormat.Bmp => MagickFormat.Bmp,
+        ImageOutputFormat.Tiff => MagickFormat.Tiff,
+        _ => throw new ArgumentOutOfRangeException(nameof(format)),
+    };
+
+    private static string BuildOutputPath(string input, string directory, ImageOutputFormat format)
     {
         var extension = format switch
         {
-            ImageOutputFormat.Jpeg => ".jpg",
-            ImageOutputFormat.Png => ".png",
-            ImageOutputFormat.Webp => ".webp",
-            ImageOutputFormat.Bmp => ".bmp",
-            ImageOutputFormat.Tiff => ".tiff",
-            _ => ".png",
+            ImageOutputFormat.Jpeg => ".jpg", ImageOutputFormat.Png => ".png", ImageOutputFormat.Webp => ".webp",
+            ImageOutputFormat.Bmp => ".bmp", ImageOutputFormat.Tiff => ".tiff",
+            _ => throw new ArgumentOutOfRangeException(nameof(format)),
         };
-
-        var name = Path.GetFileNameWithoutExtension(inputPath);
-        return Path.Combine(outputDirectory, $"{name}{extension}");
+        return Path.Combine(directory, Path.GetFileNameWithoutExtension(input) + extension);
     }
 
     private static string BuildNonConflictingPath(string path)
@@ -282,138 +354,98 @@ public sealed class ImageProcessingService : IImageProcessingService
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
         var name = Path.GetFileNameWithoutExtension(path);
         var extension = Path.GetExtension(path);
-        var index = 1;
-
         var candidate = path;
-        while (File.Exists(candidate))
-        {
+        for (var index = 1; File.Exists(candidate); index++)
             candidate = Path.Combine(directory, $"{name}_{index}{extension}");
-            index++;
-        }
-
         return candidate;
     }
 
-    private static IImageEncoder GetEncoder(ImageOutputFormat format, int quality)
-    {
-        quality = Math.Clamp(quality, 1, 100);
-        return format switch
-        {
-            ImageOutputFormat.Jpeg => new JpegEncoder { Quality = quality },
-            ImageOutputFormat.Png => new PngEncoder { CompressionLevel = PngCompressionLevel.BestCompression },
-            ImageOutputFormat.Webp => new WebpEncoder { Quality = quality, FileFormat = WebpFileFormatType.Lossy },
-            ImageOutputFormat.Bmp => new BmpEncoder(),
-            ImageOutputFormat.Tiff => new TiffEncoder(),
-            _ => new PngEncoder(),
-        };
-    }
-
-    private static void ApplyAnnotation(IImageProcessingContext context, ImageAnnotation annotation, int imageWidth, int imageHeight)
+    private static void ApplyAnnotation(IMagickImage<byte> image, ImageAnnotation annotation)
     {
         var color = ParseColor(annotation.ColorHex);
-        var thickness = Math.Clamp(annotation.StrokeThickness, 1f, 20f);
+        var thickness = float.IsFinite(annotation.StrokeThickness) ? Math.Clamp(annotation.StrokeThickness, 1f, 20f) : 3f;
+        var rectangle = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, image.Width, image.Height);
+        if (annotation.Type == AnnotationType.Arrow)
+        {
+            var start = NormalizePoint(annotation.X, annotation.Y, image.Width, image.Height);
+            var end = annotation.X2 is float x2 && annotation.Y2 is float y2
+                ? NormalizePoint(x2, y2, image.Width, image.Height)
+                : new SD.PointF(rectangle.Right, rectangle.Bottom);
+            if (start != end)
+                DrawArrow(image, color, thickness, start, end);
+            return;
+        }
+        if (rectangle.Width <= 0 || rectangle.Height <= 0)
+            return;
 
         switch (annotation.Type)
         {
             case AnnotationType.Rectangle:
-                var rectangle = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
-                if (rectangle.Width <= 0 || rectangle.Height <= 0)
-                    return;
-                context.Draw(color, thickness, rectangle);
+                new Drawables().FillColor(MagickColors.Transparent).StrokeColor(color).StrokeWidth(thickness)
+                    .Rectangle(rectangle.Left, rectangle.Top, rectangle.Right - 1, rectangle.Bottom - 1).Draw(image);
                 break;
-
-            case AnnotationType.Arrow:
-                if (annotation.X2 is float x2 && annotation.Y2 is float y2)
-                {
-                    var start = NormalizePoint(annotation.X, annotation.Y, imageWidth, imageHeight);
-                    var end = NormalizePoint(x2, y2, imageWidth, imageHeight);
-                    if (start == end)
-                        return;
-
-                    DrawArrow(context, color, thickness, start, end);
-                }
-                else
-                {
-                    // Backward-compatible fallback: interpret arrow as diagonal of a rectangle.
-                    var fallbackRect = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
-                    if (fallbackRect.Width <= 0 || fallbackRect.Height <= 0)
-                        return;
-                    var start = new PointF(fallbackRect.X, fallbackRect.Y);
-                    var end = new PointF(fallbackRect.Right, fallbackRect.Bottom);
-                    DrawArrow(context, color, thickness, start, end);
-                }
-                break;
-
             case AnnotationType.Text:
-                var textRect = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
-                if (textRect.Width <= 0 || textRect.Height <= 0)
-                    return;
-                var font = SLFonts.SystemFonts.CreateFont("Segoe UI", Math.Clamp(textRect.Height * 0.5f, 12f, 72f), SLFonts.FontStyle.Bold);
-                context.DrawText(annotation.Text, font, color, new PointF(textRect.X, textRect.Y));
+                if (string.IsNullOrEmpty(annotation.Text)) return;
+                var font = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "segoeuib.ttf");
+                var draw = new Drawables().Font(font).FontPointSize(Math.Clamp(rectangle.Height * 0.5, 12, 72))
+                    .TextEncoding(System.Text.Encoding.UTF8).FillColor(color).StrokeColor(MagickColors.Transparent);
+                var metrics = draw.FontTypeMetrics(annotation.Text);
+                draw.Text(rectangle.X, rectangle.Y + (metrics?.Ascent ?? 12), annotation.Text).Draw(image);
                 break;
-
             case AnnotationType.Redaction:
-                var redactionRect = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
-                if (redactionRect.Width <= 0 || redactionRect.Height <= 0)
-                    return;
-                context.Fill(SixLabors.ImageSharp.Color.Black, redactionRect);
+                using (var redaction = new MagickImage(MagickColors.Black, (uint)rectangle.Width, (uint)rectangle.Height))
+                    image.Composite(redaction, rectangle.X, rectangle.Y, CompositeOperator.Copy);
                 break;
-
             case AnnotationType.Blur:
-                var blurRect = NormalizeRect(annotation.X, annotation.Y, annotation.Width, annotation.Height, imageWidth, imageHeight);
-                if (blurRect.Width <= 0 || blurRect.Height <= 0)
-                    return;
-                context.GaussianBlur(12f, blurRect);
+                using (var region = image.CloneArea(rectangle.X, rectangle.Y, (uint)rectangle.Width, (uint)rectangle.Height))
+                {
+                    region.ResetPage();
+                    region.GaussianBlur(0, 12);
+                    image.Composite(region, rectangle.X, rectangle.Y, CompositeOperator.Copy);
+                }
                 break;
         }
     }
 
-    private static Rectangle NormalizeRect(float x, float y, float width, float height, int imageWidth, int imageHeight)
+    private static SD.Rectangle NormalizeRect(float x, float y, float width, float height, uint imageWidth, uint imageHeight)
     {
-        var left = (int)Math.Clamp(x, 0, imageWidth - 1);
-        var top = (int)Math.Clamp(y, 0, imageHeight - 1);
-        var safeWidth = (int)Math.Clamp(width, 0, imageWidth - left);
-        var safeHeight = (int)Math.Clamp(height, 0, imageHeight - top);
-        return new Rectangle(left, top, safeWidth, safeHeight);
+        if (!float.IsFinite(x) || !float.IsFinite(y) || !float.IsFinite(width) || !float.IsFinite(height))
+            return SD.Rectangle.Empty;
+        var left = (int)Math.Clamp(x, 0, imageWidth);
+        var top = (int)Math.Clamp(y, 0, imageHeight);
+        var right = (int)Math.Clamp(x + Math.Max(0, width), left, imageWidth);
+        var bottom = (int)Math.Clamp(y + Math.Max(0, height), top, imageHeight);
+        return SD.Rectangle.FromLTRB(left, top, right, bottom);
     }
 
-    private static PointF NormalizePoint(float x, float y, int imageWidth, int imageHeight)
-    {
-        var safeX = Math.Clamp(x, 0, Math.Max(0, imageWidth - 1));
-        var safeY = Math.Clamp(y, 0, Math.Max(0, imageHeight - 1));
-        return new PointF(safeX, safeY);
-    }
+    private static SD.PointF NormalizePoint(float x, float y, uint width, uint height) => new(
+        float.IsFinite(x) ? Math.Clamp(x, 0, width - 1) : 0,
+        float.IsFinite(y) ? Math.Clamp(y, 0, height - 1) : 0);
 
-    private static void DrawArrow(IImageProcessingContext context, SixLabors.ImageSharp.Color color, float thickness, PointF start, PointF end)
+    private static void DrawArrow(IMagickImage<byte> image, MagickColor color, float thickness, SD.PointF start, SD.PointF end)
     {
-        context.DrawLine(color, thickness, start, end);
-
         var angle = MathF.Atan2(end.Y - start.Y, end.X - start.X);
-        var arrowLength = Math.Clamp(thickness * 6f, 10f, 40f);
-
-        var head1 = new PointF(
-            end.X - arrowLength * MathF.Cos(angle - MathF.PI / 6f),
-            end.Y - arrowLength * MathF.Sin(angle - MathF.PI / 6f));
-        var head2 = new PointF(
-            end.X - arrowLength * MathF.Cos(angle + MathF.PI / 6f),
-            end.Y - arrowLength * MathF.Sin(angle + MathF.PI / 6f));
-
-        context.DrawLine(color, thickness, end, head1);
-        context.DrawLine(color, thickness, end, head2);
+        var length = Math.Clamp(thickness * 6f, 10f, 40f);
+        new Drawables().FillColor(MagickColors.Transparent).StrokeColor(color).StrokeWidth(thickness)
+            .Line(start.X, start.Y, end.X, end.Y)
+            .Line(end.X, end.Y, end.X - length * MathF.Cos(angle - MathF.PI / 6f), end.Y - length * MathF.Sin(angle - MathF.PI / 6f))
+            .Line(end.X, end.Y, end.X - length * MathF.Cos(angle + MathF.PI / 6f), end.Y - length * MathF.Sin(angle + MathF.PI / 6f))
+            .Draw(image);
     }
 
-    private static SixLabors.ImageSharp.Color ParseColor(string colorHex)
+    private static MagickColor ParseColor(string colorHex)
     {
-        if (string.IsNullOrWhiteSpace(colorHex))
-            return SixLabors.ImageSharp.Color.Red;
-
         try
         {
-            return SixLabors.ImageSharp.Color.ParseHex(colorHex.Trim().TrimStart('#'));
+            var hex = colorHex.Trim();
+            if (!hex.StartsWith('#')) hex = "#" + hex;
+            // WPF's editor uses ARGB for eight-digit colors.
+            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+            return new MagickColor(color.R, color.G, color.B, color.A);
         }
-        catch
+        catch (Exception ex) when (ex is FormatException or ArgumentException or NotSupportedException or NullReferenceException)
         {
-            return SixLabors.ImageSharp.Color.Red;
+            return MagickColors.Red;
         }
     }
 }

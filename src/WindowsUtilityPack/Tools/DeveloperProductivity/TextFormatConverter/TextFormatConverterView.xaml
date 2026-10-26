@@ -6,12 +6,12 @@
     <UserControl.Resources>
         <DataTemplate x:Key="TextFormatOptionTemplate" DataType="{x:Type local:TextFormatOption}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Glyph}"
+                <TextBlock AutomationProperties.AutomationId="Glyph" Text="{Binding Glyph}"
                            FontSize="12"
                            FontWeight="SemiBold"
                            Margin="0,0,8,0"
                            VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding DisplayName}"
+                <TextBlock AutomationProperties.AutomationId="DisplayName" Text="{Binding DisplayName}"
                            VerticalAlignment="Center"/>
             </StackPanel>
         </DataTemplate>
@@ -76,21 +76,21 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Button Content="Convert"
+                <Button AutomationProperties.AutomationId="ConvertCommand" Content="Convert"
                         Command="{Binding ConvertCommand}"
                         Style="{StaticResource PrimaryActionButtonStyle}"
                         Margin="0,0,8,0"/>
-                <Button Grid.Column="1"
+                <Button AutomationProperties.AutomationId="FormatCommand" Grid.Column="1"
                         Content="Format Only"
                         Command="{Binding FormatCommand}"
                         Style="{StaticResource SecondaryActionButtonStyle}"
                         Margin="0,0,8,0"/>
-                <Button Grid.Column="2"
+                <Button AutomationProperties.AutomationId="SwapFormatsCommand" Grid.Column="2"
                         Content="Swap"
                         Command="{Binding SwapFormatsCommand}"
                         Style="{StaticResource SecondaryActionButtonStyle}"
                         Margin="0,0,8,0"/>
-                <Button Grid.Column="3"
+                <Button AutomationProperties.AutomationId="ClearAllCommand" Grid.Column="3"
                         Content="Clear All"
                         Command="{Binding ClearAllCommand}"
                         Style="{StaticResource SecondaryActionButtonStyle}"
@@ -104,13 +104,13 @@
                                  Width="120"
                                  Height="8"
                                  VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding BusyMessage}"
+                    <TextBlock AutomationProperties.AutomationId="BusyMessage" Text="{Binding BusyMessage}"
                                Margin="10,0,0,0"
                                Style="{StaticResource MetadataTextStyle}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <Button Grid.Column="6"
+                <Button AutomationProperties.AutomationId="CancelCommand" Grid.Column="6"
                         Content="Cancel"
                         Command="{Binding CancelCommand}"
                         Style="{StaticResource SecondaryActionButtonStyle}"
@@ -141,20 +141,20 @@
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel>
-                                    <TextBlock Text="{Binding LoadedFileName}"
+                                    <TextBlock AutomationProperties.AutomationId="LoadedFileName" Text="{Binding LoadedFileName}"
                                                FontWeight="SemiBold"
                                                Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                    <TextBlock Text="{Binding LoadedFileSummary}"
+                                    <TextBlock AutomationProperties.AutomationId="LoadedFileSummary" Text="{Binding LoadedFileSummary}"
                                                Style="{StaticResource MetadataTextStyle}"
                                                Margin="0,4,0,0"/>
                                 </StackPanel>
 
-                                <Button Grid.Column="1"
+                                <Button AutomationProperties.AutomationId="LoadFileCommand" Grid.Column="1"
                                         Content="Load File"
                                         Command="{Binding LoadFileCommand}"
                                         Style="{StaticResource SecondaryActionButtonStyle}"
                                         Margin="12,0,8,0"/>
-                                <Button Grid.Column="2"
+                                <Button AutomationProperties.AutomationId="ClearFileCommand" Grid.Column="2"
                                         Content="Clear File"
                                         Command="{Binding ClearFileCommand}"
                                         Style="{StaticResource SecondaryActionButtonStyle}"/>
@@ -177,14 +177,14 @@
                                            Text="Target format"
                                            Style="{StaticResource MetadataTextStyle}"/>
 
-                                <ComboBox Grid.Row="1"
+                                <ComboBox AutomationProperties.AutomationId="SelectedSourceFormat" Grid.Row="1"
                                           Margin="0,6,8,0"
                                           ItemsSource="{Binding SourceFormats}"
                                           ItemTemplate="{StaticResource TextFormatOptionTemplate}"
                                           SelectedValuePath="Kind"
                                           SelectedValue="{Binding SelectedSourceFormat}"
                                           IsEnabled="{Binding IsManualSourceSelectionEnabled}"/>
-                                <ComboBox Grid.Row="1"
+                                <ComboBox AutomationProperties.AutomationId="SelectedTargetFormat" Grid.Row="1"
                                           Grid.Column="1"
                                           Margin="8,6,0,0"
                                           ItemsSource="{Binding TargetFormats}"
@@ -192,7 +192,7 @@
                                           SelectedValuePath="Kind"
                                           SelectedValue="{Binding SelectedTargetFormat}"/>
 
-                                <CheckBox Grid.Row="2"
+                                <CheckBox AutomationProperties.AutomationId="AutoDetectSource" Grid.Row="2"
                                           Grid.ColumnSpan="2"
                                           Margin="0,10,0,0"
                                           Content="Auto-detect source format when possible"
@@ -205,7 +205,7 @@
                                     Padding="10,8"
                                     Background="{DynamicResource AccentCardBackgroundBrush}">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding DirectionMessage}"
+                                    <TextBlock AutomationProperties.AutomationId="DirectionMessage" Text="{Binding DirectionMessage}"
                                                TextWrapping="Wrap">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -224,7 +224,7 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <TextBlock Text="{Binding EffectiveSourceFormatLabel, StringFormat=Effective source: {0}}"
+                                    <TextBlock AutomationProperties.AutomationId="EffectiveSourceFormatLabel" Text="{Binding EffectiveSourceFormatLabel, StringFormat=Effective source: {0}}"
                                                Style="{StaticResource MetadataTextStyle}"
                                                Margin="0,6,0,0"/>
                                 </StackPanel>
@@ -252,13 +252,13 @@
 
                                 <TextBlock Text="Direct Input"
                                            Style="{StaticResource PanelHeaderTextStyle}"/>
-                                <Button Grid.Column="1"
+                                <Button AutomationProperties.AutomationId="PasteCommand" Grid.Column="1"
                                         Content="Paste"
                                         Command="{Binding PasteCommand}"
                                         Style="{StaticResource SecondaryActionButtonStyle}"/>
                             </Grid>
 
-                            <TextBox Grid.Row="1"
+                            <TextBox AutomationProperties.AutomationId="DirectInputText" Grid.Row="1"
                                      Margin="0,12,0,0"
                                      Text="{Binding DirectInputText, UpdateSourceTrigger=PropertyChanged}"
                                      AcceptsReturn="True"
@@ -285,7 +285,7 @@
                                            Style="{StaticResource MetadataTextStyle}"
                                            Visibility="{Binding HasLoadedFile, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                                <TextBlock Grid.Column="1"
+                                <TextBlock AutomationProperties.AutomationId="DirectInputCounterText" Grid.Column="1"
                                            Text="{Binding DirectInputCounterText}"
                                            Style="{StaticResource MetadataTextStyle}"/>
                             </Grid>
@@ -304,7 +304,7 @@
                             <TextBlock Text="Loaded File Preview"
                                        Style="{StaticResource PanelHeaderTextStyle}"/>
 
-                            <TextBox Grid.Row="1"
+                            <TextBox AutomationProperties.AutomationId="LoadedFilePreviewText" Grid.Row="1"
                                      Margin="0,12,0,0"
                                      Text="{Binding LoadedFilePreviewText, Mode=OneWay}"
                                      IsReadOnly="True"
@@ -342,7 +342,7 @@
                         <StackPanel>
                             <TextBlock Text="Result Preview"
                                        Style="{StaticResource PanelHeaderTextStyle}"/>
-                            <TextBlock Text="{Binding ResultSummary}"
+                            <TextBlock AutomationProperties.AutomationId="ResultSummary" Text="{Binding ResultSummary}"
                                        Style="{StaticResource MetadataTextStyle}"
                                        Margin="0,6,0,0"/>
                         </StackPanel>
@@ -350,15 +350,15 @@
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
                                     HorizontalAlignment="Right">
-                            <Button Content="Copy"
+                            <Button AutomationProperties.AutomationId="CopyResultCommand" Content="Copy"
                                     Command="{Binding CopyResultCommand}"
                                     Style="{StaticResource SecondaryActionButtonStyle}"
                                     Margin="0,0,8,0"/>
-                            <Button Content="Save"
+                            <Button AutomationProperties.AutomationId="SaveResultCommand" Content="Save"
                                     Command="{Binding SaveResultCommand}"
                                     Style="{StaticResource SecondaryActionButtonStyle}"
                                     Margin="0,0,8,0"/>
-                            <Button Content="Open Preview"
+                            <Button AutomationProperties.AutomationId="OpenPreviewCommand" Content="Open Preview"
                                     Command="{Binding OpenPreviewCommand}"
                                     Style="{StaticResource PrimaryActionButtonStyle}"/>
                         </StackPanel>
@@ -369,7 +369,7 @@
                             CornerRadius="6"
                             Padding="10,8"
                             Background="{DynamicResource AccentCardBackgroundBrush}">
-                        <TextBlock Text="{Binding ResultStatusMessage}"
+                        <TextBlock AutomationProperties.AutomationId="ResultStatusMessage" Text="{Binding ResultStatusMessage}"
                                    TextWrapping="Wrap">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">

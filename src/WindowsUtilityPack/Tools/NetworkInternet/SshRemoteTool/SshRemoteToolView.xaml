@@ -20,11 +20,11 @@
             <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}">
                 <DockPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                        <Button Content="New" Command="{Binding NewProfileCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        <Button AutomationProperties.AutomationId="RefreshCommand" Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        <Button AutomationProperties.AutomationId="NewProfileCommand" Content="New" Command="{Binding NewProfileCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                     </StackPanel>
 
-                    <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile, Mode=TwoWay}" DisplayMemberPath="Name"/>
+                    <ListBox AutomationProperties.AutomationId="SelectedProfile" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile, Mode=TwoWay}" DisplayMemberPath="Name"/>
                 </DockPanel>
             </Border>
 
@@ -45,32 +45,32 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Profile Name"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox AutomationProperties.AutomationId="Name" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Host"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox AutomationProperties.AutomationId="Host" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Port"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox AutomationProperties.AutomationId="Port" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Username"/>
-                    <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox AutomationProperties.AutomationId="Username" Grid.Row="3" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="Private Key"/>
-                    <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,12" Text="{Binding PrivateKeyPath, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox AutomationProperties.AutomationId="PrivateKeyPath" Grid.Row="4" Grid.Column="1" Margin="0,0,0,12" Text="{Binding PrivateKeyPath, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button Content="Save Profile" Command="{Binding SaveProfileCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
-                        <Button Content="Delete" Command="{Binding DeleteProfileCommand}" Margin="0,0,8,0" Style="{StaticResource DangerActionButtonStyle}"/>
-                        <Button Content="Test Connection" Command="{Binding TestConnectionCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                        <Button Content="Copy SSH Command" Command="{Binding CopyCommandCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        <Button AutomationProperties.AutomationId="SaveProfileCommand" Content="Save Profile" Command="{Binding SaveProfileCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                        <Button AutomationProperties.AutomationId="DeleteProfileCommand" Content="Delete" Command="{Binding DeleteProfileCommand}" Margin="0,0,8,0" Style="{StaticResource DangerActionButtonStyle}"/>
+                        <Button AutomationProperties.AutomationId="TestConnectionCommand" Content="Test Connection" Command="{Binding TestConnectionCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                        <Button AutomationProperties.AutomationId="CopyCommandCommand" Content="Copy SSH Command" Command="{Binding CopyCommandCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                     </StackPanel>
                 </Grid>
             </Border>
         </Grid>
 
         <Border Grid.Row="2" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

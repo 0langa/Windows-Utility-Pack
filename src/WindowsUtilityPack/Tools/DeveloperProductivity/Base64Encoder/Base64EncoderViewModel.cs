@@ -8,12 +8,13 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.DeveloperProductivity.Base64Encoder;
 
-public sealed class Base64EncoderViewModel : ViewModelBase
+public sealed class Base64EncoderViewModel : ViewModelBase, IDisposable, IViewLifetime
 {
     private readonly IClipboardService _clipboardService;
     private CancellationTokenSource? _debounceCts;
     private const int DebounceMs = 300;
     private bool _updating;
+    private bool _disposed;
 
     private string _mode = "Base64";
     private string _inputText = string.Empty;
@@ -99,7 +100,7 @@ public sealed class Base64EncoderViewModel : ViewModelBase
 
     private async void ScheduleConvert()
     {
-        if (_updating) return;
+        if (_updating || _disposed) return;
         _debounceCts?.Cancel();
         _debounceCts?.Dispose();
         var cts = new CancellationTokenSource();
@@ -111,10 +112,14 @@ public sealed class Base64EncoderViewModel : ViewModelBase
         }
         catch (OperationCanceledException) { }
         catch (Exception) { }
+        finally { if (ReferenceEquals(_debounceCts, cts)) _debounceCts = null; cts.Dispose(); }
     }
 
     private void Convert()
     {
+        if (_disposed) return;
+        if (InputText.Length > 1_000_000) { OutputText = ""; StatusMessage = "Input is limited to 1,000,000 characters."; return; }
+        OnPropertyChanged(nameof(IsBase64Mode));
         if (string.IsNullOrEmpty(InputText))
         {
             OutputText = string.Empty;
@@ -146,14 +151,14 @@ public sealed class Base64EncoderViewModel : ViewModelBase
 
     private string EncodeBase64(string input)
     {
-        var enc = Encoding == "ASCII" ? System.Text.Encoding.ASCII : System.Text.Encoding.UTF8;
+        var enc = Encoding == "ASCII" ? System.Text.Encoding.GetEncoding("us-ascii", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback) : new UTF8Encoding(false, true);
         return System.Convert.ToBase64String(enc.GetBytes(input));
     }
 
     private string DecodeBase64(string input)
     {
         var bytes = System.Convert.FromBase64String(input);
-        var enc = Encoding == "ASCII" ? System.Text.Encoding.ASCII : System.Text.Encoding.UTF8;
+        var enc = Encoding == "ASCII" ? System.Text.Encoding.GetEncoding("us-ascii", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback) : new UTF8Encoding(false, true);
         return enc.GetString(bytes);
     }
 
@@ -173,4 +178,7 @@ public sealed class Base64EncoderViewModel : ViewModelBase
         }
         Convert();
     }
+    public void Activate() { }
+    public void Deactivate() { _debounceCts?.Cancel(); }
+    public void Dispose() { _disposed = true; _debounceCts?.Cancel(); _debounceCts?.Dispose(); _debounceCts = null; }
 }

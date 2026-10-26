@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Security.Cryptography;
+using WindowsUtilityPack.Services.FileTools;
 using System.Windows;
 using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
@@ -22,7 +22,7 @@ public class ShredderFileEntry : ViewModelBase
     public string Status      { get => _status;      set => SetProperty(ref _status, value); } // Queued, Shredding, Done, Error
 }
 
-public class SecureFileShredderViewModel : ViewModelBase
+public class SecureFileShredderViewModel : ViewModelBase, INavigationGuard
 {
     private ObservableCollection<ShredderFileEntry> _files = [];
     private ShredderFileEntry? _selectedFile;
@@ -80,11 +80,15 @@ public class SecureFileShredderViewModel : ViewModelBase
     public AsyncRelayCommand ShredCommand          { get; }
 
     private readonly IUserDialogService _dialog;
+    private CancellationTokenSource? _shredCancellation;
+    public RelayCommand CancelCommand { get; }
+    public bool CanNavigateAway() => !IsShredding;
 
     public SecureFileShredderViewModel(IUserDialogService dialog)
     {
         _dialog              = dialog;
-        AddFilesCommand      = new AsyncRelayCommand(AddFilesAsync);
+        AddFilesCommand      = new AsyncRelayCommand(AddFilesAsync, () => !IsShredding, ex => _dialog.ShowError("Cannot add files", ex.Message));
+        CancelCommand = new RelayCommand(() => _shredCancellation?.Cancel(), () => IsShredding);
         RemoveSelectedCommand = new RelayCommand(RemoveSelected, () => SelectedFile != null && !IsShredding);
         ClearAllCommand      = new RelayCommand(ClearAll,       () => Files.Count > 0 && !IsShredding);
         ShredCommand         = new AsyncRelayCommand(ShredAsync, () => Files.Count > 0 && !IsShredding);
@@ -141,19 +145,21 @@ public class SecureFileShredderViewModel : ViewModelBase
 
     private async Task ShredAsync()
     {
-        if (Files.Count == 0) return;
+        if (Files.Count == 0 || IsShredding) return;
+        if (PassCount is < 1 or > 7) { _dialog.ShowError("Invalid passes", "Choose 1 to 7 overwrite passes."); return; }
+        var passes = PassCount;
 
         var passLabel = PassCount switch
         {
             1 => "1-pass (Quick)",
             3 => "3-pass (Standard)",
-            7 => "7-pass (DoD 5220.22-M)",
+            7 => "7-pass",
             _ => $"{PassCount}-pass"
         };
 
         var confirmed = _dialog.Confirm(
             "Confirm Shredding",
-            $"This will permanently destroy {Files.Count} file(s) using {passLabel} overwrite.\n\nThis action CANNOT be undone. Continue?");
+            $"This will overwrite and delete {Files.Count} file(s) using {passLabel} overwrite.\n\nThis action cannot be undone. SSD remnants, snapshots and backups may survive. Continue?");
 
         if (!confirmed) return;
 
@@ -164,6 +170,9 @@ public class SecureFileShredderViewModel : ViewModelBase
         var filesToShred = Files.ToList();
         int total        = filesToShred.Count;
         int done         = 0;
+        int failed = 0;
+        using var cancellation = new CancellationTokenSource();
+        _shredCancellation = cancellation;
 
         try
         {
@@ -171,6 +180,7 @@ public class SecureFileShredderViewModel : ViewModelBase
             {
                 foreach (var entry in filesToShred)
                 {
+                    cancellation.Token.ThrowIfCancellationRequested();
                     RunOnUi(() =>
                     {
                         entry.Status = "Shredding";
@@ -179,15 +189,21 @@ public class SecureFileShredderViewModel : ViewModelBase
 
                     try
                     {
-                        ShredFile(entry.FilePath, PassCount);
+                        FileOverwriteService.OverwriteAndDelete(entry.FilePath, passes, cancellation.Token);
 
                         RunOnUi(() =>
                         {
                             entry.Status = "Done";
                         });
                     }
+                    catch (OperationCanceledException)
+                    {
+                        RunOnUi(() => entry.Status = "Canceled; file may be partially overwritten" );
+                        throw;
+                    }
                     catch (Exception ex)
                     {
+                        failed++;
                         RunOnUi(() =>
                         {
                             entry.Status = $"Error: {ex.Message}";
@@ -200,78 +216,28 @@ public class SecureFileShredderViewModel : ViewModelBase
                 }
             });
 
-            StatusMessage = $"Shredding complete. {done}/{total} file(s) processed.";
+            StatusMessage = $"Deleted {done - failed}/{total} file(s); {failed} failed. See each file for details.";
             CurrentFile   = string.Empty;
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = $"Canceled. Deleted {done - failed}/{total} files; the current file may be partially overwritten.";
         }
         finally
         {
+            _shredCancellation = null;
+            CurrentFile = string.Empty;
             IsShredding = false;
         }
     }
 
-    private static void ShredFile(string path, int passes)
-    {
-        if (!File.Exists(path)) return;
-
-        var fileInfo = new FileInfo(path);
-        long length  = fileInfo.Length;
-
-        // Rename before deletion for additional obscurity
-        var activePath = path;
-        var dir = Path.GetDirectoryName(path) ?? string.Empty;
-        var randomName = Path.Combine(dir, Path.GetRandomFileName());
-        try
-        {
-            File.Move(path, randomName);
-            activePath = randomName;
-        }
-        catch
-        {
-            // Keep original path if rename is not possible (locked/permission/cross-volume edge case).
-            activePath = path;
-        }
-
-        using (var stream = new FileStream(activePath, FileMode.Open, FileAccess.Write, FileShare.None))
-        {
-            for (int pass = 0; pass < passes; pass++)
-            {
-                stream.Seek(0, SeekOrigin.Begin);
-                long remaining = length;
-                const int bufSize = 65536;
-                var buffer = new byte[bufSize];
-
-                while (remaining > 0)
-                {
-                    int toWrite = (int)Math.Min(bufSize, remaining);
-                    RandomNumberGenerator.Fill(buffer.AsSpan(0, toWrite));
-                    stream.Write(buffer, 0, toWrite);
-                    remaining -= toWrite;
-                }
-
-                stream.Flush();
-            }
-
-            // Final zero-out pass
-            stream.Seek(0, SeekOrigin.Begin);
-            var zeros = new byte[Math.Min(65536, length)];
-            long rem  = length;
-            while (rem > 0)
-            {
-                int toWrite = (int)Math.Min(zeros.Length, rem);
-                stream.Write(zeros, 0, toWrite);
-                rem -= toWrite;
-            }
-
-            stream.Flush();
-        }
-
-        File.Delete(activePath);
-    }
+    private static void ShredFile(string path, int passes) => FileOverwriteService.OverwriteAndDelete(path, passes);
 
     private static void RunOnUi(Action action)
     {
         var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher is null || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+        if (dispatcher is null) { action(); return; }
+        if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
         {
             return;
         }

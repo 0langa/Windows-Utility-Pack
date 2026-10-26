@@ -718,7 +718,17 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
                 return;
             }
 
-            LoadPreview(OutputPath);
+            // Keep the original image beneath editable overlays after exporting a copy.
+            // Replacing the source explicitly flattens the document into a new baseline.
+            if (string.Equals(Path.GetFullPath(ImagePath), Path.GetFullPath(OutputPath), StringComparison.OrdinalIgnoreCase))
+            {
+                LoadPreview(ImagePath);
+                Annotations.Clear();
+                SelectedAnnotation = null;
+                _undoStack.Clear();
+                _redoStack.Clear();
+                NotifyHistoryChanged();
+            }
             StatusMessage = $"Annotated image saved: {OutputPath}";
         }
         catch (Exception ex)
@@ -774,6 +784,7 @@ public sealed class ScreenshotAnnotatorViewModel : ViewModelBase
 
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
+        bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
         bitmap.UriSource = new Uri(path, UriKind.Absolute);
         bitmap.EndInit();

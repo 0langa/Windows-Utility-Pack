@@ -18,14 +18,14 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Host:" Foreground="{DynamicResource SecondaryTextBrush}"
                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Grid.Column="1"
+                        <TextBox AutomationProperties.AutomationId="Host" Grid.Column="1"
                                  Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
                                  IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
                                  Padding="8,6" Margin="0,0,12,0"
                                  AutomationProperties.Name="Target host"/>
                         <TextBlock Grid.Column="2" Text="Port range:" Foreground="{DynamicResource SecondaryTextBrush}"
                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Grid.Column="3"
+                        <TextBox AutomationProperties.AutomationId="PortRangeText" Grid.Column="3"
                                  Text="{Binding PortRangeText, UpdateSourceTrigger=PropertyChanged}"
                                  IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
                                  MinWidth="160"
@@ -44,7 +44,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Timeout (ms):" Foreground="{DynamicResource SecondaryTextBrush}"
                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Grid.Column="1"
+                        <TextBox AutomationProperties.AutomationId="TimeoutMs" Grid.Column="1"
                                  Text="{Binding TimeoutMs, UpdateSourceTrigger=LostFocus}"
                                  IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
                                  MinWidth="80"
@@ -52,17 +52,17 @@
                                  AutomationProperties.Name="Timeout milliseconds"/>
                         <TextBlock Grid.Column="2" Text="Concurrency:" Foreground="{DynamicResource SecondaryTextBrush}"
                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Grid.Column="3"
+                        <TextBox AutomationProperties.AutomationId="Concurrency" Grid.Column="3"
                                  Text="{Binding Concurrency, UpdateSourceTrigger=LostFocus}"
                                  IsEnabled="{Binding IsScanning, Converter={StaticResource BoolNegationConverter}}"
                                  MinWidth="80"
                                  Padding="8,6" Margin="0,0,16,0"
                                  AutomationProperties.Name="Concurrency limit"/>
-                        <Button Grid.Column="5" Content="Scan"
+                        <Button AutomationProperties.AutomationId="ScanCommand" Grid.Column="5" Content="Scan"
                                 Command="{Binding ScanCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}"
                                 Margin="0,0,8,0"/>
-                        <Button Grid.Column="6" Content="Stop"
+                        <Button AutomationProperties.AutomationId="StopCommand" Grid.Column="6" Content="Stop"
                                 Command="{Binding StopCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
                     </Grid>
@@ -73,7 +73,7 @@
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12"
                     Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}">
                 <StackPanel>
-                    <TextBlock Text="{Binding StatusMessage}"
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                                Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6"/>
                     <ProgressBar Value="{Binding Progress}" Minimum="0" Maximum="100" Height="8"/>
                 </StackPanel>
@@ -83,14 +83,14 @@
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="Copy Open Ports"
+                        <Button AutomationProperties.AutomationId="CopyOpenPortsCommand" DockPanel.Dock="Right" Content="Copy Open Ports"
                                 Command="{Binding CopyOpenPortsCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
                         <TextBlock Text="Open Ports" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                    VerticalAlignment="Center"/>
                     </DockPanel>
-                    <DataGrid ItemsSource="{Binding Results}"
+                    <DataGrid AutomationProperties.AutomationId="Results" ItemsSource="{Binding Results}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               HeadersVisibility="Column"
@@ -119,7 +119,7 @@
             </Border>
 
             <!-- Status bar when not scanning -->
-            <TextBlock Text="{Binding StatusMessage}"
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                        Visibility="{Binding IsScanning, Converter={StaticResource InvertedBoolToVisibilityConverter}}"
                        Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
 

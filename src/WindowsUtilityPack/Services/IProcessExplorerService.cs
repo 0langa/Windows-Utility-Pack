@@ -13,6 +13,10 @@ public interface IProcessExplorerService
     Task<string> BuildDetailsAsync(int processId, CancellationToken cancellationToken = default);
 
     Task<bool> TryTerminateAsync(int processId, CancellationToken cancellationToken = default);
+
+    // Implementations without identity revalidation must fail closed.
+    Task<bool> TryTerminateAsync(ProcessSnapshot expected, CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
 }
 
 /// <summary>
@@ -95,6 +99,34 @@ public sealed class ProcessExplorerService : IProcessExplorerService
                 return true;
             }
             catch
+            {
+                return false;
+            }
+        }, cancellationToken);
+    }
+
+    public Task<bool> TryTerminateAsync(ProcessSnapshot expected, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (expected.ProcessId <= 4 || expected.ProcessId == Environment.ProcessId || expected.StartTimeLocal is null)
+                return false;
+            try
+            {
+                using var process = Process.GetProcessById(expected.ProcessId);
+                // Pin the process handle before checking identity, preventing PID reuse at Kill.
+                _ = process.Handle;
+                if (process.StartTime != expected.StartTimeLocal
+                    || !string.Equals(process.ProcessName, expected.Name, StringComparison.OrdinalIgnoreCase))
+                    return false;
+                cancellationToken.ThrowIfCancellationRequested();
+                process.Kill(entireProcessTree: false);
+                return true;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
             {
                 return false;
             }

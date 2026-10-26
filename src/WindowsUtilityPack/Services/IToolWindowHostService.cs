@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using WindowsUtilityPack.Tools;
+using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Services;
 
@@ -14,6 +15,7 @@ public interface IToolWindowHostService
     int OpenWindowCount { get; }
 
     void CloseAll();
+    bool CanCloseAll() => true;
 }
 
 /// <summary>
@@ -35,6 +37,7 @@ public sealed class ToolWindowHostService : IToolWindowHostService
     }
 
     public int OpenWindowCount => _openWindows.Count;
+    public bool CanCloseAll() => _openWindows.Values.All(host => host.CanClose());
 
     public bool TryOpenOrActivate(string toolKey, out string message)
     {
@@ -75,7 +78,6 @@ public sealed class ToolWindowHostService : IToolWindowHostService
             host.Close();
         }
 
-        _openWindows.Clear();
     }
 }
 
@@ -93,6 +95,7 @@ public interface IToolWindowHost
     void Activate();
 
     void Close();
+    bool CanClose() => true;
 }
 
 /// <summary>
@@ -122,6 +125,8 @@ public sealed class ToolWindowHostFactory : IToolWindowHostFactory
             Background = Application.Current.MainWindow?.Background,
         };
 
+        window.SetResourceReference(Control.ForegroundProperty, "PrimaryTextBrush");
+
         if (Application.Current.MainWindow is { IsLoaded: true } owner)
         {
             window.Owner = owner;
@@ -138,7 +143,12 @@ internal sealed class ToolWindowHost : IToolWindowHost
     public ToolWindowHost(Window window)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
-        _window.Closed += (_, _) => Closed?.Invoke(this, EventArgs.Empty);
+        _window.Closing += (_, e) => { if (!CanClose()) e.Cancel = true; };
+        _window.Closed += (_, _) =>
+        {
+            if ((_window.Content as ContentControl)?.Content is IDisposable disposable) disposable.Dispose();
+            Closed?.Invoke(this, EventArgs.Empty);
+        };
     }
 
     public event EventHandler? Closed;
@@ -150,4 +160,5 @@ internal sealed class ToolWindowHost : IToolWindowHost
     public void Activate() => _window.Activate();
 
     public void Close() => _window.Close();
+    public bool CanClose() => (_window.Content as ContentControl)?.Content is not INavigationGuard guard || guard.CanNavigateAway();
 }

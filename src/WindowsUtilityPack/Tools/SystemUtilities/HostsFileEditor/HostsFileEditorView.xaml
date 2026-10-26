@@ -19,22 +19,22 @@
             <!-- Action toolbar -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="12" Margin="0,0,0,8">
                 <WrapPanel Orientation="Horizontal">
-                    <Button Content="Load"   Style="{StaticResource SecondaryActionButtonStyle}"
+                    <Button AutomationProperties.AutomationId="LoadCommand" Content="Load"   Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding LoadCommand}"         Margin="0,0,8,0"/>
-                    <Button Content="Save"   Style="{StaticResource PrimaryActionButtonStyle}"
+                    <Button AutomationProperties.AutomationId="SaveCommand" Content="Save"   Style="{StaticResource PrimaryActionButtonStyle}"
                             Command="{Binding SaveCommand}"         Margin="0,0,8,0"/>
-                    <Button Content="Restore Backup"   Style="{StaticResource SecondaryActionButtonStyle}"
+                    <Button AutomationProperties.AutomationId="RestoreBackupCommand" Content="Restore Backup"   Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding RestoreBackupCommand}"         Margin="0,0,8,0"/>
-                    <Button Content="Toggle Selected" Style="{StaticResource SecondaryActionButtonStyle}"
+                    <Button AutomationProperties.AutomationId="ToggleEntryCommand" Content="Toggle Selected" Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding ToggleEntryCommand}"  Margin="0,0,8,0"/>
-                    <Button Content="Add Blocklist Presets" Style="{StaticResource SecondaryActionButtonStyle}"
+                    <Button AutomationProperties.AutomationId="AddBlocklistCommand" Content="Add Blocklist Presets" Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding AddBlocklistCommand}"/>
                 </WrapPanel>
             </Border>
 
             <!-- DataGrid -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="0" Margin="0,0,0,8">
-                <DataGrid ItemsSource="{Binding Entries}"
+                <DataGrid AutomationProperties.AutomationId="SelectedEntry" ItemsSource="{Binding Entries}"
                           SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
@@ -82,7 +82,7 @@
                             <ColumnDefinition Width="8"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0"
+                        <TextBox AutomationProperties.AutomationId="NewIp" Grid.Column="0"
                                  Text="{Binding NewIp, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="6,4" VerticalContentAlignment="Center">
                             <TextBox.Style>
@@ -103,13 +103,13 @@
                                 </Style>
                             </TextBox.Style>
                         </TextBox>
-                        <TextBox Grid.Column="2"
+                        <TextBox AutomationProperties.AutomationId="NewHostname" Grid.Column="2"
                                  Text="{Binding NewHostname, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="6,4" VerticalContentAlignment="Center"/>
-                        <TextBox Grid.Column="4"
+                        <TextBox AutomationProperties.AutomationId="NewComment" Grid.Column="4"
                                  Text="{Binding NewComment, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="6,4" VerticalContentAlignment="Center"/>
-                        <Button  Grid.Column="6"
+                        <Button AutomationProperties.AutomationId="AddEntryCommand"  Grid.Column="6"
                                  Content="Add"
                                  Style="{StaticResource PrimaryActionButtonStyle}"
                                  Command="{Binding AddEntryCommand}"/>
@@ -129,13 +129,13 @@
 
             <!-- Delete button row -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="12" Margin="0,0,0,8">
-                <Button Content="Delete Selected" Style="{StaticResource SecondaryActionButtonStyle}"
+                <Button AutomationProperties.AutomationId="DeleteEntryCommand" Content="Delete Selected" Style="{StaticResource SecondaryActionButtonStyle}"
                         Command="{Binding DeleteEntryCommand}" HorizontalAlignment="Left"/>
             </Border>
 
             <!-- Status bar -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6">
-                <TextBlock Text="{Binding StatusMessage}"
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
             </Border>
 

@@ -5,13 +5,57 @@ using WindowsUtilityPack.Services;
 using WindowsUtilityPack.Services.ImageTools;
 using WindowsUtilityPack.Tools.ImageTools.ScreenshotAnnotator;
 using Xunit;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using ImageMagick;
 
 namespace WindowsUtilityPack.Tests.ViewModels;
 
 public sealed class ScreenshotAnnotatorViewModelTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Save_KeepsOneEditableLayerOrFlattensWhenReplacingSource(bool replaceSource)
+    {
+        var input = CreateTestImageFile();
+        var output = replaceSource ? input : Path.ChangeExtension(input, ".annotated.png");
+        try
+        {
+            var vm = new ScreenshotAnnotatorViewModel(new ImageProcessingService(), new TestClipboardService(),
+                new StubQuickCaptureStateService { LastCapturePath = input }) { OutputPath = output };
+            vm.AnnotationType = "Rectangle";
+            vm.X = 20; vm.Y = 20; vm.Width = 50; vm.Height = 30;
+            vm.AnnotationColor = "#FF0000";
+            vm.AddAnnotationCommand.Execute(null);
+            vm.SaveAnnotatedImageCommand.Execute(null);
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (vm.IsBusy && DateTime.UtcNow < deadline) await Task.Delay(10);
+            Assert.False(vm.IsBusy);
+            Assert.StartsWith("Annotated image saved:", vm.StatusMessage);
+            var pixel = new byte[4];
+            var normalized = new FormatConvertedBitmap(vm.PreviewImage!, PixelFormats.Bgra32, null, 0);
+            normalized.CopyPixels(new System.Windows.Int32Rect(20, 25, 1, 1), pixel, 4, 0);
+            if (replaceSource)
+            {
+                Assert.Empty(vm.Annotations);
+                Assert.Null(vm.SelectedAnnotation);
+                Assert.False(vm.CanUndo);
+                Assert.True(pixel[2] > 200 && pixel[1] < 30);
+            }
+            else
+            {
+                Assert.Single(vm.Annotations);
+                Assert.Equal(0xC0, pixel[0]);
+                Assert.Equal(0x7A, pixel[1]);
+                Assert.Equal(0x2C, pixel[2]);
+            }
+        }
+        finally
+        {
+            File.Delete(input);
+            if (!replaceSource) File.Delete(output);
+        }
+    }
+
     [Fact]
     public void SelectedAnnotation_PopulatesEditorFields()
     {
@@ -436,10 +480,12 @@ public sealed class ScreenshotAnnotatorViewModelTests
             var result = await service.AnnotateAsync(inputPath, outputPath, annotations, ImageOutputFormat.Png, 90, CancellationToken.None);
             Assert.True(result.Success, result.ErrorMessage);
 
-            using var image = Image.Load<Rgba32>(outputPath);
+            using var image = new MagickImage(outputPath);
+            using var pixels = image.GetPixels();
             // Midpoint (approx) should be influenced by the arrow stroke.
-            var pixel = image[60, 40];
-            Assert.True(pixel.R > 150, $"Expected red-ish pixel at midpoint but got R={pixel.R} G={pixel.G} B={pixel.B}");
+            var pixel = pixels.GetPixel(60, 40).ToColor()!;
+            Assert.True(pixel.R > 150 && pixel.G < 100 && pixel.B < 100,
+                $"Expected red pixel at midpoint but got R={pixel.R} G={pixel.G} B={pixel.B}");
         }
         finally
         {

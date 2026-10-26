@@ -11,8 +11,7 @@ namespace WindowsUtilityPack.Services.Storage;
 public class SnapshotService : ISnapshotService
 {
     private static readonly string SnapshotDirectory = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "WindowsUtilityPack",
+        AppDataPaths.LocalDirectory,
         "Snapshots");
 
     private static readonly JsonSerializerOptions JsonOptions = new()

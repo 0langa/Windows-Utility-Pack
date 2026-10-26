@@ -10,6 +10,7 @@ public interface INavigationService
 {
     /// <summary>The currently displayed view-model, or null if none.</summary>
     object? CurrentView { get; }
+    string? CurrentToolKey => null;
 
     /// <summary>Raised whenever <see cref="CurrentView"/> changes.</summary>
     event EventHandler? CurrentViewChanged;

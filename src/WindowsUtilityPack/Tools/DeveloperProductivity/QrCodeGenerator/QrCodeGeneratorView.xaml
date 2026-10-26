@@ -28,82 +28,82 @@
                     </Border>
 
                     <TextBlock Text="URL" Style="{StaticResource PanelHeaderTextStyle}"/>
-                    <TextBox Margin="0,4,0,0" Padding="8,6" Text="{Binding UrlInput, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource ErrorBrush}" Text="{Binding ValidationMessage}" TextWrapping="Wrap"/>
-                    <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource SecondaryTextBrush}" Text="{Binding NormalizedUrl}" TextWrapping="Wrap"/>
+                    <TextBox AutomationProperties.AutomationId="UrlInput" Margin="0,4,0,0" Padding="8,6" Text="{Binding UrlInput, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock AutomationProperties.AutomationId="ValidationMessage" Margin="0,8,0,0" Foreground="{DynamicResource ErrorBrush}" Text="{Binding ValidationMessage}" TextWrapping="Wrap"/>
+                    <TextBlock AutomationProperties.AutomationId="NormalizedUrl" Margin="0,6,0,0" Foreground="{DynamicResource SecondaryTextBrush}" Text="{Binding NormalizedUrl}" TextWrapping="Wrap"/>
 
                     <WrapPanel Margin="0,12,0,0">
-                        <Button Content="Generate" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding GenerateCommand}" Margin="0,0,8,8"/>
-                        <Button Content="Open URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenUrlCommand}" Margin="0,0,8,8"/>
-                        <Button Content="Copy URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyUrlCommand}" Margin="0,0,8,8"/>
-                        <Button Content="Clear" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="GenerateCommand" Content="Generate" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding GenerateCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="OpenUrlCommand" Content="Open URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenUrlCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="CopyUrlCommand" Content="Copy URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyUrlCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="ClearCommand" Content="Clear" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearCommand}" Margin="0,0,8,8"/>
                     </WrapPanel>
 
                     <Separator Margin="0,6,0,10"/>
 
                     <TextBlock Text="Style Preset" Style="{StaticResource PanelHeaderTextStyle}"/>
-                    <ComboBox Margin="0,4,0,0" SelectedItem="{Binding SelectedPreset}" ItemsSource="{Binding Presets}"/>
+                    <ComboBox AutomationProperties.AutomationId="SelectedPreset" Margin="0,4,0,0" SelectedItem="{Binding SelectedPreset}" ItemsSource="{Binding Presets}"/>
 
                     <UniformGrid Columns="2" Margin="0,12,0,0">
                         <StackPanel Margin="0,0,8,8">
                             <TextBlock Text="Foreground" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding ForegroundHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="ForegroundHex" Text="{Binding ForegroundHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Background" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding BackgroundHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="BackgroundHex" Text="{Binding BackgroundHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,8,8">
                             <TextBlock Text="Frame Color" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding FrameHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="FrameHex" Text="{Binding FrameHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Caption Color" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding CaptionHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="CaptionHex" Text="{Binding CaptionHex, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                     </UniformGrid>
 
                     <UniformGrid Columns="2">
                         <StackPanel Margin="0,0,8,8">
                             <TextBlock Text="Size (px)" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding SizePixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="SizePixels" Text="{Binding SizePixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Quiet Zone" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding QuietZoneModules, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="QuietZoneModules" Text="{Binding QuietZoneModules, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,8,8">
                             <TextBlock Text="Error Correction" Style="{StaticResource MetadataTextStyle}"/>
-                            <ComboBox ItemsSource="{Binding ErrorCorrectionLevels}" SelectedItem="{Binding SelectedErrorCorrection}" Margin="0,3,0,0"/>
+                            <ComboBox AutomationProperties.AutomationId="SelectedErrorCorrection" ItemsSource="{Binding ErrorCorrectionLevels}" SelectedItem="{Binding SelectedErrorCorrection}" Margin="0,3,0,0"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Module Style" Style="{StaticResource MetadataTextStyle}"/>
-                            <ComboBox ItemsSource="{Binding ModuleShapes}" SelectedItem="{Binding SelectedModuleShape}" Margin="0,3,0,0"/>
+                            <ComboBox AutomationProperties.AutomationId="SelectedModuleShape" ItemsSource="{Binding ModuleShapes}" SelectedItem="{Binding SelectedModuleShape}" Margin="0,3,0,0"/>
                         </StackPanel>
                     </UniformGrid>
 
-                    <CheckBox Content="Transparent Background" IsChecked="{Binding TransparentBackground}" Margin="0,4,0,0"/>
-                    <CheckBox Content="Auto Generate" IsChecked="{Binding AutoGenerate}" Margin="0,4,0,0"/>
-                    <CheckBox Content="Include Frame" IsChecked="{Binding IncludeFrame}" Margin="0,4,0,0"/>
-                    <TextBox Margin="20,2,0,0" Padding="6,4" Text="{Binding FrameThickness, UpdateSourceTrigger=PropertyChanged}" Width="90" ToolTip="Frame thickness"/>
-                    <CheckBox Content="Include Caption" IsChecked="{Binding IncludeCaption}" Margin="0,4,0,0"/>
-                    <TextBox Margin="20,2,0,0" Padding="6,4" Text="{Binding CaptionText, UpdateSourceTrigger=PropertyChanged}" />
+                    <CheckBox AutomationProperties.AutomationId="TransparentBackground" Content="Transparent Background" IsChecked="{Binding TransparentBackground}" Margin="0,4,0,0"/>
+                    <CheckBox AutomationProperties.AutomationId="AutoGenerate" Content="Auto Generate" IsChecked="{Binding AutoGenerate}" Margin="0,4,0,0"/>
+                    <CheckBox AutomationProperties.AutomationId="IncludeFrame" Content="Include Frame" IsChecked="{Binding IncludeFrame}" Margin="0,4,0,0"/>
+                    <TextBox AutomationProperties.AutomationId="FrameThickness" Margin="20,2,0,0" Padding="6,4" Text="{Binding FrameThickness, UpdateSourceTrigger=PropertyChanged}" Width="90" ToolTip="Frame thickness"/>
+                    <CheckBox AutomationProperties.AutomationId="IncludeCaption" Content="Include Caption" IsChecked="{Binding IncludeCaption}" Margin="0,4,0,0"/>
+                    <TextBox AutomationProperties.AutomationId="CaptionText" Margin="20,2,0,0" Padding="6,4" Text="{Binding CaptionText, UpdateSourceTrigger=PropertyChanged}" />
 
                     <Separator Margin="0,10,0,10"/>
                     <TextBlock Text="Center Logo" Style="{StaticResource PanelHeaderTextStyle}"/>
-                    <TextBlock Margin="0,4,0,0" Text="{Binding LogoPath}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
+                    <TextBlock AutomationProperties.AutomationId="LogoPath" Margin="0,4,0,0" Text="{Binding LogoPath}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
                     <WrapPanel Margin="0,8,0,0">
-                        <Button Content="Choose Logo" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding BrowseLogoCommand}" Margin="0,0,8,8"/>
-                        <Button Content="Remove Logo" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RemoveLogoCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="BrowseLogoCommand" Content="Choose Logo" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding BrowseLogoCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="RemoveLogoCommand" Content="Remove Logo" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RemoveLogoCommand}" Margin="0,0,8,8"/>
                     </WrapPanel>
                     <UniformGrid Columns="2">
                         <StackPanel Margin="0,0,8,8">
                             <TextBlock Text="Logo Size %" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding LogoScalePercent, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="LogoScalePercent" Text="{Binding LogoScalePercent, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Logo Padding" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding LogoPaddingPixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="LogoPaddingPixels" Text="{Binding LogoPaddingPixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                     </UniformGrid>
 
@@ -112,26 +112,26 @@
                     <UniformGrid Columns="2" Margin="0,4,0,0">
                         <StackPanel Margin="0,0,8,8">
                             <TextBlock Text="Format" Style="{StaticResource MetadataTextStyle}"/>
-                            <ComboBox ItemsSource="{Binding ExportFormats}" SelectedItem="{Binding SelectedExportFormat}" Margin="0,3,0,0"/>
+                            <ComboBox AutomationProperties.AutomationId="SelectedExportFormat" ItemsSource="{Binding ExportFormats}" SelectedItem="{Binding SelectedExportFormat}" Margin="0,3,0,0"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Export Size" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding ExportSizePixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="ExportSizePixels" Text="{Binding ExportSizePixels, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,8,8">
                             <TextBlock Text="Raster DPI" Style="{StaticResource MetadataTextStyle}"/>
-                            <TextBox Text="{Binding ExportDpi, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
+                            <TextBox AutomationProperties.AutomationId="ExportDpi" Text="{Binding ExportDpi, UpdateSourceTrigger=PropertyChanged}" Margin="0,3,0,0" Padding="6,4"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Include timestamp" Style="{StaticResource MetadataTextStyle}"/>
-                            <CheckBox IsChecked="{Binding IncludeTimestampInFileName}" Margin="0,5,0,0"/>
+                            <CheckBox AutomationProperties.AutomationId="IncludeTimestampInFileName" IsChecked="{Binding IncludeTimestampInFileName}" Margin="0,5,0,0"/>
                         </StackPanel>
                     </UniformGrid>
 
                     <WrapPanel Margin="0,6,0,0">
-                        <Button Content="Export" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveCommand}" Margin="0,0,8,8"/>
-                        <Button Content="Copy Image" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyImageCommand}" Margin="0,0,8,8"/>
-                        <Button Content="Reset Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="SaveCommand" Content="Export" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="CopyImageCommand" Content="Copy Image" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyImageCommand}" Margin="0,0,8,8"/>
+                        <Button AutomationProperties.AutomationId="ResetDefaultsCommand" Content="Reset Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,8"/>
                     </WrapPanel>
                 </StackPanel>
             </ScrollViewer>
@@ -150,8 +150,8 @@
                     <TextBlock DockPanel.Dock="Left" Text="Live Preview" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" />
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Text="Zoom" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <Slider Width="150" Minimum="50" Maximum="300" Value="{Binding PreviewZoomPercent}" />
-                        <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" Text="{Binding PreviewZoomPercent, StringFormat={}{0}%}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <Slider AutomationProperties.AutomationId="PreviewZoomPercent" Width="150" Minimum="50" Maximum="300" Value="{Binding PreviewZoomPercent}" />
+                        <TextBlock AutomationProperties.AutomationId="PreviewZoomPercent" VerticalAlignment="Center" Margin="6,0,0,0" Text="{Binding PreviewZoomPercent, StringFormat={}{0}%}" Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </StackPanel>
                 </DockPanel>
 
@@ -183,13 +183,13 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="280"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
 
                     <Border Grid.Column="1" Style="{StaticResource StatusSurfaceStyle}" Padding="12" Margin="12,0,0,0">
                         <StackPanel>
                             <TextBlock Text="Recent URLs" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                             <ListBox x:Name="RecentList" Margin="0,8,0,0" Height="120" ItemsSource="{Binding RecentUrls}"/>
-                            <Button Margin="0,8,0,0" Content="Load Selected" Style="{StaticResource SecondaryActionButtonStyle}"
+                            <Button AutomationProperties.AutomationId="UseRecentCommand" Margin="0,8,0,0" Content="Load Selected" Style="{StaticResource SecondaryActionButtonStyle}"
                                     Command="{Binding UseRecentCommand}" CommandParameter="{Binding SelectedItem, ElementName=RecentList}"/>
                         </StackPanel>
                     </Border>

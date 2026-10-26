@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
+using WindowsUtilityPack.Services.FileTools;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.FileDataTools.BulkFileRenamer;
@@ -134,10 +135,13 @@ public class BulkFileRenamerViewModel : ViewModelBase
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var filePath in Directory.GetFiles(SelectedFolder))
+        try
         {
-            PreviewItems.Add(CreatePreviewItem(filePath, seen));
+            foreach (var filePath in Directory.GetFiles(SelectedFolder))
+                PreviewItems.Add(CreatePreviewItem(filePath, seen));
         }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { _dialogs.ShowError("Cannot read folder", ex.Message); }
     }
 
     private void ApplyRename()
@@ -158,16 +162,9 @@ public class BulkFileRenamerViewModel : ViewModelBase
         IsBusy = true;
         try
         {
-            var resolvedFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(SelectedFolder))
-                                 + Path.DirectorySeparatorChar;
-
-            foreach (var item in PreviewItems.Where(p => !p.HasConflict && p.OriginalName != p.NewName))
-            {
-                TryRenameFile(item, resolvedFolder);
-            }
-
+            BatchRenameService.Rename(SelectedFolder, PreviewItems.Where(p => !p.HasConflict)
+                .Select(p => (p.OriginalName, p.NewName)).ToArray());
             RefreshPreview();
-            _dialogs.ShowInfo("Done", "Files renamed successfully.");
         }
         catch (Exception ex)
         {
@@ -185,8 +182,10 @@ public class BulkFileRenamerViewModel : ViewModelBase
         var originalName     = Path.GetFileNameWithoutExtension(filePath);
         var extension        = Path.GetExtension(filePath);
         var newName          = BuildNewFileName(originalName, extension);
-        var hasConflict      = seenNames.Contains(newName) ||
-                               (newName != originalFileName && File.Exists(Path.Combine(SelectedFolder, newName)));
+        var hasConflict      = !BatchRenameService.IsValidFileName(newName) || seenNames.Contains(newName) ||
+                               Directory.Exists(Path.Combine(SelectedFolder, newName)) ||
+                               (!newName.Equals(originalFileName, StringComparison.OrdinalIgnoreCase) && File.Exists(Path.Combine(SelectedFolder, newName))) ||
+                               (File.GetAttributes(filePath) & FileAttributes.ReparsePoint) != 0;
 
         seenNames.Add(newName);
 
@@ -207,31 +206,6 @@ public class BulkFileRenamerViewModel : ViewModelBase
             updatedName = updatedName.Replace(FindText, ReplaceText, StringComparison.Ordinal);
         }
 
-        return SanitizeFileName(Prefix + updatedName + Suffix + extension);
-    }
-
-    private static string SanitizeFileName(string fileName)
-    {
-        return fileName
-            .Replace(Path.DirectorySeparatorChar, '_')
-            .Replace(Path.AltDirectorySeparatorChar, '_');
-    }
-
-    private void TryRenameFile(RenamePreviewItem item, string resolvedFolder)
-    {
-        var sourcePath      = Path.Combine(SelectedFolder, item.OriginalName);
-        var destinationPath = Path.Combine(SelectedFolder, item.NewName);
-
-        // Defense-in-depth: ensure the resolved destination is still inside the
-        // selected folder even after any path normalisation by the OS.
-        if (!Path.GetFullPath(destinationPath).StartsWith(resolvedFolder, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        if (File.Exists(sourcePath) && !File.Exists(destinationPath))
-        {
-            File.Move(sourcePath, destinationPath);
-        }
+        return Prefix + updatedName + Suffix + extension;
     }
 }

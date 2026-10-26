@@ -21,12 +21,12 @@
 
             <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}">
                 <DockPanel>
-                    <Button DockPanel.Dock="Top"
+                    <Button AutomationProperties.AutomationId="RefreshCommand" DockPanel.Dock="Top"
                             Content="Refresh"
                             Command="{Binding RefreshCommand}"
                             Margin="0,0,0,8"
                             Style="{StaticResource SecondaryActionButtonStyle}"/>
-                    <ListView ItemsSource="{Binding Profiles}"
+                    <ListView AutomationProperties.AutomationId="SelectedProfile" ItemsSource="{Binding Profiles}"
                               SelectedItem="{Binding SelectedProfile, Mode=TwoWay}">
                         <ListView.View>
                             <GridView>
@@ -58,7 +58,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Name" VerticalAlignment="Center" Style="{StaticResource MetadataTextStyle}"/>
-                        <TextBox Grid.Column="1" Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox AutomationProperties.AutomationId="ProfileName" Grid.Column="1" Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}"/>
                     </Grid>
 
                     <Grid Grid.Row="2" Margin="0,0,0,8">
@@ -67,7 +67,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Description" VerticalAlignment="Center" Style="{StaticResource MetadataTextStyle}"/>
-                        <TextBox Grid.Column="1" Text="{Binding ProfileDescription, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox AutomationProperties.AutomationId="ProfileDescription" Grid.Column="1" Text="{Binding ProfileDescription, UpdateSourceTrigger=PropertyChanged}"/>
                     </Grid>
 
                     <Grid Grid.Row="3" Margin="0,0,0,8">
@@ -76,7 +76,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Startup Tool" VerticalAlignment="Center" Style="{StaticResource MetadataTextStyle}"/>
-                        <ComboBox Grid.Column="1"
+                        <ComboBox AutomationProperties.AutomationId="StartupToolKey" Grid.Column="1"
                                   DisplayMemberPath="Name"
                                   SelectedValuePath="Key"
                                   SelectedValue="{Binding StartupToolKey, Mode=TwoWay}"
@@ -89,21 +89,21 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Pinned Keys" VerticalAlignment="Center" Style="{StaticResource MetadataTextStyle}"/>
-                        <TextBox Grid.Column="1"
+                        <TextBox AutomationProperties.AutomationId="PinnedToolsCsv" Grid.Column="1"
                                  Text="{Binding PinnedToolsCsv, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Comma-separated tool keys (example: storage-master,port-scanner)"/>
                     </Grid>
 
-                    <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Left">
-                        <Button Content="Save"
+                    <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <Button AutomationProperties.AutomationId="SaveProfileCommand" Content="Save"
                                 Command="{Binding SaveProfileCommand}"
                                 Margin="0,0,8,0"
                                 Style="{StaticResource PrimaryActionButtonStyle}"/>
-                        <Button Content="Apply"
+                        <Button AutomationProperties.AutomationId="ApplyProfileCommand" Content="Apply"
                                 Command="{Binding ApplyProfileCommand}"
                                 Margin="0,0,8,0"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
-                        <Button Content="Delete"
+                        <Button AutomationProperties.AutomationId="DeleteProfileCommand" Content="Delete"
                                 Command="{Binding DeleteProfileCommand}"
                                 Style="{StaticResource DangerActionButtonStyle}"/>
                     </StackPanel>
@@ -112,7 +112,7 @@
         </Grid>
 
         <Border Grid.Row="2" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

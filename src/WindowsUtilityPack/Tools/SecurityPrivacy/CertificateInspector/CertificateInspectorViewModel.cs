@@ -34,9 +34,12 @@ public class CertificateInfo
 /// ViewModel for the Certificate Inspector tool.
 /// Supports URL (TLS), local file, and PEM text input modes.
 /// </summary>
-public class CertificateInspectorViewModel : ViewModelBase
+public class CertificateInspectorViewModel : ViewModelBase, IDisposable
 {
     private readonly IClipboardService _clipboard;
+    private CancellationTokenSource? _inspectionCancellation;
+    public RelayCommand CancelCommand { get; }
+    public void Dispose() => _inspectionCancellation?.Cancel();
 
     private string           _inputMode   = "URL";
     private string           _urlOrHost   = "github.com";
@@ -122,6 +125,7 @@ public class CertificateInspectorViewModel : ViewModelBase
     public CertificateInspectorViewModel(IClipboardService clipboard)
     {
         _clipboard = clipboard;
+        CancelCommand = new RelayCommand(() => _inspectionCancellation?.Cancel(), () => IsLoading);
 
         InspectCommand    = new AsyncRelayCommand(_ => InspectAsync(), _ => !IsLoading);
         BrowseFileCommand = new RelayCommand(_ => BrowseFile());
@@ -130,6 +134,8 @@ public class CertificateInspectorViewModel : ViewModelBase
 
     private async Task InspectAsync()
     {
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        _inspectionCancellation = cancellation;
         IsLoading     = true;
         Certificate   = null;
         StatusMessage = "Inspecting certificate…";
@@ -141,7 +147,7 @@ public class CertificateInspectorViewModel : ViewModelBase
             switch (InputMode)
             {
                 case "URL":
-                    cert = await GetCertificateFromUrlAsync(UrlOrHost, Port);
+                    cert = await GetCertificateFromUrlAsync(UrlOrHost, Port, cancellation.Token);
                     break;
 
                 case "File":
@@ -165,9 +171,8 @@ public class CertificateInspectorViewModel : ViewModelBase
             if (cert == null)
                 throw new InvalidOperationException("Could not retrieve certificate.");
 
-            Certificate   = ParseCertificate(cert);
+            using (cert) Certificate = ParseCertificate(cert);
             StatusMessage = "Certificate inspected successfully.";
-            cert.Dispose();
         }
         catch (Exception ex)
         {
@@ -176,27 +181,32 @@ public class CertificateInspectorViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+            _inspectionCancellation = null;
         }
     }
 
-    private static async Task<X509Certificate2?> GetCertificateFromUrlAsync(string host, int port)
+    internal static (string Host, int Port) ParseEndpoint(string value, int fallbackPort)
     {
-        // Strip URL scheme if present
-        if (host.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            host = host[8..];
-        else if (host.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
-            host = host[7..];
-        // Remove path
-        var slashIdx = host.IndexOf('/');
-        if (slashIdx >= 0) host = host[..slashIdx];
+        if (fallbackPort is < 1 or > 65535) throw new ArgumentOutOfRangeException(nameof(fallbackPort));
+        value = value.Trim();
+        if (System.Net.IPAddress.TryParse(value.Trim('[', ']'), out var address)) return (address.ToString(), fallbackPort);
+        if (!Uri.TryCreate(value.Contains("://", StringComparison.Ordinal) ? value : "https://" + value, UriKind.Absolute, out var uri) ||
+            uri.Scheme is not ("http" or "https") || string.IsNullOrEmpty(uri.Host) || !string.IsNullOrEmpty(uri.UserInfo))
+            throw new ArgumentException("Enter an HTTP(S) URL, hostname, or IP address.", nameof(value));
+        return (uri.IdnHost.Trim('[', ']'), uri.IsDefaultPort ? fallbackPort : uri.Port);
+    }
+
+    private static async Task<X509Certificate2?> GetCertificateFromUrlAsync(string host, int port, CancellationToken cancellationToken)
+    {
+        (host, port) = ParseEndpoint(host, port);
 
         using var tcp = new TcpClient();
-        await tcp.ConnectAsync(host, port);
+        await tcp.ConnectAsync(host, port, cancellationToken);
 
         using var ssl = new SslStream(tcp.GetStream(), false,
             (_, _, _, _) => true);   // Accept any cert for inspection
 
-        await ssl.AuthenticateAsClientAsync(host);
+        await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions { TargetHost = host }, cancellationToken);
 
         if (ssl.RemoteCertificate == null) return null;
 

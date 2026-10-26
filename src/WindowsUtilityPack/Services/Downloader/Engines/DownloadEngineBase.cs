@@ -31,13 +31,14 @@ public abstract class DownloadEngineBase : IDownloadEngine
             sanitized = sanitized.Replace(invalid, '_');
         }
 
-        return sanitized.Trim();
+        sanitized = sanitized.Trim().TrimEnd('.');
+        return FileTools.BatchRenameService.IsValidFileName(sanitized) ? sanitized : "download-" + Guid.NewGuid().ToString("N");
     }
 
     protected static string GetUniqueFilePath(string directory, string fileName)
     {
         var target = Path.Combine(directory, fileName);
-        if (!File.Exists(target))
+        if (!File.Exists(target) && !Directory.Exists(target) && !File.Exists(target + ".wup-download.lock") && !Directory.Exists(target + ".wup-download.lock"))
         {
             return target;
         }
@@ -48,7 +49,7 @@ public abstract class DownloadEngineBase : IDownloadEngine
         for (var index = 1; index < 10_000; index++)
         {
             var candidate = Path.Combine(directory, $"{baseName} ({index}){ext}");
-            if (!File.Exists(candidate))
+            if (!File.Exists(candidate) && !Directory.Exists(candidate) && !File.Exists(candidate + ".wup-download.lock") && !Directory.Exists(candidate + ".wup-download.lock"))
             {
                 return candidate;
             }

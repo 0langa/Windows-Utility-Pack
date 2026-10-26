@@ -17,6 +17,9 @@ public class DependencyManagerService : IDependencyManagerService
     private static readonly Regex ChecksumLineRegex = new(@"^(?<hash>[A-Fa-f0-9]{64})\s+[* ](?<file>.+)$", RegexOptions.Compiled);
     private static readonly Regex OpenSslStyleRegex = new(@"^SHA256\s*\((?<file>.+)\)\s*=\s*(?<hash>[A-Fa-f0-9]{64})$", RegexOptions.Compiled);
 
+    private static readonly SemaphoreSlim InstallationGate = new(1, 1);
+    private const long MaximumToolBytes = 512L * 1024 * 1024;
+
     private static readonly HttpClient Http = new()
     {
         DefaultRequestHeaders =
@@ -26,8 +29,7 @@ public class DependencyManagerService : IDependencyManagerService
     };
 
     private static readonly string ToolDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "WindowsUtilityPack", "tools");
+        AppDataPaths.LocalDirectory, "tools");
 
     /// <inheritdoc/>
     public string YtDlpPath => Path.Combine(ToolDir, "yt-dlp.exe");
@@ -49,6 +51,13 @@ public class DependencyManagerService : IDependencyManagerService
 
     /// <inheritdoc/>
     public async Task EnsureAllAsync(Action<string> onProgress, CancellationToken ct = default)
+    {
+        await InstallationGate.WaitAsync(ct);
+        try { await EnsureAllCoreAsync(onProgress, ct); }
+        finally { InstallationGate.Release(); }
+    }
+
+    private async Task EnsureAllCoreAsync(Action<string> onProgress, CancellationToken ct)
     {
         Directory.CreateDirectory(ToolDir);
 
@@ -79,6 +88,13 @@ public class DependencyManagerService : IDependencyManagerService
     /// <inheritdoc/>
     public async Task<string> UpdateYtDlpAsync(CancellationToken ct = default)
     {
+        await InstallationGate.WaitAsync(ct);
+        try { return await UpdateYtDlpCoreAsync(ct); }
+        finally { InstallationGate.Release(); }
+    }
+
+    private async Task<string> UpdateYtDlpCoreAsync(CancellationToken ct)
+    {
         if (!File.Exists(YtDlpPath))
         {
             return "yt-dlp is not installed.";
@@ -94,20 +110,14 @@ public class DependencyManagerService : IDependencyManagerService
             RedirectStandardError = true,
         };
 
-        using var process = Process.Start(psi);
-        if (process is null)
-        {
-            return "Failed to start yt-dlp update process.";
-        }
-
-        var output = await process.StandardOutput.ReadToEndAsync(ct);
-        await process.WaitForExitAsync(ct);
-        return output.Trim();
+        var result = await new ProcessRunner(TimeSpan.FromMinutes(5)).RunAsync(psi, ct);
+        if (result.ExitCode != 0) throw new IOException($"yt-dlp update exited with code {result.ExitCode}: {result.StdErr.Trim()}");
+        return result.StdOut.Trim();
     }
 
     private async Task DownloadYtDlpAsync(CancellationToken ct)
     {
-        var json = await Http.GetStringAsync(
+        var json = await ReadMetadataAsync(
             "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest", ct);
 
         var release = JObject.Parse(json);
@@ -115,7 +125,7 @@ public class DependencyManagerService : IDependencyManagerService
             ?? throw new InvalidOperationException("No assets found in yt-dlp release.");
 
         string? downloadUrl = null;
-        string? checksumsUrl = null;
+        string? checksumsUrl = SelectChecksumManifestUrl(assets, "SHA2-256SUMS");
         foreach (var asset in assets)
         {
             var name = asset["name"]?.ToString() ?? string.Empty;
@@ -125,10 +135,6 @@ public class DependencyManagerService : IDependencyManagerService
                 continue;
             }
 
-            if (name.Contains("SHA2-256SUMS", StringComparison.OrdinalIgnoreCase))
-            {
-                checksumsUrl = asset["browser_download_url"]?.ToString();
-            }
         }
 
         if (string.IsNullOrEmpty(downloadUrl))
@@ -147,33 +153,26 @@ public class DependencyManagerService : IDependencyManagerService
 
     private async Task DownloadGalleryDlAsync(CancellationToken ct)
     {
-        var json = await Http.GetStringAsync(
-            "https://api.github.com/repos/mikf/gallery-dl/releases/latest", ct);
+        var json = await ReadMetadataAsync(
+            "https://codeberg.org/api/v1/repos/mikf/gallery-dl/releases/latest", ct);
 
         var release = JObject.Parse(json);
         var assets = release["assets"] as JArray
             ?? throw new InvalidOperationException("No assets found in gallery-dl release.");
 
         string? downloadUrl = null;
-        string? checksumsUrl = null;
+        string? checksumsUrl = SelectChecksumManifestUrl(assets, "SHA256SUMS");
         string? selectedAssetName = null;
         foreach (var asset in assets)
         {
             var name = asset["name"]?.ToString() ?? string.Empty;
-            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-                && !name.Contains("zip", StringComparison.OrdinalIgnoreCase))
+            if (name.Equals("gallery-dl.exe", StringComparison.OrdinalIgnoreCase))
             {
                 downloadUrl = asset["browser_download_url"]?.ToString();
                 selectedAssetName = name;
                 continue;
             }
 
-            if (name.Contains("checksum", StringComparison.OrdinalIgnoreCase)
-                || name.Contains("sha256", StringComparison.OrdinalIgnoreCase)
-                || name.Contains("sha-256", StringComparison.OrdinalIgnoreCase))
-            {
-                checksumsUrl = asset["browser_download_url"]?.ToString();
-            }
         }
 
         if (string.IsNullOrEmpty(downloadUrl))
@@ -190,11 +189,15 @@ public class DependencyManagerService : IDependencyManagerService
         await DownloadToFileAsync(downloadUrl, GalleryDlPath, ct, expectedHash);
     }
 
+    internal static string? SelectChecksumManifestUrl(JArray assets, string manifestName) =>
+        assets.SingleOrDefault(asset => (asset["name"]?.ToString() ?? string.Empty)
+            .Equals(manifestName, StringComparison.OrdinalIgnoreCase))?["browser_download_url"]?.ToString();
+
     private async Task DownloadFfmpegAsync(CancellationToken ct)
     {
         // Fix Issue 21: use the GitHub Releases API instead of a hardcoded artifact URL
         // so the download stays valid across renamed build artefacts.
-        var json = await Http.GetStringAsync(
+        var json = await ReadMetadataAsync(
             "https://api.github.com/repos/yt-dlp/FFmpeg-Builds/releases/latest", ct);
 
         var release = JObject.Parse(json);
@@ -202,12 +205,13 @@ public class DependencyManagerService : IDependencyManagerService
             ?? throw new InvalidOperationException("No assets found in FFmpeg-Builds release.");
 
         string? downloadUrl = null;
-        string? checksumsUrl = null;
+        string? checksumsUrl = SelectChecksumManifestUrl(assets, "checksums.sha256");
         string? zipAssetName = null;
         foreach (var asset in assets)
         {
             var name = asset["name"]?.ToString() ?? string.Empty;
             if (name.Contains("win64-gpl", StringComparison.OrdinalIgnoreCase)
+                && !name.Contains("shared", StringComparison.OrdinalIgnoreCase)
                 && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
             {
                 downloadUrl = asset["browser_download_url"]?.ToString();
@@ -215,12 +219,6 @@ public class DependencyManagerService : IDependencyManagerService
                 continue;
             }
 
-            if (name.Contains("checksum", StringComparison.OrdinalIgnoreCase)
-                || name.Contains("sha256", StringComparison.OrdinalIgnoreCase)
-                || name.Contains("sha-256", StringComparison.OrdinalIgnoreCase))
-            {
-                checksumsUrl = asset["browser_download_url"]?.ToString();
-            }
         }
 
         if (string.IsNullOrEmpty(downloadUrl))
@@ -233,23 +231,14 @@ public class DependencyManagerService : IDependencyManagerService
             throw new InvalidOperationException("FFmpeg checksum manifest not found in latest release.");
         }
 
-        var tmpZip = Path.Combine(ToolDir, "ffmpeg.zip.tmp");
+        var tmpZip = Path.Combine(ToolDir, "ffmpeg-" + Guid.NewGuid().ToString("N") + ".zip.tmp");
 
         try
         {
             var expectedHash = await ResolveExpectedSha256Async(checksumsUrl, zipAssetName, ct);
             await DownloadToFileAsync(downloadUrl, tmpZip, ct, expectedHash);
 
-            using var archive = ZipFile.OpenRead(tmpZip);
-            foreach (var entry in archive.Entries)
-            {
-                if (entry.FullName.Contains("bin/", StringComparison.OrdinalIgnoreCase)
-                    && entry.Name.Equals("ffmpeg.exe", StringComparison.OrdinalIgnoreCase))
-                {
-                    entry.ExtractToFile(FfmpegPath, overwrite: true);
-                    break;
-                }
-            }
+            ExtractFfmpeg(tmpZip, FfmpegPath, ct);
         }
         finally
         {
@@ -261,42 +250,78 @@ public class DependencyManagerService : IDependencyManagerService
         }
     }
 
-    private static async Task DownloadToFileAsync(string url, string destPath, CancellationToken ct, string? expectedSha256 = null)
+    internal static void ExtractFfmpeg(string archivePath, string destination, CancellationToken ct)
     {
-        var tmpPath = destPath + ".tmp";
+        ct.ThrowIfCancellationRequested();
+        using var archive = ZipFile.OpenRead(archivePath);
+        var matches = archive.Entries.Where(e => e.FullName.Replace('\\', '/').Contains("bin/", StringComparison.OrdinalIgnoreCase)
+            && e.Name.Equals("ffmpeg.exe", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (matches.Length != 1 || matches[0].Length <= 0 || matches[0].Length > MaximumToolBytes)
+            throw new InvalidDataException("The FFmpeg archive must contain one non-empty bin/ffmpeg.exe (at most 512 MiB).");
+        var temporary = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
-            response.EnsureSuccessStatusCode();
-
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            await using var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-            await stream.CopyToAsync(fs, ct);
-        }
-        catch
-        {
-            if (File.Exists(tmpPath))
+            using (var source = matches[0].Open())
+            using (var target = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
-                try { File.Delete(tmpPath); }
-                catch (IOException) { }
+                var buffer = new byte[81920]; long copied = 0; int count;
+                while ((count = source.Read(buffer)) != 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if ((copied += count) > MaximumToolBytes) throw new InvalidDataException("Extracted tool exceeds 512 MiB.");
+                    target.Write(buffer, 0, count);
+                }
+                target.Flush(true);
             }
-            throw;
+            ct.ThrowIfCancellationRequested();
+            File.Move(temporary, destination, overwrite: true);
         }
+        finally { File.Delete(temporary); }
+    }
 
-        if (!string.IsNullOrWhiteSpace(expectedSha256))
+    private static async Task DownloadToFileAsync(string url, string destPath, CancellationToken ct, string? expectedSha256 = null)
+    {
+        var tmpPath = destPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromMinutes(15));
+        var token = timeout.Token;
+        try
         {
-            await VerifySha256Async(tmpPath, expectedSha256, ct);
+            using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+            response.EnsureSuccessStatusCode();
+            if (response.Content.Headers.ContentLength > MaximumToolBytes) throw new InvalidDataException("Tool download exceeds 512 MiB.");
+            await using (var stream = await response.Content.ReadAsStreamAsync(token))
+            await using (var fs = new FileStream(tmpPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            {
+                var buffer = new byte[81920]; long copied = 0; int count;
+                while ((count = await stream.ReadAsync(buffer, token)) != 0)
+                {
+                    if ((copied += count) > MaximumToolBytes) throw new InvalidDataException("Tool download exceeds 512 MiB.");
+                    await fs.WriteAsync(buffer.AsMemory(0, count), token);
+                }
+                if (copied == 0 || (response.Content.Headers.ContentLength is long expected && copied != expected))
+                    throw new InvalidDataException("The tool download is empty or incomplete.");
+                await fs.FlushAsync(token);
+            }
+            if (!string.IsNullOrWhiteSpace(expectedSha256)) await VerifySha256Async(tmpPath, expectedSha256, token);
+            token.ThrowIfCancellationRequested();
+            File.Move(tmpPath, destPath, overwrite: true);
         }
+        finally { File.Delete(tmpPath); }
+    }
 
-        File.Move(tmpPath, destPath, overwrite: true);
+    private static async Task<string> ReadMetadataAsync(string url, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+        response.EnsureSuccessStatusCode();
+        return await BoundedHttpContent.ReadTextAsync(response.Content, timeout.Token);
     }
 
     private static async Task<string> ResolveExpectedSha256Async(string checksumManifestUrl, string assetFileName, CancellationToken ct)
     {
-        using var response = await Http.GetAsync(checksumManifestUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
-
-        var manifest = await response.Content.ReadAsStringAsync(ct);
+        var manifest = await ReadMetadataAsync(checksumManifestUrl, ct);
         var expected = TryExtractSha256(manifest, assetFileName);
         if (string.IsNullOrWhiteSpace(expected))
         {

@@ -19,11 +19,11 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" Text="{Binding FilePath}" IsReadOnly="True" Margin="0,0,8,0"/>
+                <TextBox AutomationProperties.AutomationId="FilePath" Grid.Column="0" Text="{Binding FilePath}" IsReadOnly="True" Margin="0,0,8,0"/>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="Browse File" Command="{Binding BrowseCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Strip Metadata" Command="{Binding StripMetadataCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Copy All" Command="{Binding CopyAllCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="BrowseCommand" Content="Browse File" Command="{Binding BrowseCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="StripMetadataCommand" Content="Strip Metadata" Command="{Binding StripMetadataCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="CopyAllCommand" Content="Copy All" Command="{Binding CopyAllCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -36,11 +36,11 @@
                 </Grid.RowDefinitions>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Type:" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,8,0"/>
-                    <TextBlock Text="{Binding FileType}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+                    <TextBlock AutomationProperties.AutomationId="FileType" Text="{Binding FileType}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                     <TextBlock Text="  |  " Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
-                <DataGrid Grid.Row="1"
+                <DataGrid AutomationProperties.AutomationId="Metadata" Grid.Row="1"
                           ItemsSource="{Binding Metadata}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
@@ -55,7 +55,7 @@
         </Border>
 
         <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,10,0,0">
-            <TextBlock Text="Supports image metadata and audio tags. Use 'Strip Metadata' to save a sanitized copy."
+            <TextBlock Text="Image removal re-encodes pixels and retains all TIFF pages. Audio removal preserves the audio stream. Keep the original extension."
                        Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
         </Border>
     </Grid>

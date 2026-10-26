@@ -14,10 +14,14 @@ namespace WindowsUtilityPack.Tools.SecurityPrivacy.HashGenerator;
 /// ViewModel for the Hash Generator tool.
 /// Computes MD5, SHA-1, SHA-256, SHA-512, and CRC-32 from text or a file.
 /// </summary>
-public class HashGeneratorViewModel : ViewModelBase
+public class HashGeneratorViewModel : ViewModelBase, IDisposable, IViewLifetime
 {
     private readonly IClipboardService _clipboard;
     private CancellationTokenSource? _debounceCts;
+    private CancellationTokenSource? _computeCts;
+    private bool _disposed;
+    private string _statusMessage = "";
+    public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
 
     private string _inputText      = string.Empty;
     private string _inputMode      = "Text";
@@ -27,7 +31,6 @@ public class HashGeneratorViewModel : ViewModelBase
     private string _sha256Result   = string.Empty;
     private string _sha512Result   = string.Empty;
     private string _crcResult      = string.Empty;
-    private string _blake2bResult  = "Not supported (library required)";
     private bool   _isComputing;
 
     public string InputText
@@ -36,7 +39,7 @@ public class HashGeneratorViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _inputText, value) && InputMode == "Text")
-                ScheduleAutoCompute();
+                { _computeCts?.Cancel(); ClearResults(); ScheduleAutoCompute(); }
         }
     }
 
@@ -47,6 +50,7 @@ public class HashGeneratorViewModel : ViewModelBase
         {
             if (SetProperty(ref _inputMode, value))
             {
+                _computeCts?.Cancel(); ClearResults();
                 OnPropertyChanged(nameof(IsTextMode));
                 OnPropertyChanged(nameof(IsFileMode));
             }
@@ -68,7 +72,7 @@ public class HashGeneratorViewModel : ViewModelBase
     public string FilePath
     {
         get => _filePath;
-        set => SetProperty(ref _filePath, value);
+        set { if (SetProperty(ref _filePath, value)) { _computeCts?.Cancel(); ClearResults(); } }
     }
 
     public string Md5Result
@@ -101,12 +105,6 @@ public class HashGeneratorViewModel : ViewModelBase
         set => SetProperty(ref _crcResult, value);
     }
 
-    public string Blake2bResult
-    {
-        get => _blake2bResult;
-        set => SetProperty(ref _blake2bResult, value);
-    }
-
     public bool IsComputing
     {
         get => _isComputing;
@@ -119,6 +117,8 @@ public class HashGeneratorViewModel : ViewModelBase
     public RelayCommand      CopySha1Command  { get; }
     public RelayCommand      CopySha256Command { get; }
     public RelayCommand      CopySha512Command { get; }
+    public RelayCommand CopyCrcCommand { get; }
+    public RelayCommand CancelCommand { get; }
     public RelayCommand      ClearCommand     { get; }
 
     public HashGeneratorViewModel(IClipboardService clipboard)
@@ -131,82 +131,49 @@ public class HashGeneratorViewModel : ViewModelBase
         CopySha1Command  = new RelayCommand(_ => _clipboard.SetText(Sha1Result),   _ => !string.IsNullOrEmpty(Sha1Result));
         CopySha256Command = new RelayCommand(_ => _clipboard.SetText(Sha256Result), _ => !string.IsNullOrEmpty(Sha256Result));
         CopySha512Command = new RelayCommand(_ => _clipboard.SetText(Sha512Result), _ => !string.IsNullOrEmpty(Sha512Result));
+        CopyCrcCommand = new RelayCommand(() => _clipboard.SetText(CrcResult), () => !string.IsNullOrEmpty(CrcResult));
+        CancelCommand = new RelayCommand(() => _computeCts?.Cancel(), () => IsComputing);
         ClearCommand     = new RelayCommand(_ => ClearAll());
     }
 
-    private void ScheduleAutoCompute()
+    private async void ScheduleAutoCompute()
     {
-        _debounceCts?.Cancel();
-        _debounceCts?.Dispose();
-        _debounceCts = new CancellationTokenSource();
-        var ct = _debounceCts.Token;
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(300, ct);
-                if (!ct.IsCancellationRequested)
-                    await Application.Current.Dispatcher.InvokeAsync(() => ComputeCommand.Execute(null));
-            }
-            catch (TaskCanceledException) { }
-        });
+        if (_disposed) return;
+        _debounceCts?.Cancel(); _debounceCts?.Dispose();
+        var cts = new CancellationTokenSource(); _debounceCts = cts;
+        var token = cts.Token;
+        try { await Task.Delay(300, token); if (IsTextMode) await ComputeHashesAsync(); }
+        catch (OperationCanceledException) { }
+        finally { if (ReferenceEquals(_debounceCts, cts)) _debounceCts = null; cts.Dispose(); }
     }
-
-    private async Task ComputeHashesAsync()
+    internal async Task ComputeHashesAsync()
     {
-        IsComputing = true;
-        ClearResults();
-
+        if (_disposed) return;
+        _computeCts?.Cancel();
+        using var cts = new CancellationTokenSource(); _computeCts = cts;
+        var token = cts.Token;
+        var fileMode = IsFileMode; var path = FilePath; var text = InputText;
+        IsComputing = true; ClearResults(); StatusMessage = "Computing…";
         try
         {
-            byte[] data;
-
-            if (InputMode == "File")
+            if (!fileMode && text.Length > 1_000_000) throw new InvalidDataException("Text input is limited to 1,000,000 characters. Use File mode for larger data.");
+            var results = await Task.Run(async () =>
             {
-                if (!File.Exists(FilePath))
-                {
-                    Md5Result = "File not found.";
-                    return;
-                }
-                data = await File.ReadAllBytesAsync(FilePath);
-            }
-            else
-            {
-                data = Encoding.UTF8.GetBytes(InputText ?? string.Empty);
-            }
-
-            await Task.Run(() =>
-            {
-                Md5Result    = Convert.ToHexString(MD5.HashData(data)).ToLowerInvariant();
-                Sha1Result   = Convert.ToHexString(SHA1.HashData(data)).ToLowerInvariant();
-                Sha256Result = Convert.ToHexString(SHA256.HashData(data)).ToLowerInvariant();
-                Sha512Result = Convert.ToHexString(SHA512.HashData(data)).ToLowerInvariant();
-                CrcResult    = $"{ComputeCrc32(data):X8}".ToLowerInvariant();
-            });
+                using Stream stream = fileMode ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan)
+                    : new MemoryStream(Encoding.UTF8.GetBytes(text));
+                return await StreamingHashService.ComputeAsync(stream, token).ConfigureAwait(false);
+            }, token);
+            if (token.IsCancellationRequested || _disposed) return;
+            Md5Result = results.Md5; Sha1Result = results.Sha1; Sha256Result = results.Sha256;
+            Sha512Result = results.Sha512; CrcResult = results.Crc32; StatusMessage = "Hashes computed.";
         }
-        catch (Exception ex)
-        {
-            Md5Result = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            IsComputing = false;
-        }
+        catch (OperationCanceledException) { if (ReferenceEquals(_computeCts, cts) && !_disposed) StatusMessage = "Cancelled."; }
+        catch (Exception ex) { if (ReferenceEquals(_computeCts, cts) && !_disposed) StatusMessage = $"Hashing failed: {ex.Message}"; }
+        finally { if (ReferenceEquals(_computeCts, cts)) { _computeCts = null; IsComputing = false; } }
     }
-
-    /// <summary>CRC-32 implementation using polynomial 0xEDB88320 (IEEE 802.3).</summary>
-    private static uint ComputeCrc32(byte[] data)
-    {
-        uint crc = 0xFFFFFFFF;
-        foreach (var b in data)
-        {
-            crc ^= b;
-            for (var i = 0; i < 8; i++)
-                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
-        }
-        return ~crc;
-    }
-
+    public void Activate() { }
+    public void Deactivate() { _debounceCts?.Cancel(); _computeCts?.Cancel(); }
+    public void Dispose() { _disposed = true; Deactivate(); }
     private void BrowseFile()
     {
         var dlg = new OpenFileDialog { Title = "Select File", Filter = "All Files (*.*)|*.*" };
@@ -224,11 +191,11 @@ public class HashGeneratorViewModel : ViewModelBase
         Sha256Result = string.Empty;
         Sha512Result = string.Empty;
         CrcResult    = string.Empty;
-        Blake2bResult = "Not supported (library required)";
     }
 
     private void ClearAll()
     {
+        _debounceCts?.Cancel(); _computeCts?.Cancel();
         InputText = string.Empty;
         FilePath  = string.Empty;
         ClearResults();

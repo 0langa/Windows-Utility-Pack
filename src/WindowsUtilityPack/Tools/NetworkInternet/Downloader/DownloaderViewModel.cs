@@ -1115,11 +1115,13 @@ public sealed partial class DownloaderViewModel : ViewModelBase, IDisposable
         }
         catch (Exception ex)
         {
+            StatusMessage = $"Tool installation failed: {ex.Message}";
             _dialogs.ShowError("Tool install failed", ex.Message);
         }
         finally
         {
             IsInstallingTools = false;
+            OnPropertyChanged(nameof(DependenciesReady));
         }
     }
 

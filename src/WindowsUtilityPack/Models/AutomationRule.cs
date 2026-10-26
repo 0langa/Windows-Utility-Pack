@@ -94,11 +94,14 @@ public sealed class AutomationRuleTemplate
 /// </summary>
 public sealed class AutomationVitalsSnapshot
 {
-    public double DiskFreeGb { get; init; }
+    public double DiskFreeGb { get; init; } = -1;
 
-    public float CpuPercent { get; init; }
+    public float CpuPercent { get; init; } = -1;
 
-    public float RamUsedPercent { get; init; }
+    public float RamUsedPercent { get; init; } = -1;
+
+    public double DiskUsagePercent { get; init; } = -1;
+    public int ProcessCount { get; init; } = -1;
 }
 
 /// <summary>

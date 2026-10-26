@@ -8,8 +8,7 @@ namespace WindowsUtilityPack.Services.Downloader;
 public sealed class DownloadEventLogService : IDownloadEventLogService
 {
     private static readonly string LogDirectory = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "WindowsUtilityPack",
+        AppDataPaths.LocalDirectory,
         "logs");
 
     private static readonly string LogPath = Path.Combine(LogDirectory, "downloader.log");

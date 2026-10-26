@@ -136,6 +136,12 @@ public partial class MainWindow : Window
             return;
         }
 
+        if ((App.NavigationService.CurrentView is INavigationGuard guard && !guard.CanNavigateAway()) || !App.ToolWindowHostService.CanCloseAll())
+        {
+            e.Cancel = true;
+            _explicitExitRequested = false;
+            return;
+        }
         settings.Theme = themeService.CurrentTheme;
 
         if (settings.RememberWindowPosition)

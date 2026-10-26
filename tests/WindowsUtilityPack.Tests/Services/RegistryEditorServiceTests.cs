@@ -8,6 +8,47 @@ namespace WindowsUtilityPack.Tests.Services;
 public class RegistryEditorServiceTests
 {
     [Fact]
+    public async Task InvalidLaterBackupValue_DoesNotChangeEarlierValues()
+    {
+        var service = new RegistryEditorService();
+        var path = CreateTestKeyPath();
+        var backup = Path.GetTempFileName();
+        try
+        {
+            await service.SetValueAsync(path, "Original", "keep", "String");
+            var node = new WindowsUtilityPack.Models.RegistryBackupNode { RelativePath = path, Values = [
+                new() { Name = "Original", Kind = "String", Data = "changed" },
+                new() { Name = "Invalid", Kind = "DWord", Data = "not a number" }] };
+            await File.WriteAllTextAsync(backup, System.Text.Json.JsonSerializer.Serialize(node));
+            await Assert.ThrowsAnyAsync<Exception>(() => service.RestoreAsync(backup));
+            Assert.Equal("keep", Assert.Single(await service.GetValuesAsync(path)).DisplayData);
+        }
+        finally { DeleteTestKey(path); File.Delete(backup); }
+    }
+
+    [Fact]
+    public async Task BackupRoundTrip_PreservesExpandStringsAndMultiStringBoundaries()
+    {
+        var service = new RegistryEditorService();
+        var path = CreateTestKeyPath(); var backup = Path.GetTempFileName();
+        try
+        {
+            using (var key = Registry.CurrentUser.OpenSubKey(path, true))
+            {
+                key!.SetValue("Expand", "%TEMP%\\literal", RegistryValueKind.ExpandString);
+                key.SetValue("Multi", new[] { " has spaces ", "pipe|literal", "尾" }, RegistryValueKind.MultiString);
+            }
+            await service.BackupAsync(path, backup);
+            using (var key = Registry.CurrentUser.OpenSubKey(path, true)) { key!.DeleteValue("Expand"); key.DeleteValue("Multi"); }
+            await service.RestoreAsync(backup);
+            using var restored = Registry.CurrentUser.OpenSubKey(path);
+            Assert.Equal("%TEMP%\\literal", restored!.GetValue("Expand", null, RegistryValueOptions.DoNotExpandEnvironmentNames));
+            Assert.Equal(new[] { " has spaces ", "pipe|literal", "尾" }, Assert.IsType<string[]>(restored.GetValue("Multi")));
+        }
+        finally { DeleteTestKey(path); File.Delete(backup); }
+    }
+
+    [Fact]
     public async Task SetAndReadAndDeleteValue_RoundTrips()
     {
         var service = new RegistryEditorService();

@@ -21,7 +21,7 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Host:" Foreground="{DynamicResource SecondaryTextBrush}"
                            VerticalAlignment="Center" Width="50"/>
-                <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" Width="250" Margin="0,0,16,0"
+                <TextBox AutomationProperties.AutomationId="Host" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" Width="250" Margin="0,0,16,0"
                          IsEnabled="{Binding IsPinging, Converter={StaticResource BoolNegationConverter}}"
                          AutomationProperties.Name="Ping host"/>
                 <TextBlock Text="Count:" Foreground="{DynamicResource SecondaryTextBrush}"
@@ -32,10 +32,10 @@
                          IsEnabled="{Binding IsPinging, Converter={StaticResource BoolNegationConverter}}"
                          PreviewTextInput="PingCountBox_PreviewTextInput"
                          AutomationProperties.Name="Ping count"/>
-                <Button Content="Ping" Command="{Binding PingCommand}"
+                <Button AutomationProperties.AutomationId="PingCommand" Content="Ping" Command="{Binding PingCommand}"
                         Style="{StaticResource PrimaryActionButtonStyle}"
                         AutomationProperties.Name="Start ping"/>
-                <Button Content="Stop" Command="{Binding StopCommand}"
+                <Button AutomationProperties.AutomationId="StopCommand" Content="Stop" Command="{Binding StopCommand}"
                         Style="{StaticResource SecondaryActionButtonStyle}"
                         Margin="8,0,0,0"
                         AutomationProperties.Name="Stop ping"/>
@@ -77,9 +77,9 @@
                                         <ColumnDefinition Width="100"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding Attempt}" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding Address}" Foreground="{DynamicResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding RoundtripMs}" FontFamily="Consolas">
+                                    <TextBlock AutomationProperties.AutomationId="Attempt" Text="{Binding Attempt}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <TextBlock AutomationProperties.AutomationId="Address" Grid.Column="1" Text="{Binding Address}" Foreground="{DynamicResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock AutomationProperties.AutomationId="RoundtripMs" Grid.Column="2" Text="{Binding RoundtripMs}" FontFamily="Consolas">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
@@ -91,7 +91,7 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <TextBlock Grid.Column="3" Text="{Binding Status}">
+                                    <TextBlock AutomationProperties.AutomationId="Status" Grid.Column="3" Text="{Binding Status}">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
@@ -111,7 +111,7 @@
             </Grid>
         </Border>
 
-        <TextBlock Grid.Row="3" Text="{Binding Summary}" Foreground="{DynamicResource SecondaryTextBrush}"
+        <TextBlock AutomationProperties.AutomationId="Summary" Grid.Row="3" Text="{Binding Summary}" Foreground="{DynamicResource SecondaryTextBrush}"
                    FontSize="13" Margin="0,8,0,0"/>
     </Grid>
 </UserControl>

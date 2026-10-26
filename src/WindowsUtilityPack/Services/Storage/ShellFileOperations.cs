@@ -73,6 +73,10 @@ internal static class ShellFileOperations
     public static void Delete(string path, bool recycle)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        if (path.IndexOfAny(['\0', '*', '?']) >= 0) throw new ArgumentException("Expected one literal file path.", nameof(path));
+        path = Path.GetFullPath(path);
+        if (Path.TrimEndingDirectorySeparator(path).Equals(Path.TrimEndingDirectorySeparator(Path.GetPathRoot(path)!), StringComparison.OrdinalIgnoreCase))
+            throw new IOException("A drive root cannot be deleted.");
 
         // SHFileOperation requires a double-null-terminated string.
         var fileOp = new SHFILEOPSTRUCT
@@ -84,6 +88,7 @@ internal static class ShellFileOperations
         };
 
         int result = SHFileOperation(ref fileOp);
+        if (fileOp.fAnyOperationsAborted) throw new OperationCanceledException("The Shell operation was aborted.");
 
         if (result != 0)
         {

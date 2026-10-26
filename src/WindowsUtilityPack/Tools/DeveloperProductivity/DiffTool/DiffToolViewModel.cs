@@ -19,11 +19,12 @@ public class DiffLine
     public DiffType Type { get; set; }
 }
 
-public sealed class DiffToolViewModel : ViewModelBase
+public sealed class DiffToolViewModel : ViewModelBase, IDisposable, IViewLifetime
 {
     private readonly IClipboardService _clipboardService;
     private CancellationTokenSource? _debounceCts;
     private const int DebounceMs = 500;
+    private bool _disposed;
 
     private string _leftText = string.Empty;
     private string _rightText = string.Empty;
@@ -114,27 +115,28 @@ public sealed class DiffToolViewModel : ViewModelBase
         private set => SetProperty(ref _statusMessage, value);
     }
 
-    public RelayCommand ComputeDiffCommand { get; }
+    public AsyncRelayCommand ComputeDiffCommand { get; }
     public RelayCommand SwapCommand { get; }
     public RelayCommand ClearCommand { get; }
     public RelayCommand CopyDiffCommand { get; }
-    public RelayCommand LoadLeftFileCommand { get; }
-    public RelayCommand LoadRightFileCommand { get; }
+    public AsyncRelayCommand LoadLeftFileCommand { get; }
+    public AsyncRelayCommand LoadRightFileCommand { get; }
 
     public DiffToolViewModel(IClipboardService clipboardService)
     {
         _clipboardService = clipboardService;
 
-        ComputeDiffCommand   = new RelayCommand(_ => RunDiff());
+        ComputeDiffCommand   = new AsyncRelayCommand(_ => RunDiffAsync());
         SwapCommand          = new RelayCommand(_ => Swap());
         ClearCommand         = new RelayCommand(_ => Clear());
         CopyDiffCommand      = new RelayCommand(_ => CopyDiff());
-        LoadLeftFileCommand  = new RelayCommand(_ => LoadFile(isLeft: true));
-        LoadRightFileCommand = new RelayCommand(_ => LoadFile(isLeft: false));
+        LoadLeftFileCommand  = new AsyncRelayCommand(_ => LoadFileAsync(isLeft: true));
+        LoadRightFileCommand = new AsyncRelayCommand(_ => LoadFileAsync(isLeft: false));
     }
 
     private async void ScheduleComputeDiff()
     {
+        if (_disposed) return;
         _debounceCts?.Cancel();
         _debounceCts?.Dispose();
         var cts = new CancellationTokenSource();
@@ -142,27 +144,38 @@ public sealed class DiffToolViewModel : ViewModelBase
         try
         {
             await Task.Delay(DebounceMs, cts.Token);
-            RunDiff();
+            await RunDiffAsync();
         }
         catch (OperationCanceledException) { }
-        catch (Exception) { }
+        catch (Exception ex) { if (!_disposed) StatusMessage = $"Comparison failed: {ex.Message}"; }
     }
 
-    private void RunDiff()
+    internal async Task RunDiffAsync()
     {
+        if (_disposed) return;
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        using var cts = new CancellationTokenSource();
+        var token = cts.Token;
+        _debounceCts = cts;
+        var leftText = LeftText; var rightText = RightText;
+        var ignoreWhitespace = IgnoreWhitespace; var ignoreCase = IgnoreCase;
         DiffLines.Clear();
         AddedCount = RemovedCount = UnchangedCount = 0;
 
         if (string.IsNullOrEmpty(LeftText) && string.IsNullOrEmpty(RightText))
         {
             StatusMessage = "Enter text in both panes to compare.";
+            _debounceCts = null;
             return;
         }
 
-        var leftLines  = (LeftText  ?? string.Empty).Split('\n');
-        var rightLines = (RightText ?? string.Empty).Split('\n');
-
-        var lines = ComputeDiff(leftLines, rightLines, _ignoreWhitespace, _ignoreCase);
+        try
+        {
+        if (leftText.Length > BoundedTextFile.MaximumEditorCharacters || rightText.Length > BoundedTextFile.MaximumEditorCharacters)
+            throw new InvalidDataException("Each comparison input is limited to 1,000,000 characters.");
+        var lines = await Task.Run(() => ComputeDiff(leftText.Replace("\r\n", "\n").Split('\n'), rightText.Replace("\r\n", "\n").Split('\n'), ignoreWhitespace, ignoreCase, token), token);
+        if (cts.IsCancellationRequested || _disposed) return;
 
         foreach (var line in lines)
             DiffLines.Add(line);
@@ -172,20 +185,32 @@ public sealed class DiffToolViewModel : ViewModelBase
         UnchangedCount = lines.Count(l => l.Type == DiffType.Unchanged);
 
         StatusMessage = $"{AddedCount} added, {RemovedCount} removed, {UnchangedCount} unchanged";
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { if (!cts.IsCancellationRequested && !_disposed) StatusMessage = $"Comparison failed: {ex.Message}"; }
+        finally { if (ReferenceEquals(_debounceCts, cts)) _debounceCts = null; }
     }
 
-    private static List<DiffLine> ComputeDiff(string[] left, string[] right, bool ignoreWs, bool ignoreCase)
+    internal static List<DiffLine> ComputeDiff(string[] left, string[] right, bool ignoreWs, bool ignoreCase, CancellationToken cancellationToken = default)
     {
         // Build LCS matrix
         int m = left.Length, n = right.Length;
+        if ((long)m + n > 20_000) throw new InvalidDataException("Comparisons are limited to 20,000 total lines.");
+        var leftNormalized = left.Select(s => Normalize(s, ignoreWs, ignoreCase)).ToArray();
+        var rightNormalized = right.Select(s => Normalize(s, ignoreWs, ignoreCase)).ToArray();
+        if (leftNormalized.SequenceEqual(rightNormalized))
+            return right.Select((line, index) => new DiffLine { Content = line, Type = DiffType.Unchanged, LeftLineNumber = index + 1, RightLineNumber = index + 1 }).ToList();
+        if ((long)(m + 1) * (n + 1) > 4_000_000)
+            throw new InvalidDataException("This comparison is too large for the detailed diff. Compare smaller sections (up to 4,000,000 line pairs).");
         var dp = new int[m + 1, n + 1];
 
         for (int i = 1; i <= m; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int j = 1; j <= n; j++)
             {
-                var lNorm = Normalize(left[i - 1],  ignoreWs, ignoreCase);
-                var rNorm = Normalize(right[j - 1], ignoreWs, ignoreCase);
+                var lNorm = leftNormalized[i - 1];
+                var rNorm = rightNormalized[j - 1];
                 dp[i, j] = lNorm == rNorm ? dp[i - 1, j - 1] + 1 : Math.Max(dp[i - 1, j], dp[i, j - 1]);
             }
         }
@@ -199,8 +224,8 @@ public sealed class DiffToolViewModel : ViewModelBase
         {
             if (li > 0 && ri > 0)
             {
-                var lNorm = Normalize(left[li - 1],  ignoreWs, ignoreCase);
-                var rNorm = Normalize(right[ri - 1], ignoreWs, ignoreCase);
+                var lNorm = leftNormalized[li - 1];
+                var rNorm = rightNormalized[ri - 1];
 
                 if (lNorm == rNorm)
                 {
@@ -275,7 +300,7 @@ public sealed class DiffToolViewModel : ViewModelBase
         _clipboardService.SetText(sb.ToString());
     }
 
-    private void LoadFile(bool isLeft)
+    private async Task LoadFileAsync(bool isLeft)
     {
         var dlg = new OpenFileDialog
         {
@@ -287,7 +312,8 @@ public sealed class DiffToolViewModel : ViewModelBase
 
         try
         {
-            var content = File.ReadAllText(dlg.FileName);
+            var content = await BoundedTextFile.ReadAsync(dlg.FileName);
+            if (_disposed) return;
             if (isLeft)
             {
                 LeftText  = content;
@@ -304,4 +330,7 @@ public sealed class DiffToolViewModel : ViewModelBase
             StatusMessage = $"Error loading file: {ex.Message}";
         }
     }
+    public void Activate() { }
+    public void Deactivate() { _debounceCts?.Cancel(); }
+    public void Dispose() { _disposed = true; _debounceCts?.Cancel(); _debounceCts?.Dispose(); _debounceCts = null; }
 }

@@ -70,6 +70,7 @@
             <converters:BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <converters:BooleanToVisibilityConverter x:Key="InvertedBoolToVisibilityConverter" Invert="True"/>
             <converters:BoolNegationConverter x:Key="BoolNegationConverter"/>
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
             <converters:BytesToSizeConverter x:Key="BytesToSizeConverter"/>
             <converters:EnumToBooleanConverter x:Key="EnumToBoolConverter"/>
             <converters:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter"/>

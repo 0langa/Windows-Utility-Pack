@@ -17,8 +17,7 @@ public sealed class AppDataStoreService : IAppDataStoreService
     {
         DatabasePath = string.IsNullOrWhiteSpace(databasePath)
             ? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "WindowsUtilityPack",
+                AppDataPaths.LocalDirectory,
                 "appdata.db")
             : databasePath;
     }
@@ -175,6 +174,14 @@ CREATE INDEX IF NOT EXISTS idx_ssh_profiles_updated ON ssh_profiles(updated_utc 
             }
 
             ExecuteNonQuery(connection, "PRAGMA user_version = 5;");
+        }
+
+        if (currentVersion < 6)
+        {
+            // Early builds explicitly inserted zero, making the first rule undeletable.
+            ExecuteNonQuery(connection, @"
+UPDATE automation_rules SET id = (SELECT COALESCE(MAX(id), 0) + 1 FROM automation_rules) WHERE id = 0;
+PRAGMA user_version = 6;");
         }
     }
 

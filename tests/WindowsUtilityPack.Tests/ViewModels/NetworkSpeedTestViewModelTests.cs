@@ -9,6 +9,42 @@ namespace WindowsUtilityPack.Tests.ViewModels;
 public class NetworkSpeedTestViewModelTests
 {
     [Fact]
+    public async Task StopAfterLatency_ShowsStoppedWithoutStartingUpload()
+    {
+        var handler = new StubSpeedHttpMessageHandler();
+        var vm = new NetworkSpeedTestViewModel(new TestClipboardService(), new HttpClient(handler))
+        {
+            ServerUrl = "http://127.0.0.1/download", UploadUrl = "http://127.0.0.1/upload"
+        };
+        vm.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(vm.PacketLoss) && vm.PacketLoss != "-- %")
+                vm.StopCommand.Execute(null);
+        };
+
+        vm.RunTestCommand.Execute(null);
+        await WaitUntilAsync(() => !vm.IsTesting, timeoutMs: 12000);
+
+        Assert.Equal("Test stopped.", vm.StatusMessage);
+        Assert.Empty(vm.History);
+        Assert.Equal(0, handler.PostRequests);
+    }
+
+    [Fact]
+    public async Task CustomDownloadWithoutUpload_DoesNotSendToDefaultProvider()
+    {
+        var handler = new StubSpeedHttpMessageHandler();
+        var vm = new NetworkSpeedTestViewModel(new TestClipboardService(), new HttpClient(handler))
+        {
+            ServerUrl = "http://127.0.0.1/native-download"
+        };
+        vm.RunTestCommand.Execute(null);
+        await WaitUntilAsync(() => !vm.IsTesting, timeoutMs: 12000);
+        Assert.Equal(0, handler.PostRequests);
+        Assert.Contains("upload URL", vm.StatusMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void SelectingProfile_UpdatesServerAndMethodology()
     {
         var vm = new NetworkSpeedTestViewModel(new TestClipboardService(), new HttpClient(new StubSpeedHttpMessageHandler()));
@@ -17,7 +53,17 @@ public class NetworkSpeedTestViewModelTests
         vm.SelectedProfile = quick;
 
         Assert.Equal(quick.DownloadUrl, vm.ServerUrl);
+        Assert.Equal(quick.UploadUrl, vm.UploadUrl);
         Assert.Contains("ICMP latency", vm.MethodologySummary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CustomUploadUrl_ClearsBuiltInProfileLabel()
+    {
+        var vm = new NetworkSpeedTestViewModel(new TestClipboardService(), new HttpClient(new StubSpeedHttpMessageHandler()));
+        vm.UploadUrl = "http://127.0.0.1/upload";
+        Assert.Null(vm.SelectedProfile);
+        Assert.Contains("Custom", vm.MethodologySummary);
     }
 
     [Fact]
@@ -26,13 +72,14 @@ public class NetworkSpeedTestViewModelTests
         var handler = new StubSpeedHttpMessageHandler();
         var vm = new NetworkSpeedTestViewModel(new TestClipboardService(), new HttpClient(handler))
         {
-            ServerUrl = "https://127.0.0.1/test"
+            ServerUrl = "https://127.0.0.1/test", UploadUrl = "https://127.0.0.1/upload"
         };
 
         vm.RunTestCommand.Execute(null);
         await WaitUntilAsync(() => !vm.IsTesting, timeoutMs: 12000);
 
         Assert.True(handler.PostRequests > 0);
+        Assert.Equal("https://127.0.0.1/upload", handler.LastUploadUri?.AbsoluteUri);
         Assert.Equal(100, vm.UploadProgress);
         Assert.Contains("Mbps", vm.UploadSpeed, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Not measured", vm.UploadSpeed, StringComparison.OrdinalIgnoreCase);
@@ -46,13 +93,15 @@ public class NetworkSpeedTestViewModelTests
         var handler = new StubSpeedHttpMessageHandler { FailUpload = true };
         var vm = new NetworkSpeedTestViewModel(new TestClipboardService(), new HttpClient(handler))
         {
-            ServerUrl = "https://127.0.0.1/test"
+            ServerUrl = "https://127.0.0.1/test", UploadUrl = "https://127.0.0.1/upload"
         };
 
         vm.RunTestCommand.Execute(null);
         await WaitUntilAsync(() => !vm.IsTesting, timeoutMs: 12000);
 
         Assert.Contains("Not measured", vm.UploadSpeed, StringComparison.OrdinalIgnoreCase);
+        Assert.False(vm.UploadComplete);
+        Assert.DoesNotContain("Test complete", vm.StatusMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0, vm.UploadProgress);
     }
 
@@ -75,6 +124,7 @@ public class NetworkSpeedTestViewModelTests
         public bool FailUpload { get; init; }
         public long UploadedBytes { get; private set; }
         public int PostRequests { get; private set; }
+        public Uri? LastUploadUri { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -91,6 +141,7 @@ public class NetworkSpeedTestViewModelTests
             if (request.Method == HttpMethod.Post)
             {
                 PostRequests++;
+                LastUploadUri = request.RequestUri;
                 if (FailUpload)
                 {
                     throw new HttpRequestException("upload unavailable");

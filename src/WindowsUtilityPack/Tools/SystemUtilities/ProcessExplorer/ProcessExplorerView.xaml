@@ -20,14 +20,14 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0"
+                <TextBox AutomationProperties.AutomationId="SearchQuery" Grid.Column="0"
                          Margin="0,0,8,0"
                          Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                          VerticalContentAlignment="Center"
                          ToolTip="Filter by process name, path, or PID"/>
-                <Button Grid.Column="1" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                <Button Grid.Column="2" Content="Copy Details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                <Button Grid.Column="3" Content="Terminate" Command="{Binding TerminateCommand}" Style="{StaticResource DangerActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="RefreshCommand" Grid.Column="1" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                <Button AutomationProperties.AutomationId="CopyDetailsCommand" Grid.Column="2" Content="Copy Details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                <Button AutomationProperties.AutomationId="TerminateCommand" Grid.Column="3" Content="Terminate" Command="{Binding TerminateCommand}" Style="{StaticResource DangerActionButtonStyle}"/>
             </Grid>
         </Border>
 
@@ -37,7 +37,7 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <DataGrid ItemsSource="{Binding Processes}"
+                <DataGrid AutomationProperties.AutomationId="SelectedProcess" ItemsSource="{Binding Processes}"
                           SelectedItem="{Binding SelectedProcess, Mode=TwoWay}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
@@ -62,13 +62,16 @@
                 <Border Grid.Row="1" Margin="0,4,0,0" Style="{StaticResource SurfaceCardStyle}" Padding="10" Visibility="{Binding SelectedProcess, Converter={StaticResource NullToVisibilityConverter}}">
                     <StackPanel>
                         <TextBlock Text="Details" FontWeight="Bold" Margin="0,0,0,4"/>
-                        <TextBlock Text="{Binding SelectedProcess.Name}"/>
-                        <TextBlock Text="PID: {Binding SelectedProcess.ProcessId}"/>
-                        <TextBlock Text="Path: {Binding SelectedProcess.ExecutablePath}" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="Memory: {Binding SelectedProcess.WorkingSetMb, StringFormat=F1} MB"/>
-                        <TextBlock Text="CPU: {Binding SelectedProcess.CpuPercent, StringFormat=F1} % ({Binding SelectedProcess.CpuTimeSeconds, StringFormat=F1} s)"/>
-                        <TextBlock Text="Responding: {Binding SelectedProcess.IsResponding}"/>
-                        <TextBlock Text="Started: {Binding SelectedProcess.StartTimeLocal, StringFormat=G}"/>
+                        <TextBlock AutomationProperties.AutomationId="SelectedProcess.Name" Text="{Binding SelectedProcess.Name}"/>
+                        <TextBlock AutomationProperties.AutomationId="SelectedProcess.ProcessId" Text="{Binding SelectedProcess.ProcessId, StringFormat=PID: {0}}"/>
+                        <TextBlock AutomationProperties.AutomationId="SelectedProcess.ExecutablePath" Text="{Binding SelectedProcess.ExecutablePath, StringFormat=Path: {0}}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock AutomationProperties.AutomationId="SelectedProcess.WorkingSetMb" Text="{Binding SelectedProcess.WorkingSetMb, StringFormat=Memory: {0:F1} MB}"/>
+                        <TextBlock>
+                            <Run Text="{Binding SelectedProcess.CpuPercent, Mode=OneWay, StringFormat=CPU: {0:F1}%}"/>
+                            <Run Text="{Binding SelectedProcess.CpuTimeSeconds, Mode=OneWay, StringFormat=({0:F1} s)}"/>
+                        </TextBlock>
+                        <TextBlock AutomationProperties.AutomationId="SelectedProcess.IsResponding" Text="{Binding SelectedProcess.IsResponding, StringFormat=Responding: {0}}"/>
+                        <TextBlock AutomationProperties.AutomationId="SelectedProcess.StartTimeLocal" Text="{Binding SelectedProcess.StartTimeLocal, StringFormat=Started: {0:G}}"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -76,11 +79,11 @@
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
                 <TextBlock Text="  |  Auto-refresh: " Style="{StaticResource MetadataTextStyle}" Margin="12,0,0,0"/>
-                <CheckBox IsChecked="{Binding AutoRefreshEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
+                <CheckBox AutomationProperties.AutomationId="AutoRefreshEnabled" IsChecked="{Binding AutoRefreshEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
                 <TextBlock Text="  Interval (s): " Style="{StaticResource MetadataTextStyle}" Margin="8,0,0,0"/>
-                <TextBox Text="{Binding RefreshIntervalSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="32" VerticalAlignment="Center"/>
+                <TextBox AutomationProperties.AutomationId="RefreshIntervalSeconds" Text="{Binding RefreshIntervalSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="32" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
     </Grid>

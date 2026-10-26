@@ -7,7 +7,7 @@
 
             <!-- Use Now Button -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                <Button Content="Use Current Time" Command="{Binding UseNowCommand}"
+                <Button AutomationProperties.AutomationId="UseNowCommand" Content="Use Current Time" Command="{Binding UseNowCommand}"
                         Style="{StaticResource PrimaryActionButtonStyle}"/>
             </StackPanel>
 
@@ -21,10 +21,10 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="Unix Seconds:" Width="120" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Text="{Binding UnixSeconds, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox AutomationProperties.AutomationId="UnixSeconds" Text="{Binding UnixSeconds, UpdateSourceTrigger=PropertyChanged}"
                                  Width="200" FontFamily="Consolas" FontSize="14"
                                  Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
-                        <Button Content="Copy" Command="{Binding CopyUnixCommand}"
+                        <Button AutomationProperties.AutomationId="CopyUnixCommand" Content="Copy" Command="{Binding CopyUnixCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
                     </StackPanel>
 
@@ -45,39 +45,39 @@
 
                         <TextBlock Grid.Row="0" Text="Unix Milliseconds:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4"/>
-                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding UnixMilliseconds, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="UnixMilliseconds" Grid.Row="0" Grid.Column="1" Text="{Binding UnixMilliseconds, Mode=OneWay}"
                                  IsReadOnly="True" FontFamily="Consolas"
                                  Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4" Margin="0,4"/>
 
                         <TextBlock Grid.Row="1" Text="UTC (ISO 8601):" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4"/>
                         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
-                            <TextBox Text="{Binding HumanReadableUtc, Mode=OneWay}" IsReadOnly="True"
+                            <TextBox AutomationProperties.AutomationId="HumanReadableUtc" Text="{Binding HumanReadableUtc, Mode=OneWay}" IsReadOnly="True"
                                      Width="240" FontFamily="Consolas"
                                      Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
-                            <Button Content="Copy" Command="{Binding CopyHumanCommand}"
+                            <Button AutomationProperties.AutomationId="CopyHumanCommand" Content="Copy" Command="{Binding CopyHumanCommand}"
                                     Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
                         </StackPanel>
 
                         <TextBlock Grid.Row="2" Text="Local Time:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4"/>
-                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding HumanReadableLocal, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="HumanReadableLocal" Grid.Row="2" Grid.Column="1" Text="{Binding HumanReadableLocal, Mode=OneWay}"
                                  IsReadOnly="True" FontFamily="Consolas"
                                  Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4" Margin="0,4"/>
 
                         <TextBlock Grid.Row="3" Text="Relative:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4"/>
-                        <TextBlock Grid.Row="3" Grid.Column="1"
+                        <TextBlock AutomationProperties.AutomationId="RelativeTime" Grid.Row="3" Grid.Column="1"
                                    Text="{Binding RelativeTime}" VerticalAlignment="Center"
                                    Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" Margin="6,4"/>
 
                         <TextBlock Grid.Row="4" Text="Custom Format:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4"/>
                         <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
-                            <TextBox Text="{Binding CustomFormat, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox AutomationProperties.AutomationId="CustomFormat" Text="{Binding CustomFormat, UpdateSourceTrigger=PropertyChanged}"
                                      Width="160" FontFamily="Consolas"
                                      Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
-                            <TextBox Text="{Binding CustomFormatResult, Mode=OneWay}" IsReadOnly="True"
+                            <TextBox AutomationProperties.AutomationId="CustomFormatResult" Text="{Binding CustomFormatResult, Mode=OneWay}" IsReadOnly="True"
                                      Width="200" FontFamily="Consolas"
                                      Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4" Margin="8,0,0,0"/>
                         </StackPanel>
@@ -94,10 +94,10 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="Date/Time String:" Width="120" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Text="{Binding DateInput, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox AutomationProperties.AutomationId="DateInput" Text="{Binding DateInput, UpdateSourceTrigger=PropertyChanged}"
                                  Width="280" FontFamily="Consolas"
                                  Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
-                        <Button Content="Parse" Command="{Binding ParseDateCommand}"
+                        <Button AutomationProperties.AutomationId="ParseDateCommand" Content="Parse" Command="{Binding ParseDateCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}" Margin="8,0,0,0"/>
                     </StackPanel>
 
@@ -114,16 +114,16 @@
                         <TextBlock Grid.Row="0" Text="Unix Seconds:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4"/>
                         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
-                            <TextBox Text="{Binding ParsedUnixSeconds, Mode=OneWay}" IsReadOnly="True"
+                            <TextBox AutomationProperties.AutomationId="ParsedUnixSeconds" Text="{Binding ParsedUnixSeconds, Mode=OneWay}" IsReadOnly="True"
                                      Width="200" FontFamily="Consolas"
                                      Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4"/>
-                            <Button Content="Copy" Command="{Binding CopyParsedUnixCommand}"
+                            <Button AutomationProperties.AutomationId="CopyParsedUnixCommand" Content="Copy" Command="{Binding CopyParsedUnixCommand}"
                                     Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
                         </StackPanel>
 
                         <TextBlock Grid.Row="1" Text="Unix Milliseconds:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4"/>
-                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ParsedUnixMs, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="ParsedUnixMs" Grid.Row="1" Grid.Column="1" Text="{Binding ParsedUnixMs, Mode=OneWay}"
                                  IsReadOnly="True" Width="200" FontFamily="Consolas"
                                  Foreground="{DynamicResource PrimaryTextBrush}" Padding="6,4" Margin="0,4"
                                  HorizontalAlignment="Left"/>

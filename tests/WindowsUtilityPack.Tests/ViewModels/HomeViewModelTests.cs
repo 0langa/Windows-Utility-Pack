@@ -131,7 +131,7 @@ public class HomeViewModelTests
     }
 
     [Fact]
-    public void Constructor_AlwaysStartsSectionsCollapsed()
+    public void Constructor_RestoresSavedExpandedSections()
     {
         var vm = new HomeViewModel(
             new TestNavigationService(),
@@ -149,11 +149,11 @@ public class HomeViewModelTests
             },
             new TestClipboardService(string.Empty));
 
-        Assert.False(vm.FavoritesExpanded);
-        Assert.False(vm.RecentsExpanded);
-        Assert.False(vm.CategoryBrowserExpanded);
-        Assert.False(vm.RecommendedExpanded);
-        Assert.False(vm.AllToolsExpanded);
+        Assert.True(vm.FavoritesExpanded);
+        Assert.True(vm.RecentsExpanded);
+        Assert.True(vm.CategoryBrowserExpanded);
+        Assert.True(vm.RecommendedExpanded);
+        Assert.True(vm.AllToolsExpanded);
     }
 
     private static HomeViewModel CreateViewModel(TestClipboardService clipboard)

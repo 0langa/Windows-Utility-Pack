@@ -8,6 +8,6 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <NuGetAudit>true</NuGetAudit>
-    <NuGetAuditMode>direct</NuGetAuditMode>
+    <NuGetAuditMode>all</NuGetAuditMode>
   </PropertyGroup>
 </Project>

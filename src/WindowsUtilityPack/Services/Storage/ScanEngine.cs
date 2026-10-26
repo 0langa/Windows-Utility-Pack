@@ -52,7 +52,7 @@ public class ScanEngine : IScanEngine
         var root = BuildTree(rootPath, null, 0, options, state, progress, stopwatch, ct);
 
         // Compute aggregated sizes bottom-up
-        ComputeAggregates(root);
+        ComputeAggregates(root, ct);
 
         return root;
     }
@@ -93,12 +93,15 @@ public class ScanEngine : IScanEngine
         if (!options.IncludeHidden && node.IsHidden) return node;
         if (!options.IncludeSystem && node.IsSystem) return node;
         if (options.MaxDepth > 0   && depth >= options.MaxDepth) return node;
+        if ((node.Attributes & FileAttributes.ReparsePoint) != 0 || depth >= 256) return node;
+
+        node.IsScanComplete = true;
 
         var enumOptions = new EnumerationOptions
         {
-            IgnoreInaccessible   = true,
+            IgnoreInaccessible   = false,
             RecurseSubdirectories = false,
-            AttributesToSkip     = BuildAttributeSkip(options),
+            AttributesToSkip     = 0,
         };
 
         // ── Enumerate child files ─────────────────────────────────────────────
@@ -108,15 +111,21 @@ public class ScanEngine : IScanEngine
             {
                 ct.ThrowIfCancellationRequested();
 
+                if ((fileInfo.Attributes & BuildAttributeSkip(options)) != 0)
+                {
+                    node.IsScanComplete = false;
+                    continue;
+                }
+
                 var fileNode = new StorageItem
                 {
                     FullPath     = fileInfo.FullName,
                     Name         = fileInfo.Name,
                     IsDirectory  = false,
-                    SizeBytes    = SafeGetLength(fileInfo),
+                    SizeBytes    = fileInfo.Length,
                     Attributes   = fileInfo.Attributes,
-                    LastModified = SafeGetDate(() => fileInfo.LastWriteTime),
-                    CreatedAt    = SafeGetDate(() => fileInfo.CreationTime),
+                    LastModified = fileInfo.LastWriteTime,
+                    CreatedAt    = fileInfo.CreationTime,
                     Depth        = depth + 1,
                     Parent       = node,
                 };
@@ -127,6 +136,8 @@ public class ScanEngine : IScanEngine
 
                 if (fileNode.SizeBytes >= options.MinFileSizeBytes)
                     node.Children.Add(fileNode);
+                else
+                    node.IsScanComplete = false;
 
                 state.FilesFound++;
                 state.ItemsEnumerated++;
@@ -135,8 +146,8 @@ public class ScanEngine : IScanEngine
                 MaybeReportProgress(state, path, progress, stopwatch, options.ProgressIntervalItems);
             }
         }
-        catch (UnauthorizedAccessException) { /* skip inaccessible directories */ }
-        catch (IOException)                 { /* skip broken paths */ }
+        catch (UnauthorizedAccessException) { node.IsScanComplete = false; }
+        catch (IOException)                 { node.IsScanComplete = false; }
 
         // ── Enumerate child directories (recursion) ───────────────────────────
         try
@@ -148,10 +159,11 @@ public class ScanEngine : IScanEngine
                 var childNode = BuildTree(
                     subDirInfo.FullName, node, depth + 1, options, state, progress, stopwatch, ct);
                 node.Children.Add(childNode);
+                if (!childNode.IsScanComplete) node.IsScanComplete = false;
             }
         }
-        catch (UnauthorizedAccessException) { }
-        catch (IOException)                 { }
+        catch (UnauthorizedAccessException) { node.IsScanComplete = false; }
+        catch (IOException)                 { node.IsScanComplete = false; }
 
         return node;
     }
@@ -160,8 +172,9 @@ public class ScanEngine : IScanEngine
     /// Post-order bottom-up aggregation: fills TotalSizeBytes, FileCount, DirectoryCount
     /// for every directory node after the tree is fully built.
     /// </summary>
-    private static void ComputeAggregates(StorageItem node)
+    private static void ComputeAggregates(StorageItem node, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!node.IsDirectory)
         {
             node.TotalSizeBytes = node.SizeBytes;
@@ -169,46 +182,25 @@ public class ScanEngine : IScanEngine
         }
 
         long totalSize  = 0;
+        long totalAllocated = 0;
         int  fileCount  = 0;
         int  dirCount   = 0;
 
         foreach (var child in node.Children)
         {
-            ComputeAggregates(child);
+            ComputeAggregates(child, cancellationToken);
             totalSize += child.TotalSizeBytes;
+            totalAllocated += child.TotalAllocatedBytes;
             fileCount += child.FileCount;
             dirCount  += child.DirectoryCount;
 
             if (child.IsDirectory) dirCount++;
-            else                   fileCount += 0; // already counted in recursion
         }
-
-        // Correct double-counting: files are counted when we recurse into them (FileCount=1),
-        // directories increment dirCount when we add the child above.
-        // Recompute cleanly:
-        fileCount = 0;
-        dirCount  = 0;
-        CountDescendants(node, ref fileCount, ref dirCount);
 
         node.TotalSizeBytes = totalSize;
+        node.TotalAllocatedBytes = totalAllocated;
         node.FileCount      = fileCount;
         node.DirectoryCount = dirCount;
-    }
-
-    private static void CountDescendants(StorageItem node, ref int files, ref int dirs)
-    {
-        foreach (var child in node.Children)
-        {
-            if (child.IsDirectory)
-            {
-                dirs++;
-                CountDescendants(child, ref files, ref dirs);
-            }
-            else
-            {
-                files++;
-            }
-        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -228,7 +220,7 @@ public class ScanEngine : IScanEngine
         Stopwatch sw,
         int interval)
     {
-        if (progress == null || state.ItemsEnumerated % interval != 0) return;
+        if (progress == null || state.ItemsEnumerated % Math.Max(1, interval) != 0) return;
 
         progress.Report(new ScanProgress
         {
@@ -239,11 +231,6 @@ public class ScanEngine : IScanEngine
             CurrentPath     = currentPath,
             Elapsed         = sw.Elapsed,
         });
-    }
-
-    private static long SafeGetLength(FileInfo fi)
-    {
-        try { return fi.Length; } catch { return 0; }
     }
 
     private static DateTime SafeGetDate(Func<DateTime> getter)

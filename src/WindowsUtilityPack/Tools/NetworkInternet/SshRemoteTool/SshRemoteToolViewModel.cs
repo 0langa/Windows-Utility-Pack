@@ -217,6 +217,8 @@ public sealed class SshRemoteToolViewModel : ViewModelBase
 
     private void CopyCommand()
     {
+        try
+        {
         var command = _service.BuildSshCommand(new SshConnectionProfile
         {
             Name = Name,
@@ -227,7 +229,9 @@ public sealed class SshRemoteToolViewModel : ViewModelBase
         });
 
         _clipboard.SetText(command);
-        StatusMessage = "SSH command copied to clipboard.";
+        StatusMessage = "PowerShell SSH command copied to clipboard.";
+        }
+        catch (Exception ex) { StatusMessage = $"Could not create the SSH command: {ex.Message}"; }
     }
 
     private void NewProfile()

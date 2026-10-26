@@ -5,6 +5,8 @@ namespace WindowsUtilityPack.Services;
 /// <summary>Persisted user preferences loaded and saved as JSON.</summary>
 public class AppSettings
 {
+    /// <summary>Current-user DPAPI payload; populated only by SettingsService when writing.</summary>
+    public string ProtectedSensitiveSettings { get; set; } = string.Empty;
     /// <summary>Whether custom shell hotkeys are enabled.</summary>
     public bool HotkeysEnabled { get; set; } = true;
 
@@ -62,7 +64,7 @@ public class AppSettings
     public bool RecentsExpanded { get; set; } = false;
 
     /// <summary>Whether the Browse by Category section is expanded on the homepage.</summary>
-    public bool CategoryBrowserExpanded { get; set; } = false;
+    public bool CategoryBrowserExpanded { get; set; } = true;
 
     /// <summary>Whether the Recommended Next Tools section is expanded on the homepage.</summary>
     public bool RecommendedExpanded { get; set; } = false;
@@ -196,13 +198,18 @@ public enum QuickScreenshotBehavior
 public interface ISettingsService
 {
     /// <summary>
-    /// Loads settings from disk.  Returns defaults silently if the file is absent or corrupt.
+    /// Loads settings from disk.  Returns defaults if absent; preserves corrupt files for recovery and reports other load errors.
     /// </summary>
     AppSettings Load();
 
     /// <summary>
     /// Persists the supplied settings to disk.
-    /// Failures (e.g. permissions) are swallowed silently to prevent startup crashes.
+    /// Failures are logged and notified without crashing startup. Use TrySave when the caller needs the outcome.
     /// </summary>
     void Save(AppSettings settings);
+    bool TrySave(AppSettings settings, out string? error)
+    {
+        try { Save(settings); error = null; return true; }
+        catch (Exception ex) { error = ex.Message; return false; }
+    }
 }

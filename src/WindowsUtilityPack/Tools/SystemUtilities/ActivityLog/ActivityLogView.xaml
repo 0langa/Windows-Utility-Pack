@@ -24,29 +24,29 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0"
+                <TextBox AutomationProperties.AutomationId="CategoryFilter" Grid.Column="0"
                          Margin="0,0,8,0"
                          Text="{Binding CategoryFilter, UpdateSourceTrigger=PropertyChanged}"
                          ToolTip="Optional category filter (for example: Navigation)"/>
 
-                <TextBox Grid.Column="1"
+                <TextBox AutomationProperties.AutomationId="Limit" Grid.Column="1"
                          Margin="0,0,8,0"
                          Text="{Binding Limit, UpdateSourceTrigger=PropertyChanged}"
                          ToolTip="Maximum entries to load"/>
 
-                <Button Grid.Column="2"
+                <Button AutomationProperties.AutomationId="RefreshCommand" Grid.Column="2"
                         Margin="0,0,8,0"
                         Content="Refresh"
                         Command="{Binding RefreshCommand}"
                         Style="{StaticResource SecondaryActionButtonStyle}"/>
 
-                <Button Grid.Column="3"
+                <Button AutomationProperties.AutomationId="CopyCsvCommand" Grid.Column="3"
                         Margin="0,0,8,0"
                         Content="Copy CSV"
                         Command="{Binding CopyCsvCommand}"
                         Style="{StaticResource PrimaryActionButtonStyle}"/>
 
-                <Button Grid.Column="4"
+                <Button AutomationProperties.AutomationId="ClearCommand" Grid.Column="4"
                         Content="Clear"
                         Command="{Binding ClearCommand}"
                         Style="{StaticResource DangerActionButtonStyle}"/>
@@ -54,7 +54,7 @@
         </Border>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
-            <ListView ItemsSource="{Binding Entries}"
+            <ListView AutomationProperties.AutomationId="Entries" ItemsSource="{Binding Entries}"
                       BorderBrush="{DynamicResource BorderBrush}"
                       BorderThickness="1"
                       Background="{DynamicResource AppSurfaceAltBrush}">
@@ -71,7 +71,7 @@
         </Border>
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

@@ -14,6 +14,72 @@ public class NavigationServiceTests
     // Minimal ViewModelBase subclasses used as navigation targets.
     private class TestVm  : ViewModelBase { }
     private class OtherVm : ViewModelBase { }
+    private sealed class GuardVm : ViewModelBase, INavigationGuard { public bool CanNavigateAway() => false; }
+    private sealed class LiveVm : ViewModelBase, IViewLifetime, IDisposable
+    {
+        public bool Active { get; private set; }
+        public bool Disposed { get; private set; }
+        public void Activate() => Active = true;
+        public void Deactivate() => Active = false;
+        public void Dispose() { Active = false; Disposed = true; }
+    }
+
+    [Fact]
+    public void BackNavigation_RestoresRegisteredIdentityAndViewLifetime()
+    {
+        using var svc = new NavigationService();
+        var first = new LiveVm();
+        var second = new LiveVm();
+        svc.Register("first-key", () => first);
+        svc.Register("second-key", () => second);
+        svc.NavigateTo("first-key");
+        Assert.True(first.Active);
+        svc.NavigateTo("second-key");
+        Assert.False(first.Active);
+        Assert.Equal("second-key", svc.CurrentToolKey);
+        svc.GoBack();
+        Assert.True(first.Active);
+        Assert.True(second.Disposed);
+        Assert.Equal("first-key", svc.CurrentToolKey);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NavigationVeto_DoesNotConstructTarget(bool generic)
+    {
+        using var svc = new NavigationService();
+        svc.NavigateTo(new GuardVm());
+        var constructed = 0;
+        svc.Register("target", () => { constructed++; return new OtherVm(); });
+        svc.Register<OtherVm>(() => { constructed++; return new OtherVm(); });
+        if (generic) svc.Navigate<OtherVm>(); else svc.NavigateTo("target");
+        Assert.Equal(0, constructed);
+        Assert.False(svc.CanGoBack);
+    }
+
+    [Fact]
+    public void InvalidNavigation_DoesNotAlterHistory()
+    {
+        using var svc = new NavigationService();
+        var original = new TestVm();
+        svc.NavigateTo(original);
+        svc.NavigateTo(new object());
+        Assert.Same(original, svc.CurrentView);
+        Assert.False(svc.CanGoBack);
+    }
+
+    [Fact]
+    public void GoBack_RaisesNavigationEventForRestoredView()
+    {
+        using var svc = new NavigationService();
+        svc.NavigateTo(new TestVm());
+        svc.NavigateTo(new OtherVm());
+        Type? raised = null;
+        svc.Navigated += (_, type) => raised = type;
+        svc.GoBack();
+        Assert.Equal(typeof(TestVm), raised);
+    }
 
     [Fact]
     public void NavigateTo_String_SetsCurrentView()

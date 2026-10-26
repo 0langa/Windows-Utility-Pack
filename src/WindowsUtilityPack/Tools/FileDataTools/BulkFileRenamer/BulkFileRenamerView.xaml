@@ -30,9 +30,9 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Text="Folder:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding SelectedFolder, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox AutomationProperties.AutomationId="SelectedFolder" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding SelectedFolder, UpdateSourceTrigger=PropertyChanged}"
                          IsReadOnly="True" Margin="60,0,100,8"/>
-                <Button Grid.Row="0" Grid.Column="1" Content="Browse…"
+                <Button AutomationProperties.AutomationId="BrowseFolderCommand" Grid.Row="0" Grid.Column="1" Content="Browse…"
                         Command="{Binding BrowseFolderCommand}"
                         IsEnabled="{Binding IsBusy, Converter={StaticResource BoolNegationConverter}}"
                         HorizontalAlignment="Right"
@@ -41,16 +41,16 @@
 
                 <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Prefix:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Width="60"/>
-                    <TextBox Text="{Binding Prefix, UpdateSourceTrigger=PropertyChanged}" Width="120" Margin="0,0,20,0"/>
+                    <TextBox AutomationProperties.AutomationId="Prefix" Text="{Binding Prefix, UpdateSourceTrigger=PropertyChanged}" Width="120" Margin="0,0,20,0"/>
                     <TextBlock Text="Suffix:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Width="60"/>
-                    <TextBox Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                    <TextBox AutomationProperties.AutomationId="Suffix" Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
                 </StackPanel>
 
                 <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal">
                     <TextBlock Text="Find:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Width="60"/>
-                    <TextBox Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" Width="120" Margin="0,0,20,0"/>
+                    <TextBox AutomationProperties.AutomationId="FindText" Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" Width="120" Margin="0,0,20,0"/>
                     <TextBlock Text="Replace:" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Width="60"/>
-                    <TextBox Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                    <TextBox AutomationProperties.AutomationId="ReplaceText" Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -81,8 +81,8 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding OriginalName}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding NewName}" FontSize="12" TextTrimming="CharacterEllipsis">
+                                    <TextBlock AutomationProperties.AutomationId="OriginalName" Text="{Binding OriginalName}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock AutomationProperties.AutomationId="NewName" Grid.Column="1" Text="{Binding NewName}" FontSize="12" TextTrimming="CharacterEllipsis">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
@@ -104,7 +104,7 @@
 
         <!-- Apply button and busy indicator -->
         <Grid Grid.Row="3" Margin="0,12,0,0">
-            <Button Content="Apply Rename" Command="{Binding ApplyRenameCommand}"
+            <Button AutomationProperties.AutomationId="ApplyRenameCommand" Content="Apply Rename" Command="{Binding ApplyRenameCommand}"
                     HorizontalAlignment="Right"
                     Style="{StaticResource PrimaryActionButtonStyle}"
                     AutomationProperties.Name="Apply file rename"/>

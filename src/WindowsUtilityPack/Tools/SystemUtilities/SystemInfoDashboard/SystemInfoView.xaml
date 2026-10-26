@@ -28,17 +28,17 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="System Info" Style="{StaticResource ToolTitleTextStyle}"/>
-                <Button Grid.Column="1" Content="Refresh"
+                <Button AutomationProperties.AutomationId="LoadCommand" Grid.Column="1" Content="Refresh"
                         Style="{StaticResource SecondaryActionButtonStyle}"
                         Command="{Binding LoadCommand}" Margin="0,0,8,0"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button Content="Export JSON"
+                    <Button AutomationProperties.AutomationId="ExportJsonCommand" Content="Export JSON"
                         Style="{StaticResource SecondaryActionButtonStyle}"
                         Command="{Binding ExportJsonCommand}" Margin="0,0,8,0"/>
-                    <Button Content="Copy Diagnostics"
+                    <Button AutomationProperties.AutomationId="CopyDiagnosticsCommand" Content="Copy Diagnostics"
                         Style="{StaticResource SecondaryActionButtonStyle}"
                         Command="{Binding CopyDiagnosticsCommand}" Margin="0,0,8,0"/>
-                    <Button Content="Copy All"
+                    <Button AutomationProperties.AutomationId="CopyAllCommand" Content="Copy All"
                         Style="{StaticResource PrimaryActionButtonStyle}"
                         Command="{Binding CopyAllCommand}"/>
                 </StackPanel>
@@ -73,27 +73,27 @@
                                    Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="OS Name" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding OsName}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="OsName" Text="{Binding OsName}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Version" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding OsVersion}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="OsVersion" Text="{Binding OsVersion}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Build" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding OsBuild}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="OsBuild" Text="{Binding OsBuild}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Description" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding OsDescription}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="OsDescription" Text="{Binding OsDescription}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Architecture" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding Architecture}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="Architecture" Text="{Binding Architecture}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <TextBlock Text="Process Arch" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding ProcessArchitecture}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="ProcessArchitecture" Text="{Binding ProcessArchitecture}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -106,15 +106,15 @@
                                    Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Computer Name" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding ComputerName}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="ComputerName" Text="{Binding ComputerName}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="User" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding UserName}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="UserName" Text="{Binding UserName}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="System Drive" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding SystemDrive}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="SystemDrive" Text="{Binding SystemDrive}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -127,15 +127,15 @@
                                    Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="CPU Name" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding CpuName}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="CpuName" Text="{Binding CpuName}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Cores" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding CpuCores}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="CpuCores" Text="{Binding CpuCores}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Logical Processors" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding CpuLogicalProcessors}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="CpuLogicalProcessors" Text="{Binding CpuLogicalProcessors}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -148,35 +148,35 @@
                                    Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,10"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Total RAM" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding RamTotal}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="RamTotal" Text="{Binding RamTotal}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Available RAM" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding RamAvailable}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="RamAvailable" Text="{Binding RamAvailable}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text="Managed Memory" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding ManagedMemory}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="ManagedMemory" Text="{Binding ManagedMemory}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <TextBlock Text=".NET Version" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding DotNetVersion}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="DotNetVersion" Text="{Binding DotNetVersion}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="GPU" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding GpuName}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="GpuName" Text="{Binding GpuName}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <TextBlock Text="Uptime" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding Uptime}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="Uptime" Text="{Binding Uptime}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <TextBlock Text="Snapshot UTC" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding SnapshotUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Style="{StaticResource InfoValueStyle}"/>
+                            <TextBlock AutomationProperties.AutomationId="SnapshotUtc" Text="{Binding SnapshotUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Style="{StaticResource InfoValueStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <TextBlock Text="Drives" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding DriveSummary}" Style="{StaticResource InfoValueStyle}" TextWrapping="Wrap"/>
+                            <TextBlock AutomationProperties.AutomationId="DriveSummary" Text="{Binding DriveSummary}" Style="{StaticResource InfoValueStyle}" TextWrapping="Wrap"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

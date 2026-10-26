@@ -23,7 +23,8 @@ public sealed class BackgroundTaskService : IBackgroundTaskService
             return;
         }
 
-        _automationPollSeconds = pollSeconds ?? 60;
+        _automationPollSeconds = Math.Clamp(pollSeconds ?? 60, 1, 3600);
+        _automationLoopCts?.Dispose();
         _automationLoopCts = new CancellationTokenSource();
         _automationLoopTask = Task.Run(() => AutomationLoopAsync(_automationLoopCts.Token));
     }
@@ -36,7 +37,7 @@ public sealed class BackgroundTaskService : IBackgroundTaskService
         var cts = _automationLoopCts;
         var loopTask = _automationLoopTask;
 
-        if (loopTask is null || loopTask.IsCompleted)
+        if (loopTask is null)
         {
             return;
         }
@@ -69,11 +70,34 @@ public sealed class BackgroundTaskService : IBackgroundTaskService
         {
             try
             {
-                var alerts = await App.AutomationRuleService.EvaluateAsync(App.VitalsService, cancellationToken);
+                var dispatcher = new AutomationActionDispatcher(App.ProcessExplorerService, (key, token) =>
+                    App.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        if (WindowsUtilityPack.Tools.ToolRegistry.GetByKey(key) is null)
+                            throw new ArgumentException($"Unknown automation tool: {key}");
+                        App.NavigationService.NavigateTo(key);
+                    }, System.Windows.Threading.DispatcherPriority.Normal, token).Task);
+                var alerts = await App.AutomationRuleService.EvaluateAsync(App.VitalsService, cancellationToken).ConfigureAwait(false);
                 foreach (var alert in alerts)
                 {
-                    // Dispatch the real action for each triggered rule
-                    await AutomationRuleService.DispatchActionAsync(alert.Rule, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
+                    {
+                        await dispatcher.DispatchAsync(alert.Rule, cancellationToken).ConfigureAwait(false);
+                        await App.Current.Dispatcher.InvokeAsync(() => App.NotificationService.ShowInfo(
+                            alert.Rule.ActionType == AutomationActionType.RunCleanup
+                                ? $"{alert.Message} Open Storage Master to scan and review cleanup candidates."
+                                : alert.Message), System.Windows.Threading.DispatcherPriority.Normal, cancellationToken).Task.ConfigureAwait(false);
+                        await App.ActivityLogService.LogAsync("AutomationRules", "Triggered", alert.Rule.Name).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                    catch (Exception ex)
+                    {
+                        App.LoggingService.LogError($"Automation action failed: {alert.Rule.Name}", ex);
+                        await App.Current.Dispatcher.InvokeAsync(() => App.NotificationService.ShowError(
+                            $"Automation '{alert.Rule.Name}' failed: {ex.Message}"),
+                            System.Windows.Threading.DispatcherPriority.Normal, cancellationToken).Task.ConfigureAwait(false);
+                    }
                 }
             }
             catch (OperationCanceledException)

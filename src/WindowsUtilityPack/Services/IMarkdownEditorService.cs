@@ -42,7 +42,7 @@ public sealed class MarkdownEditorService : IMarkdownEditorService
             throw new FileNotFoundException("The markdown file was not found.", filePath);
         }
 
-        return await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
+        return await BoundedTextFile.ReadAsync(filePath, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public async Task SaveAsync(string filePath, string markdownText, CancellationToken cancellationToken = default)
@@ -58,11 +58,12 @@ public sealed class MarkdownEditorService : IMarkdownEditorService
             Directory.CreateDirectory(directory);
         }
 
-        await File.WriteAllTextAsync(filePath, markdownText ?? string.Empty, cancellationToken).ConfigureAwait(false);
+        await AtomicFile.WriteAllTextAsync(filePath, markdownText ?? string.Empty, cancellationToken).ConfigureAwait(false);
     }
 
     public string RenderHtml(string markdownText)
     {
+        if (markdownText?.Length > BoundedTextFile.MaximumEditorCharacters) throw new InvalidDataException("Markdown rendering is limited to 1,000,000 characters.");
         return Markdown.ToHtml(markdownText ?? string.Empty, Pipeline);
     }
 
@@ -71,12 +72,12 @@ public sealed class MarkdownEditorService : IMarkdownEditorService
         var text = markdownText ?? string.Empty;
         var lineCount = text.Length == 0
             ? 0
-            : text.Split(["\r\n", "\n"], StringSplitOptions.None).Length;
+            : text.Count(c => c == '\n') + 1;
 
         return new MarkdownDocumentStats
         {
             LineCount = lineCount,
-            WordCount = WordRegex.Matches(text).Count,
+            WordCount = WordRegex.Count(text),
             CharacterCount = text.Length,
         };
     }

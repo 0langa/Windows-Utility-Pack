@@ -20,8 +20,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                <Button Grid.Column="1" Content="Browse" Command="{Binding BrowseCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <TextBox AutomationProperties.AutomationId="FilePath" Grid.Column="0" Margin="0,0,8,0" Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                <Button AutomationProperties.AutomationId="BrowseCommand" Grid.Column="1" Content="Browse" Command="{Binding BrowseCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
             </Grid>
         </Border>
 
@@ -34,15 +34,18 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" ToolTip="Optional text filter"/>
-                <ComboBox Grid.Column="1" Margin="0,0,8,0" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding MinimumSeverity, Mode=TwoWay}"/>
-                <Button Grid.Column="2" Content="Analyze" Command="{Binding AnalyzeCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
-                <Button Grid.Column="3" Content="Copy Summary" Command="{Binding CopySummaryCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <TextBox AutomationProperties.AutomationId="SearchText" Grid.Column="0" Margin="0,0,8,0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" ToolTip="Optional text filter"/>
+                <ComboBox AutomationProperties.AutomationId="MinimumSeverity" Grid.Column="1" Margin="0,0,8,0" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding MinimumSeverity, Mode=TwoWay}"/>
+                <Button AutomationProperties.AutomationId="AnalyzeCommand" Grid.Column="2" Content="Analyze" Command="{Binding AnalyzeCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="CopySummaryCommand" Content="Copy Summary" Command="{Binding CopySummaryCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                </StackPanel>
             </Grid>
         </Border>
 
         <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}">
-            <DataGrid ItemsSource="{Binding Entries}"
+            <DataGrid AutomationProperties.AutomationId="Entries" ItemsSource="{Binding Entries}"
                       AutoGenerateColumns="False"
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"
@@ -59,11 +62,11 @@
 
         <Border Grid.Row="4" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource MetadataTextStyle}" Margin="0,0,16,0" Text="{Binding StatusMessage}"/>
-                <TextBlock Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding TotalLines, StringFormat=Lines: {0:N0}}"/>
-                <TextBlock Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding MatchedLines, StringFormat=Matched: {0:N0}}"/>
-                <TextBlock Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding ErrorCount, StringFormat=Errors: {0:N0}}"/>
-                <TextBlock Style="{StaticResource MetadataTextStyle}" Text="{Binding WarnCount, StringFormat=Warnings: {0:N0}}"/>
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Style="{StaticResource MetadataTextStyle}" Margin="0,0,16,0" Text="{Binding StatusMessage}"/>
+                <TextBlock AutomationProperties.AutomationId="TotalLines" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding TotalLines, StringFormat=Lines: {0:N0}}"/>
+                <TextBlock AutomationProperties.AutomationId="MatchedLines" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding MatchedLines, StringFormat=Matched: {0:N0}}"/>
+                <TextBlock AutomationProperties.AutomationId="ErrorCount" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0" Text="{Binding ErrorCount, StringFormat=Errors: {0:N0}}"/>
+                <TextBlock AutomationProperties.AutomationId="WarnCount" Style="{StaticResource MetadataTextStyle}" Text="{Binding WarnCount, StringFormat=Warnings: {0:N0}}"/>
             </StackPanel>
         </Border>
     </Grid>

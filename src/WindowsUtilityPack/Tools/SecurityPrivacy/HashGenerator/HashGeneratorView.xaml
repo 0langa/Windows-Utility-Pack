@@ -19,7 +19,7 @@
                     </StackPanel>
 
                     <!-- Text input -->
-                    <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox AutomationProperties.AutomationId="InputText" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
                              MinHeight="80" MaxHeight="200"
                              AcceptsReturn="True" TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto"
@@ -43,11 +43,11 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Text="{Binding FilePath, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="FilePath" Text="{Binding FilePath, Mode=OneWay}"
                                  IsReadOnly="True" Padding="8,6"
                                  Foreground="{DynamicResource PrimaryTextBrush}"
                                  AutomationProperties.Name="Selected file path"/>
-                        <Button Grid.Column="1" Content="Browse…"
+                        <Button AutomationProperties.AutomationId="BrowseFileCommand" Grid.Column="1" Content="Browse…"
                                 Command="{Binding BrowseFileCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"
                                 Margin="8,0,0,0"/>
@@ -58,15 +58,15 @@
             <!-- Actions -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="Compute Hashes"
+                    <Button AutomationProperties.AutomationId="ComputeCommand" Content="Compute Hashes"
                             Command="{Binding ComputeCommand}"
                             Style="{StaticResource PrimaryActionButtonStyle}"
                             Margin="0,0,8,0"/>
-                    <Button Content="Clear"
+                    <Button AutomationProperties.AutomationId="ClearCommand" Content="Clear"
                             Command="{Binding ClearCommand}"
                             Style="{StaticResource SecondaryActionButtonStyle}"/>
-                    <TextBlock Text="Computing…"
-                               Visibility="{Binding IsComputing, Converter={StaticResource BoolToVisibilityConverter}}"
+                    <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                                Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center" Margin="12,0,0,0"/>
                 </StackPanel>
@@ -87,12 +87,12 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="MD5" FontWeight="SemiBold" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Md5Result, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="Md5Result" Grid.Column="1" Text="{Binding Md5Result, Mode=OneWay}"
                                  IsReadOnly="True" FontFamily="Consolas" FontSize="12"
                                  Background="{DynamicResource PanelBackgroundBrush}"
                                  Foreground="{DynamicResource PrimaryTextBrush}"
                                  BorderThickness="1" Padding="6,4"/>
-                        <Button Grid.Column="2" Content="Copy" Command="{Binding CopyMd5Command}"
+                        <Button AutomationProperties.AutomationId="CopyMd5Command" Grid.Column="2" Content="Copy" Command="{Binding CopyMd5Command}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"/>
                     </Grid>
 
@@ -105,12 +105,12 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="SHA-1" FontWeight="SemiBold" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Sha1Result, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="Sha1Result" Grid.Column="1" Text="{Binding Sha1Result, Mode=OneWay}"
                                  IsReadOnly="True" FontFamily="Consolas" FontSize="12"
                                  Background="{DynamicResource PanelBackgroundBrush}"
                                  Foreground="{DynamicResource PrimaryTextBrush}"
                                  BorderThickness="1" Padding="6,4"/>
-                        <Button Grid.Column="2" Content="Copy" Command="{Binding CopySha1Command}"
+                        <Button AutomationProperties.AutomationId="CopySha1Command" Grid.Column="2" Content="Copy" Command="{Binding CopySha1Command}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"/>
                     </Grid>
 
@@ -123,12 +123,12 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="SHA-256" FontWeight="SemiBold" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Sha256Result, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="Sha256Result" Grid.Column="1" Text="{Binding Sha256Result, Mode=OneWay}"
                                  IsReadOnly="True" FontFamily="Consolas" FontSize="12"
                                  Background="{DynamicResource PanelBackgroundBrush}"
                                  Foreground="{DynamicResource PrimaryTextBrush}"
                                  BorderThickness="1" Padding="6,4"/>
-                        <Button Grid.Column="2" Content="Copy" Command="{Binding CopySha256Command}"
+                        <Button AutomationProperties.AutomationId="CopySha256Command" Grid.Column="2" Content="Copy" Command="{Binding CopySha256Command}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"/>
                     </Grid>
 
@@ -141,12 +141,12 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="SHA-512" FontWeight="SemiBold" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Sha512Result, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="Sha512Result" Grid.Column="1" Text="{Binding Sha512Result, Mode=OneWay}"
                                  IsReadOnly="True" FontFamily="Consolas" FontSize="11"
                                  Background="{DynamicResource PanelBackgroundBrush}"
                                  Foreground="{DynamicResource PrimaryTextBrush}"
                                  BorderThickness="1" Padding="6,4" TextWrapping="Wrap"/>
-                        <Button Grid.Column="2" Content="Copy" Command="{Binding CopySha512Command}"
+                        <Button AutomationProperties.AutomationId="CopySha512Command" Grid.Column="2" Content="Copy" Command="{Binding CopySha512Command}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"/>
                     </Grid>
 
@@ -159,34 +159,17 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="CRC-32" FontWeight="SemiBold" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Grid.Column="1" Text="{Binding CrcResult, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="CrcResult" Grid.Column="1" Text="{Binding CrcResult, Mode=OneWay}"
                                  IsReadOnly="True" FontFamily="Consolas" FontSize="12"
                                  Background="{DynamicResource PanelBackgroundBrush}"
                                  Foreground="{DynamicResource PrimaryTextBrush}"
                                  BorderThickness="1" Padding="6,4"/>
-                        <Button Grid.Column="2" Content="Copy"
+                        <Button AutomationProperties.AutomationId="CopyCrcCommand" Grid.Column="2" Content="Copy" Command="{Binding CopyCrcCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"
-                                IsEnabled="False"/>
+                                />
                     </Grid>
 
-                    <!-- BLAKE2b -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="BLAKE2b" FontWeight="SemiBold" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Blake2bResult, Mode=OneWay}"
-                                 IsReadOnly="True" FontFamily="Consolas" FontSize="12"
-                                 Background="{DynamicResource PanelBackgroundBrush}"
-                                 Foreground="{DynamicResource SecondaryTextBrush}"
-                                 BorderThickness="1" Padding="6,4"/>
-                        <Button Grid.Column="2" Content="Copy"
-                                Style="{StaticResource SecondaryActionButtonStyle}" Margin="6,0,0,0" Padding="10,4"
-                                IsEnabled="False"/>
-                    </Grid>
+
                 </StackPanel>
             </Border>
 

@@ -5,6 +5,28 @@ namespace WindowsUtilityPack.Tests.Services;
 
 public sealed class StructuredDataValidationServiceTests
 {
+    [Theory]
+    [InlineData("{\"key\":1,\"key\":2}", StructuredDocumentType.Json)]
+    [InlineData("key: 1\nkey: 2", StructuredDocumentType.Yaml)]
+    public void Validate_RejectsDuplicateKeysInsteadOfDroppingValues(string text, StructuredDocumentType type)
+        => Assert.False(new StructuredDataValidationService().Validate(text, type).IsValid);
+
+    [Theory]
+    [InlineData(StructuredDocumentType.Json)]
+    [InlineData(StructuredDocumentType.Yaml)]
+    public void Validate_RejectsOversizedInput(StructuredDocumentType type)
+        => Assert.False(new StructuredDataValidationService().Validate("\"" + new string('a', 1_000_001) + "\"", type).IsValid);
+
+    [Theory]
+    [InlineData("item: &a [*a]")]
+    [InlineData("item: &a {nested: *a}")]
+    public void Validate_RecursiveYamlAliasesAreRejected(string input)
+        => Assert.False(new StructuredDataValidationService().Validate(input, StructuredDocumentType.Yaml).IsValid);
+
+    [Fact]
+    public void Validate_NormalAliasIsRetained()
+        => Assert.True(new StructuredDataValidationService().Validate("one: &a [hello, world]\ntwo: *a", StructuredDocumentType.Yaml).IsValid);
+
     [Fact]
     public void Validate_JsonValid_ReturnsFormattedOutput()
     {

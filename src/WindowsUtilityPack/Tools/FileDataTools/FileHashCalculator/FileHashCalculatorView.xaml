@@ -49,13 +49,13 @@
                                    FontSize="13"
                                    Visibility="{Binding HasFile, Converter={StaticResource InvertedBoolToVisibilityConverter}}"/>
                         <!-- Shown when file selected -->
-                        <TextBlock Text="{Binding FilePath}"
+                        <TextBlock AutomationProperties.AutomationId="FilePath" Text="{Binding FilePath}"
                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                    FontSize="13" TextTrimming="CharacterEllipsis"
                                    Visibility="{Binding HasFile, Converter={StaticResource BoolToVisibilityConverter}}"/>
                     </StackPanel>
 
-                    <Button Grid.Column="1" Content="Browse…"
+                    <Button AutomationProperties.AutomationId="BrowseCommand" Grid.Column="1" Content="Browse…"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding BrowseCommand}"
                             VerticalAlignment="Center"/>
@@ -67,9 +67,10 @@
                     Visibility="{Binding IsComputing, Converter={StaticResource BoolToVisibilityConverter}}"
                     Margin="0,0,0,8">
                 <StackPanel>
-                    <TextBlock Text="{Binding StatusMessage}"
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                                Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,6"/>
-                    <ProgressBar Value="{Binding Progress, Mode=OneWay}" Minimum="0" Maximum="100" Height="8"/>
+                    <ProgressBar IsIndeterminate="True" Height="8"/>
+                    <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
                 </StackPanel>
             </Border>
 
@@ -87,9 +88,9 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="MD5" Style="{StaticResource HashLabelStyle}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Md5Hash, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="Md5Hash" Grid.Column="1" Text="{Binding Md5Hash, Mode=OneWay}"
                                  Style="{StaticResource HashValueStyle}"/>
-                        <Button Grid.Column="2" Content="Copy"
+                        <Button AutomationProperties.AutomationId="CopyMd5Command" Grid.Column="2" Content="Copy"
                                 Style="{StaticResource SecondaryActionButtonStyle}"
                                 Command="{Binding CopyMd5Command}"/>
                     </Grid>
@@ -102,9 +103,9 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="SHA-1" Style="{StaticResource HashLabelStyle}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Sha1Hash, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="Sha1Hash" Grid.Column="1" Text="{Binding Sha1Hash, Mode=OneWay}"
                                  Style="{StaticResource HashValueStyle}"/>
-                        <Button Grid.Column="2" Content="Copy"
+                        <Button AutomationProperties.AutomationId="CopySha1Command" Grid.Column="2" Content="Copy"
                                 Style="{StaticResource SecondaryActionButtonStyle}"
                                 Command="{Binding CopySha1Command}"/>
                     </Grid>
@@ -117,9 +118,9 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="SHA-256" Style="{StaticResource HashLabelStyle}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Sha256Hash, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="Sha256Hash" Grid.Column="1" Text="{Binding Sha256Hash, Mode=OneWay}"
                                  Style="{StaticResource HashValueStyle}"/>
-                        <Button Grid.Column="2" Content="Copy"
+                        <Button AutomationProperties.AutomationId="CopySha256Command" Grid.Column="2" Content="Copy"
                                 Style="{StaticResource SecondaryActionButtonStyle}"
                                 Command="{Binding CopySha256Command}"/>
                     </Grid>
@@ -132,9 +133,9 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="SHA-512" Style="{StaticResource HashLabelStyle}"/>
-                        <TextBox Grid.Column="1" Text="{Binding Sha512Hash, Mode=OneWay}"
+                        <TextBox AutomationProperties.AutomationId="Sha512Hash" Grid.Column="1" Text="{Binding Sha512Hash, Mode=OneWay}"
                                  Style="{StaticResource HashValueStyle}"/>
-                        <Button Grid.Column="2" Content="Copy"
+                        <Button AutomationProperties.AutomationId="CopySha512Command" Grid.Column="2" Content="Copy"
                                 Style="{StaticResource SecondaryActionButtonStyle}"
                                 Command="{Binding CopySha512Command}"/>
                     </Grid>
@@ -154,10 +155,10 @@
                             <ColumnDefinition Width="8"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Text="{Binding VerifyHash, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox AutomationProperties.AutomationId="VerifyHash" Text="{Binding VerifyHash, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="6,4" FontFamily="Consolas" FontSize="12"
                                  VerticalContentAlignment="Center"/>
-                        <Button Grid.Column="2" Content="Verify"
+                        <Button AutomationProperties.AutomationId="VerifyCommand" Grid.Column="2" Content="Verify"
                                 Style="{StaticResource PrimaryActionButtonStyle}"
                                 Command="{Binding VerifyCommand}"/>
                     </Grid>
@@ -165,7 +166,7 @@
                     <!-- Verify result (visible only when set) -->
                     <Border Margin="0,8,0,0"
                             Visibility="{Binding HasVerifyResult, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <TextBlock Text="{Binding VerifyResult}"
+                        <TextBlock AutomationProperties.AutomationId="VerifyResult" Text="{Binding VerifyResult}"
                                    FontWeight="SemiBold" FontSize="13">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
@@ -187,7 +188,7 @@
 
             <!-- Status bar -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6">
-                <TextBlock Text="{Binding StatusMessage}"
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
             </Border>
 

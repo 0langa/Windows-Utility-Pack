@@ -20,6 +20,9 @@ namespace WindowsUtilityPack;
 /// </summary>
 public partial class App : Application
 {
+    // Keep this handle alive through process exit. Setup uses it to refuse an
+    // upgrade/uninstall while any instance is running; it is not a single-instance lock.
+    private readonly System.Threading.Mutex _installerMutex = new(false, @"Local\WindowsUtilityPack.Running");
     public static IThemeService ThemeService { get; private set; } = null!;
     public static INavigationService NavigationService { get; private set; } = null!;
     public static ISettingsService SettingsService { get; private set; } = null!;
@@ -50,7 +53,6 @@ public partial class App : Application
     public static IStartupDiagnosticsService StartupDiagnosticsService { get; private set; } = null!;
     public static ISystemInfoReportService SystemInfoReportService { get; private set; } = null!;
 
-    private readonly SemaphoreSlim _automationEvalGate = new(1, 1);
 
     public static IFileDialogService FileDialogService { get; private set; } = null!;
     public static ITextFormatConversionService TextFormatConversionService { get; private set; } = null!;
@@ -109,6 +111,13 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        var profileArgument = Array.IndexOf(e.Args, "--profile-directory");
+        if (profileArgument >= 0)
+        {
+            if (profileArgument + 1 >= e.Args.Length || !System.IO.Path.IsPathFullyQualified(e.Args[profileArgument + 1]))
+                throw new ArgumentException("--profile-directory requires an absolute path.");
+            AppContext.SetData(AppDataPaths.OverrideKey, System.IO.Path.GetFullPath(e.Args[profileArgument + 1]));
+        }
         base.OnStartup(e);
 
         LoggingService = new LoggingService();
@@ -140,7 +149,6 @@ public partial class App : Application
         StartupDiagnosticsService = new StartupDiagnosticsService();
         SystemInfoReportService = new SystemInfoReportService();
 
-        VitalsService.Updated += OnVitalsUpdatedForAutomation;
 
         FileDialogService = new FileDialogService();
         TextFormatConversionService = new TextFormatConversionService();
@@ -204,7 +212,7 @@ public partial class App : Application
         LogFileAnalyzerService = new LogFileAnalyzerService();
         MarkdownEditorService = new MarkdownEditorService();
         ApiMockServerService = new ApiMockServerService();
-        var pentestHttpClient = new HttpClient();
+        var pentestHttpClient = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
         PentestSharedStateService = new PentestSharedStateService();
         PentestHttpTransportService = new PentestHttpTransportService(pentestHttpClient);
         HeaderCookieAnalyzerService = new HeaderCookieAnalyzerService();
@@ -225,10 +233,9 @@ public partial class App : Application
         // Track tool launches for the Recently Used section.
         NavigationService.Navigated += (_, vmType) =>
         {
-            var typeName = vmType.Name.Replace("ViewModel", "");
             foreach (var tool in ToolRegistry.All)
             {
-                if (tool.Name.Replace(" ", "").Equals(typeName, StringComparison.OrdinalIgnoreCase))
+                if (tool.Key.Equals(NavigationService.CurrentToolKey, StringComparison.Ordinal))
                 {
                     HomeDashboardService.RecordToolLaunch(tool.Key);
                     HomeDashboardService.IncrementLaunchCount(tool.Key);
@@ -264,40 +271,14 @@ public partial class App : Application
         {
             LoggingService.LogError("Failed to stop automation loop cleanly during shutdown.", ex);
         }
-        VitalsService.Updated -= OnVitalsUpdatedForAutomation;
         (ThemeService as IDisposable)?.Dispose();
         (NavigationService as IDisposable)?.Dispose();
         (DownloadCoordinatorService as IDisposable)?.Dispose();
+        (WebScraperService as IDisposable)?.Dispose();
         (GlobalHotkeyService as IDisposable)?.Dispose();
         (TrayIconService as IDisposable)?.Dispose();
         VitalsService.Dispose();
         base.OnExit(e);
-    }
-
-    private async void OnVitalsUpdatedForAutomation(object? sender, EventArgs e)
-    {
-        if (!await _automationEvalGate.WaitAsync(0).ConfigureAwait(false))
-        {
-            return;
-        }
-
-        try
-        {
-            var alerts = await AutomationRuleService.EvaluateAsync(VitalsService).ConfigureAwait(true);
-            foreach (var alert in alerts)
-            {
-                NotificationService.ShowInfo(alert.Message);
-                _ = ActivityLogService.LogAsync("AutomationRules", "Triggered", alert.Rule.Name);
-            }
-        }
-        catch (Exception ex)
-        {
-            LoggingService.LogError("Automation evaluation failed", ex);
-        }
-        finally
-        {
-            _automationEvalGate.Release();
-        }
     }
 
     private static void RegisterTools() => ToolBootstrapper.RegisterTools();

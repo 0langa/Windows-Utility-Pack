@@ -13,6 +13,7 @@
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
+        Foreground="{DynamicResource PrimaryTextBrush}"
         PreviewKeyDown="OnPreviewKeyDown"
         StateChanged="OnWindowStateChanged"
         Closing="OnWindowClosing"

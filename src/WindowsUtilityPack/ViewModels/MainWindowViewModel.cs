@@ -193,20 +193,12 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private void OnNavigated(object? sender, Type vmType)
     {
         OnPropertyChanged(nameof(CurrentView));
-        _currentToolKey = ResolveToolKey(vmType);
+        _currentToolKey = _navigation.CurrentToolKey ?? ResolveToolKey(vmType);
         RelayCommand.RaiseCanExecuteChanged();
 
         // Use the registered display name from ToolRegistry instead of the class name.
-        var displayName = vmType.Name.Replace("ViewModel", "");
-        foreach (var tool in ToolRegistry.All)
-        {
-            // Compare tool name (spaces removed) to the VM type name (without "ViewModel").
-            if (tool.Name.Replace(" ", "").Equals(displayName, StringComparison.OrdinalIgnoreCase))
-            {
-                displayName = tool.Name;
-                break;
-            }
-        }
+        var displayName = ToolRegistry.All.FirstOrDefault(t => t.Key == _currentToolKey)?.Name
+            ?? vmType.Name.Replace("ViewModel", "");
 
         StatusMessage = $"Navigated to {displayName}";
 

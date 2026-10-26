@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Runtime.InteropServices;
 using System.Windows.Media;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
@@ -16,25 +15,6 @@ public class SavedColor
 
 public sealed class ColorPickerViewModel : ViewModelBase
 {
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Point
-    {
-        public int X;
-        public int Y;
-    }
-
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out Point lpPoint);
-
-    [DllImport("user32.dll")]
-    private static extern nint GetDC(nint hwnd);
-
-    [DllImport("user32.dll")]
-    private static extern int ReleaseDC(nint hwnd, nint hdc);
-
-    [DllImport("gdi32.dll")]
-    private static extern uint GetPixel(nint hdc, int nXPos, int nYPos);
-
     private readonly IClipboardService _clipboardService;
 
     private bool _updating;
@@ -170,41 +150,25 @@ public sealed class ColorPickerViewModel : ViewModelBase
 
     private void PickFromScreen()
     {
-        if (!GetCursorPos(out var point))
-            return;
+        var selected = ScreenColorPicker.Pick();
+        if (selected is not { } color) return;
 
-        var hdc = GetDC(nint.Zero);
-        if (hdc == nint.Zero)
-            return;
-
+        _updating = true;
         try
         {
-            var pixel = GetPixel(hdc, point.X, point.Y);
-            var r = (byte)(pixel & 0x000000FF);
-            var g = (byte)((pixel & 0x0000FF00) >> 8);
-            var b = (byte)((pixel & 0x00FF0000) >> 16);
-
-            _updating = true;
-            try
-            {
-                _r = r;
-                _g = g;
-                _b = b;
-                OnPropertyChanged(nameof(R));
-                OnPropertyChanged(nameof(G));
-                OnPropertyChanged(nameof(B));
-            }
-            finally
-            {
-                _updating = false;
-            }
-
-            UpdateFromRgb();
+            _r = color.R;
+            _g = color.G;
+            _b = color.B;
+            OnPropertyChanged(nameof(R));
+            OnPropertyChanged(nameof(G));
+            OnPropertyChanged(nameof(B));
         }
         finally
         {
-            ReleaseDC(nint.Zero, hdc);
+            _updating = false;
         }
+
+        UpdateFromRgb();
     }
 
     private void UpdateFromRgb()

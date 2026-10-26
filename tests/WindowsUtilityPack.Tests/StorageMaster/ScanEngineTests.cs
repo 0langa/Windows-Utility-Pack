@@ -11,6 +11,30 @@ namespace WindowsUtilityPack.Tests.StorageMaster;
 /// </summary>
 public class ScanEngineTests : IDisposable
 {
+    [Theory]
+    [InlineData("size")]
+    [InlineData("depth")]
+    [InlineData("hidden")]
+    public async Task ScanAsync_OmittedContentIsNeverRecommendedAsEmpty(string omission)
+    {
+        var file = CreateFile("important/keep.txt", 8);
+        if (omission == "hidden") System.IO.File.SetAttributes(file, System.IO.FileAttributes.Hidden);
+        try
+        {
+            var options = new ScanOptions
+            {
+                MinFileSizeBytes = omission == "size" ? 1024 : 0,
+                MaxDepth = omission == "depth" ? 1 : 0,
+                IncludeHidden = false,
+            };
+            var root = await _engine.ScanAsync(_tempRoot, options, null, CancellationToken.None);
+            var recommendations = await new CleanupRecommendationService().AnalyseAsync(root, null, CancellationToken.None);
+            Assert.DoesNotContain(recommendations, item => item.Category == CleanupCategory.EmptyFolders);
+            Assert.True(System.IO.File.Exists(file));
+        }
+        finally { System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal); }
+    }
+
     private readonly string _tempRoot;
     private readonly ScanEngine _engine = new();
 

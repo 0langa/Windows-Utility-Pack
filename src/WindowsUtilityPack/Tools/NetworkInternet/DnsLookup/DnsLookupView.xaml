@@ -16,11 +16,11 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox AutomationProperties.AutomationId="Host" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
                                  IsEnabled="{Binding IsLooking, Converter={StaticResource BoolNegationConverter}}"
                                  FontSize="14" Padding="8,6" Margin="0,0,8,0"
                                  AutomationProperties.Name="Hostname to look up"/>
-                        <Button Grid.Column="1" Content="Lookup"
+                        <Button AutomationProperties.AutomationId="LookupCommand" Grid.Column="1" Content="Lookup"
                                 Command="{Binding LookupCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}"
                                 AutomationProperties.Name="Run DNS lookup"/>
@@ -36,7 +36,7 @@
                 <StackPanel>
                     <TextBlock Text="Results" FontWeight="SemiBold"
                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,8"/>
-                    <DataGrid ItemsSource="{Binding Results}"
+                    <DataGrid AutomationProperties.AutomationId="Results" ItemsSource="{Binding Results}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               HeadersVisibility="Column"
@@ -60,15 +60,16 @@
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="16" Margin="0,0,0,12">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Copy Results"
+                        <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="CopyResultsCommand" Content="Copy Results"
                                 Command="{Binding CopyResultsCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"
                                 Margin="0,0,8,0"/>
-                        <Button Content="Clear"
+                        <Button AutomationProperties.AutomationId="ClearCommand" Content="Clear"
                                 Command="{Binding ClearCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding StatusMessage}"
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                                Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 </DockPanel>

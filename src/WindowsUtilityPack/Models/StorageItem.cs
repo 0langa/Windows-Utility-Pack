@@ -73,6 +73,9 @@ public class StorageItem
     /// <summary>Total number of subdirectories under this node (recursive). 0 for files.</summary>
     public int DirectoryCount { get; set; }
 
+    /// <summary>True only when all entries were enumerated without filtering, depth limits, links, or access errors.</summary>
+    public bool IsScanComplete { get; set; }
+
     // ── Tree links ────────────────────────────────────────────────────────────
 
     /// <summary>Parent node reference (null for the scan root).</summary>

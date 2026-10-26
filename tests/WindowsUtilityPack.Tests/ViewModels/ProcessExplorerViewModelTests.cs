@@ -10,7 +10,7 @@ public class ProcessExplorerViewModelTests
     [Fact]
     public async Task RefreshAsync_LoadsRowsFromService()
     {
-        var vm = new ProcessExplorerViewModel(new StubService(), new StubDialogs(), new StubClipboard());
+        using var vm = new ProcessExplorerViewModel(new StubService(), new StubDialogs(), new StubClipboard());
 
         await vm.RefreshAsync();
 
@@ -22,7 +22,7 @@ public class ProcessExplorerViewModelTests
     public async Task CopyDetailsAsync_CopiesToClipboard()
     {
         var clipboard = new StubClipboard();
-        var vm = new ProcessExplorerViewModel(new StubService(), new StubDialogs(), clipboard);
+        using var vm = new ProcessExplorerViewModel(new StubService(), new StubDialogs(), clipboard);
 
         await vm.RefreshAsync();
         vm.SelectedProcess = vm.Processes[0];
@@ -32,13 +32,36 @@ public class ProcessExplorerViewModelTests
         Assert.Equal("details", clipboard.LastText);
     }
 
+    [Fact]
+    public async Task RefreshAsync_PreservesSelectionForSameProcess()
+    {
+        using var vm = new ProcessExplorerViewModel(new StubService(), new StubDialogs(), new StubClipboard());
+        vm.SelectedProcess = vm.Processes[0];
+        await vm.RefreshAsync();
+        Assert.Same(vm.Processes[0], vm.SelectedProcess);
+    }
+
+    [Fact]
+    public async Task Dispose_PreventsFurtherRefreshes()
+    {
+        var service = new StubService();
+        var vm = new ProcessExplorerViewModel(service, new StubDialogs(), new StubClipboard());
+        var calls = service.Calls;
+        vm.Dispose();
+        await vm.RefreshAsync();
+        Assert.Equal(calls, service.Calls);
+    }
+
     private sealed class StubService : IProcessExplorerService
     {
+        public int Calls { get; private set; }
+        private readonly DateTime _started = DateTime.Now;
         public Task<string> BuildDetailsAsync(int processId, CancellationToken cancellationToken = default)
             => Task.FromResult("details");
 
         public Task<IReadOnlyList<ProcessSnapshot>> GetProcessesAsync(string? query = null, CancellationToken cancellationToken = default)
         {
+            Calls++;
             IReadOnlyList<ProcessSnapshot> rows =
             [
                 new ProcessSnapshot
@@ -49,7 +72,7 @@ public class ProcessExplorerViewModelTests
                     WorkingSetMb = 10,
                     CpuTimeSeconds = 1,
                     IsResponding = true,
-                    StartTimeLocal = DateTime.Now,
+                    StartTimeLocal = _started,
                 },
             ];
 

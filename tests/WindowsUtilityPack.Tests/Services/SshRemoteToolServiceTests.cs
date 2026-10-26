@@ -8,6 +8,27 @@ namespace WindowsUtilityPack.Tests.Services;
 public class SshRemoteToolServiceTests
 {
     [Fact]
+    public async Task Command_PowerShellParsesMetacharactersAsLiteralArguments()
+    {
+        var path = GetTempDatabasePath();
+        try
+        {
+            var service = new SshRemoteToolService(new AppDataStoreService(path));
+            var profile = new SshConnectionProfile { Host = "example.test", Port = 22, Username = "u; Write-Error bad", PrivateKeyPath = @"C:\keys\O'Brien’s\$(literal).key" };
+            var command = service.BuildSshCommand(profile);
+            var script = "$ProgressPreference = 'SilentlyContinue'; function ssh { ConvertTo-Json -InputObject ([string[]]$args) -Compress }; " + command;
+            var start = new System.Diagnostics.ProcessStartInfo("powershell.exe") { StandardOutputEncoding = System.Text.Encoding.UTF8 };
+            foreach (var arg in new[] { "-NoProfile", "-NonInteractive", "-EncodedCommand", Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); " + script)) }) start.ArgumentList.Add(arg);
+            var result = await new ProcessRunner().RunAsync(start);
+            Assert.Equal(0, result.ExitCode);
+            var args = System.Text.Json.JsonSerializer.Deserialize<string[]>(result.StdOut)!;
+            Assert.Contains(profile.PrivateKeyPath, args); Assert.Contains(profile.Username, args); Assert.Contains("example.test", args);
+            Assert.Empty(result.StdErr);
+        }
+        finally { TryDelete(path); }
+    }
+
+    [Fact]
     public async Task SaveAndGetProfiles_RoundTrips()
     {
         var path = GetTempDatabasePath();
@@ -49,8 +70,8 @@ public class SshRemoteToolServiceTests
         });
 
         Assert.Contains("-p 2222", command);
-        Assert.Contains("-i \"C:\\keys\\id_rsa\"", command);
-        Assert.Contains("ubuntu@example.com", command);
+        Assert.Contains("-i 'C:\\keys\\id_rsa'", command);
+        Assert.Contains("-l 'ubuntu' -- 'example.com'", command);
     }
 
     private static string GetTempDatabasePath()

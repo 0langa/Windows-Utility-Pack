@@ -29,6 +29,7 @@ public sealed class RegistryBackupNode
 /// </summary>
 public sealed class RegistryBackupValue
 {
+    public string? Format { get; init; }
     public string Name { get; init; } = string.Empty;
 
     public string Kind { get; init; } = string.Empty;

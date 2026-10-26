@@ -10,7 +10,7 @@ namespace WindowsUtilityPack.Tools.DeveloperProductivity.LogFileAnalyzer;
 /// <summary>
 /// ViewModel for line-based log file analysis.
 /// </summary>
-public sealed class LogFileAnalyzerViewModel : ViewModelBase
+public sealed class LogFileAnalyzerViewModel : ViewModelBase, IDisposable
 {
     private readonly ILogFileAnalyzerService _service;
     private readonly IClipboardService _clipboard;
@@ -87,6 +87,9 @@ public sealed class LogFileAnalyzerViewModel : ViewModelBase
     public RelayCommand BrowseCommand { get; }
     public AsyncRelayCommand AnalyzeCommand { get; }
     public RelayCommand CopySummaryCommand { get; }
+    public RelayCommand CancelCommand { get; }
+    private CancellationTokenSource? _analysisCts;
+    private bool _disposed;
 
     public LogFileAnalyzerViewModel(ILogFileAnalyzerService service, IClipboardService clipboard, IUserDialogService dialogs)
     {
@@ -95,12 +98,14 @@ public sealed class LogFileAnalyzerViewModel : ViewModelBase
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
 
         BrowseCommand = new RelayCommand(_ => Browse());
-        AnalyzeCommand = new AsyncRelayCommand(_ => AnalyzeAsync());
+        AnalyzeCommand = new AsyncRelayCommand(_ => AnalyzeAsync(), _ => !IsBusy && !_disposed);
+        CancelCommand = new RelayCommand(() => _analysisCts?.Cancel(), () => IsBusy);
         CopySummaryCommand = new RelayCommand(_ => CopySummary());
     }
 
     internal async Task AnalyzeAsync()
     {
+        if (IsBusy || _disposed) return;
         if (string.IsNullOrWhiteSpace(FilePath))
         {
             _dialogs.ShowError("Log File Analyzer", "Select a file path first.");
@@ -108,10 +113,13 @@ public sealed class LogFileAnalyzerViewModel : ViewModelBase
         }
 
         IsBusy = true;
+        using var cts = new CancellationTokenSource(); _analysisCts = cts;
+        Entries.Clear(); TotalLines = MatchedLines = ErrorCount = WarnCount = 0;
         try
         {
             LogSeverity? min = MinimumSeverity == LogSeverity.Unknown ? null : MinimumSeverity;
-            var result = await _service.AnalyzeAsync(FilePath, SearchText, min).ConfigureAwait(true);
+            var result = await _service.AnalyzeAsync(FilePath, SearchText, min, cts.Token).ConfigureAwait(true);
+            if (_disposed || cts.IsCancellationRequested) return;
 
             TotalLines = result.TotalLines;
             MatchedLines = result.MatchedLines;
@@ -124,8 +132,9 @@ public sealed class LogFileAnalyzerViewModel : ViewModelBase
                 Entries.Add(entry);
             }
 
-            StatusMessage = $"Analyzed {TotalLines:N0} lines. Showing {Entries.Count:N0} matching entries.";
+            StatusMessage = $"Analyzed {TotalLines:N0} lines. Showing {Entries.Count:N0} of {MatchedLines:N0} matching entries (up to 4,096 characters per line).";
         }
+        catch (OperationCanceledException) { StatusMessage = "Analysis cancelled."; }
         catch (Exception ex)
         {
             StatusMessage = "Analysis failed.";
@@ -134,6 +143,7 @@ public sealed class LogFileAnalyzerViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+            _analysisCts = null;
         }
     }
 
@@ -160,4 +170,5 @@ public sealed class LogFileAnalyzerViewModel : ViewModelBase
         _clipboard.SetText(summary);
         StatusMessage = "Summary copied to clipboard.";
     }
+    public void Dispose() { _disposed = true; _analysisCts?.Cancel(); }
 }

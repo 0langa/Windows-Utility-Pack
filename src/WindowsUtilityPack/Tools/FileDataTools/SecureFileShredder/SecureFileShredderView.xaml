@@ -14,7 +14,7 @@
                                VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource ErrorBrush}" FontSize="13"
                                VerticalAlignment="Center"
-                               Text="Warning: Shredded files cannot be recovered. This action is permanent."/>
+                               Text="Overwrite and delete cannot be undone. SSD remnants and backups may survive."/>
                 </StackPanel>
             </Border>
 
@@ -23,23 +23,23 @@
                 <WrapPanel Orientation="Horizontal">
                     <TextBlock Text="Overwrite passes:" VerticalAlignment="Center"
                                Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,8,0"/>
-                    <ComboBox SelectedValue="{Binding PassCount}"
+                    <ComboBox AutomationProperties.AutomationId="PassCount" SelectedValue="{Binding PassCount}"
                               SelectedValuePath="Tag"
-                              MinWidth="180" MaxWidth="260" Margin="0,0,16,0">
+                              IsEnabled="{Binding IsShredding, Converter={StaticResource BoolNegationConverter}}" MinWidth="180" MaxWidth="260" Margin="0,0,16,0">
                         <ComboBoxItem Tag="1"  Content="1 pass (Quick)"/>
                         <ComboBoxItem Tag="3"  Content="3 passes (Standard)" IsSelected="True"/>
-                        <ComboBoxItem Tag="7"  Content="7 passes (DoD 5220.22-M)"/>
+                        <ComboBoxItem Tag="7"  Content="7 passes"/>
                     </ComboBox>
-                    <Button Content="Add Files…"
+                    <Button AutomationProperties.AutomationId="AddFilesCommand" Content="Add Files…"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding AddFilesCommand}"
                             Margin="0,0,8,0"
                             IsEnabled="{Binding IsShredding, Converter={StaticResource BoolNegationConverter}}"/>
-                    <Button Content="Remove Selected"
+                    <Button AutomationProperties.AutomationId="RemoveSelectedCommand" Content="Remove Selected"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding RemoveSelectedCommand}"
                             Margin="0,0,8,0"/>
-                    <Button Content="Clear All"
+                    <Button AutomationProperties.AutomationId="ClearAllCommand" Content="Clear All"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding ClearAllCommand}"/>
                 </WrapPanel>
@@ -47,7 +47,7 @@
 
             <!-- File list -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="0" Margin="0,0,0,8">
-                <DataGrid ItemsSource="{Binding Files}"
+                <DataGrid AutomationProperties.AutomationId="SelectedFile" ItemsSource="{Binding Files}"
                           SelectedItem="{Binding SelectedFile, Mode=TwoWay}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
@@ -86,16 +86,16 @@
 
             <!-- Shred button -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="12" Margin="0,0,0,8">
-                <Button Content="Shred Files"
+                <StackPanel Orientation="Horizontal"><Button AutomationProperties.AutomationId="ShredCommand" Content="Shred Files"
                         Style="{StaticResource PrimaryActionButtonStyle}"
                         Command="{Binding ShredCommand}"
                         HorizontalAlignment="Left"
-                        IsEnabled="{Binding IsShredding, Converter={StaticResource BoolNegationConverter}}"/>
+                        IsEnabled="{Binding IsShredding, Converter={StaticResource BoolNegationConverter}}"/><Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" Margin="8,0,0,0"/></StackPanel>
             </Border>
 
             <!-- Status bar -->
             <Border Style="{StaticResource ToolPanelBorderStyle}" Padding="8,6">
-                <TextBlock Text="{Binding StatusMessage}"
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"/>
             </Border>
 

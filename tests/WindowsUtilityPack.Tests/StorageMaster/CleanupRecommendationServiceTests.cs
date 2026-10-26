@@ -10,6 +10,34 @@ namespace WindowsUtilityPack.Tests.StorageMaster;
 /// </summary>
 public class CleanupRecommendationServiceTests
 {
+    [Fact]
+    public async Task AnalyseAsync_UnscannedDirectoryIsNotAnEmptyFolderRecommendation()
+    {
+        var unknown = new StorageItem { FullPath = @"C:\unscanned", Name = "unscanned", IsDirectory = true };
+        var results = await new CleanupRecommendationService().AnalyseAsync(BuildRoot(unknown), null, CancellationToken.None);
+        Assert.DoesNotContain(results, result => result.Category == CleanupCategory.EmptyFolders);
+    }
+
+    [Fact]
+    public async Task AnalyseAsync_TempPrefixLookalikeIsNotTreatedAsTemporary()
+    {
+        var path = System.IO.Path.GetTempPath().TrimEnd('\\', '/') + "-important\\document.txt";
+        var item = new StorageItem { FullPath = path, Name = "document.txt", SizeBytes = 100 };
+        var results = await new CleanupRecommendationService().AnalyseAsync(BuildRoot(item), null, CancellationToken.None);
+        Assert.DoesNotContain(results, result => result.Category == CleanupCategory.TemporaryFiles);
+    }
+
+    [Theory]
+    [InlineData("database.bak")]
+    [InlineData("audit.log")]
+    [InlineData("document.old")]
+    public async Task AnalyseAsync_ExtensionAloneDoesNotQualifyForLowRiskCleanup(string name)
+    {
+        var item = new StorageItem { FullPath = @"C:\important\" + name, Name = name, SizeBytes = 100 };
+        var results = await new CleanupRecommendationService().AnalyseAsync(BuildRoot(item), null, CancellationToken.None);
+        Assert.DoesNotContain(results, result => result.Risk == CleanupRisk.Low);
+    }
+
     private readonly CleanupRecommendationService _service = new();
 
     private static StorageItem MakeTempFile(string name = "file.tmp", long size = 10240)
@@ -47,6 +75,7 @@ public class CleanupRecommendationServiceTests
             FullPath    = @"C:\emptydir",
             Name        = "emptydir",
             IsDirectory = true,
+            IsScanComplete = true,
         };
         item.FileCount      = 0;
         item.DirectoryCount = 0;

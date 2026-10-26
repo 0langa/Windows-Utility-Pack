@@ -59,14 +59,17 @@ public sealed class WindowsEventLogService : IWindowsEventLogService
         var level = levelFilter?.Trim();
         var since = sinceUtc ?? DateTime.UtcNow.AddDays(-1);
 
-        try
+        return Task.Run<IReadOnlyList<WindowsEventLogRecord>>(() =>
         {
+            if (!EventLog.Exists(logName)) throw new InvalidOperationException("The event log does not exist.");
+            var timer = Stopwatch.StartNew();
             using var eventLog = new EventLog(logName);
             var records = new List<WindowsEventLogRecord>(limit);
 
             for (var i = eventLog.Entries.Count - 1; i >= 0 && records.Count < limit; i--)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (timer.Elapsed > TimeSpan.FromSeconds(15)) throw new TimeoutException("The event query exceeded 15 seconds. Narrow the filter.");
 
                 var entry = eventLog.Entries[i];
                 var writtenUtc = entry.TimeGenerated.Kind == DateTimeKind.Utc
@@ -83,7 +86,7 @@ public sealed class WindowsEventLogService : IWindowsEventLogService
                     continue;
                 }
 
-                if (eventIdFilter.HasValue && entry.InstanceId != (uint)eventIdFilter.Value)
+                if (eventIdFilter.HasValue && (entry.InstanceId & 0xffff) != eventIdFilter.Value)
                 {
                     continue;
                 }
@@ -99,17 +102,13 @@ public sealed class WindowsEventLogService : IWindowsEventLogService
                     TimestampUtc = writtenUtc,
                     LogName = logName,
                     Source = entry.Source,
-                    EventId = (int)entry.InstanceId,
+                    EventId = (int)(entry.InstanceId & 0xffff),
                     Level = entry.EntryType.ToString(),
-                    Message = entry.Message,
+                    Message = entry.Message.Length > 16384 ? entry.Message[..16384] + "… [message truncated]" : entry.Message,
                 });
             }
 
-            return Task.FromResult<IReadOnlyList<WindowsEventLogRecord>>(records);
-        }
-        catch
-        {
-            return Task.FromResult<IReadOnlyList<WindowsEventLogRecord>>([]);
-        }
+            return records;
+        }, cancellationToken);
     }
 }

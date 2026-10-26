@@ -73,6 +73,7 @@ ORDER BY updated_utc DESC, name ASC;";
         {
             throw new InvalidOperationException("Port must be between 1 and 65535.");
         }
+        _ = BuildSshCommand(profile);
 
         var now = DateTime.UtcNow;
         var created = profile.CreatedUtc == default ? now : profile.CreatedUtc;
@@ -118,13 +119,18 @@ ON CONFLICT(name) DO UPDATE SET
     public string BuildSshCommand(SshConnectionProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
-
+        if (profile.Port is < 1 or > 65535 || string.IsNullOrWhiteSpace(profile.Username) ||
+            Uri.CheckHostName(profile.Host.Trim('[', ']')) == UriHostNameType.Unknown || profile.Host.StartsWith('-'))
+            throw new ArgumentException("Enter a valid hostname or IP address, username, and port (1–65535).");
+        if (new[] { profile.Username, profile.Host, profile.PrivateKeyPath ?? "" }.Any(v => v.Any(char.IsControl)))
+            throw new ArgumentException("SSH fields must not contain control characters.");
         var keyPart = string.IsNullOrWhiteSpace(profile.PrivateKeyPath)
             ? string.Empty
-            : $" -i \"{profile.PrivateKeyPath}\"";
+            : $" -i {QuotePowerShell(profile.PrivateKeyPath)}";
 
-        return $"ssh -p {profile.Port}{keyPart} {profile.Username}@{profile.Host}";
+        return $"ssh -p {profile.Port}{keyPart} -l {QuotePowerShell(profile.Username)} -- {QuotePowerShell(profile.Host.Trim('[', ']'))}";
     }
+    private static string QuotePowerShell(string value) => "'" + value.Replace("'", "''").Replace("‘", "‘‘").Replace("’", "’’") + "'";
 
     public async Task<(bool IsReachable, string Message)> TestConnectionAsync(string host, int port, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
@@ -139,6 +145,8 @@ ON CONFLICT(name) DO UPDATE SET
         }
 
         using var client = new TcpClient();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (timeout <= TimeSpan.Zero || timeout > TimeSpan.FromMinutes(1)) throw new ArgumentOutOfRangeException(nameof(timeout));
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(timeout);
 
@@ -147,11 +155,11 @@ ON CONFLICT(name) DO UPDATE SET
             await client.ConnectAsync(host, port, timeoutCts.Token).ConfigureAwait(false);
             return (true, $"Connected to {host}:{port}.");
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return (false, $"Connection to {host}:{port} timed out.");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return (false, ex.Message);
         }

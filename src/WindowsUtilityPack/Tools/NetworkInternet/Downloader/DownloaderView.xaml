@@ -25,13 +25,13 @@
                     <TextBlock Margin="0,6,0,0" Text="Mode-correct download manager, media workflow, asset grabber, and crawl workstation" Foreground="{DynamicResource SecondaryTextBrush}"/>
                 </StackPanel>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding QueuedCount, StringFormat=Queued: {0}}"/></Border>
-                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding ActiveCount, StringFormat=Active: {0}}"/></Border>
-                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding CompletedCount, StringFormat=Completed: {0}}"/></Border>
-                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock Text="{Binding FailedCount, StringFormat=Failed: {0}}"/></Border>
-                    <Button Content="Install Tools" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding InstallToolsCommand}" Margin="10,0,6,0"/>
-                    <Button Content="Update yt-dlp" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding UpdateToolsCommand}" Margin="0,0,6,0"/>
-                    <TextBlock Text="{Binding DependenciesReady, StringFormat=Deps Ready: {0}}" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock AutomationProperties.AutomationId="QueuedCount" Text="{Binding QueuedCount, StringFormat=Queued: {0}}"/></Border>
+                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock AutomationProperties.AutomationId="ActiveCount" Text="{Binding ActiveCount, StringFormat=Active: {0}}"/></Border>
+                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock AutomationProperties.AutomationId="CompletedCount" Text="{Binding CompletedCount, StringFormat=Completed: {0}}"/></Border>
+                    <Border Style="{StaticResource StatusSurfaceStyle}" Padding="10,8" Margin="0,0,8,0"><TextBlock AutomationProperties.AutomationId="FailedCount" Text="{Binding FailedCount, StringFormat=Failed: {0}}"/></Border>
+                    <Button AutomationProperties.AutomationId="InstallToolsCommand" Content="Install Tools" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding InstallToolsCommand}" Margin="10,0,6,0"/>
+                    <Button AutomationProperties.AutomationId="UpdateToolsCommand" Content="Update yt-dlp" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding UpdateToolsCommand}" Margin="0,0,6,0"/>
+                    <TextBlock AutomationProperties.AutomationId="DependenciesReady" Text="{Binding DependenciesReady, StringFormat=Deps Ready: {0}}" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
                 </WrapPanel>
             </Grid>
         </Border>
@@ -46,7 +46,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <TextBlock Text="Fast path for direct links and bulk paste." Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
-                    <TextBox Grid.Row="1"
+                    <TextBox AutomationProperties.AutomationId="QuickInput" Grid.Row="1"
                              Text="{Binding QuickInput, UpdateSourceTrigger=PropertyChanged}"
                              MinHeight="72"
                              AcceptsReturn="True"
@@ -54,17 +54,17 @@
                              VerticalScrollBarVisibility="Auto"
                              Padding="8,6"/>
                     <WrapPanel Grid.Row="2" Margin="0,8,0,8">
-                        <Button Content="Analyze Input" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AnalyzeQuickInputCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Add to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddToQueueCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Download Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadNowCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Paste" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PasteClipboardCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Import List" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ImportLinksCommand}"/>
+                        <Button AutomationProperties.AutomationId="AnalyzeQuickInputCommand" Content="Analyze Input" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AnalyzeQuickInputCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="AddToQueueCommand" Content="Add to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddToQueueCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="DownloadNowCommand" Content="Download Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadNowCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="PasteClipboardCommand" Content="Paste" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PasteClipboardCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="ImportLinksCommand" Content="Import List" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ImportLinksCommand}"/>
                     </WrapPanel>
                     <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}">
                         <StackPanel>
                             <TextBlock Text="Detected Workflow" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <TextBlock Text="{Binding QuickDetectionSummary}" TextWrapping="Wrap"/>
-                            <TextBlock Text="{Binding QuickRoutingReason}"
+                            <TextBlock AutomationProperties.AutomationId="QuickDetectionSummary" Text="{Binding QuickDetectionSummary}" TextWrapping="Wrap"/>
+                            <TextBlock AutomationProperties.AutomationId="QuickRoutingReason" Text="{Binding QuickRoutingReason}"
                                        TextWrapping="Wrap"
                                        Margin="0,4,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}"/>
@@ -84,33 +84,33 @@
 
                     <WrapPanel Margin="0,0,0,8">
                         <TextBlock Text="Search" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox Width="220"
+                        <TextBox AutomationProperties.AutomationId="QueueSearchText" Width="220"
                                  Text="{Binding QueueSearchText, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="6,4"
                                  Margin="0,0,8,0"/>
                         <TextBlock Text="Status" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox Width="130"
+                        <ComboBox AutomationProperties.AutomationId="SelectedQueueStatusFilter" Width="130"
                                   ItemsSource="{Binding QueueStatusFilters}"
                                   SelectedItem="{Binding SelectedQueueStatusFilter}"
                                   Margin="0,0,12,0"/>
-                        <Button Content="Start Queue" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding StartQueueCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Pause Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PauseQueueCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Stop Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding StopQueueCommand}" Margin="0,0,12,0"/>
-                        <Button Content="Start Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding StartSelectedCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Pause Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PauseSelectedCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Resume Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResumeSelectedCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Retry Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RetrySelectedCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Remove Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RemoveSelectedCommand}" Margin="0,0,12,0"/>
-                        <Button Content="Retry Failed" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RetryFailedCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Clear Completed" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearCompletedCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Clear Failed" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearFailedCommand}" Margin="0,0,12,0"/>
-                        <Button Content="Top" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding MoveSelectedTopCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Up" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding MoveSelectedUpCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Down" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding MoveSelectedDownCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Bottom" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding MoveSelectedBottomCommand}" Margin="0,0,12,0"/>
-                        <Button Content="Priority High" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SetPriorityHighCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Priority Normal" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SetPriorityNormalCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Priority Low" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SetPriorityLowCommand}"/>
+                        <Button AutomationProperties.AutomationId="StartQueueCommand" Content="Start Queue" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding StartQueueCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="PauseQueueCommand" Content="Pause Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PauseQueueCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="StopQueueCommand" Content="Stop Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding StopQueueCommand}" Margin="0,0,12,0"/>
+                        <Button AutomationProperties.AutomationId="StartSelectedCommand" Content="Start Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding StartSelectedCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="PauseSelectedCommand" Content="Pause Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PauseSelectedCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="ResumeSelectedCommand" Content="Resume Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResumeSelectedCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="RetrySelectedCommand" Content="Retry Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RetrySelectedCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="RemoveSelectedCommand" Content="Remove Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RemoveSelectedCommand}" Margin="0,0,12,0"/>
+                        <Button AutomationProperties.AutomationId="RetryFailedCommand" Content="Retry Failed" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RetryFailedCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="ClearCompletedCommand" Content="Clear Completed" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearCompletedCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="ClearFailedCommand" Content="Clear Failed" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearFailedCommand}" Margin="0,0,12,0"/>
+                        <Button AutomationProperties.AutomationId="MoveSelectedTopCommand" Content="Top" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding MoveSelectedTopCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="MoveSelectedUpCommand" Content="Up" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding MoveSelectedUpCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="MoveSelectedDownCommand" Content="Down" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding MoveSelectedDownCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="MoveSelectedBottomCommand" Content="Bottom" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding MoveSelectedBottomCommand}" Margin="0,0,12,0"/>
+                        <Button AutomationProperties.AutomationId="SetPriorityHighCommand" Content="Priority High" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SetPriorityHighCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="SetPriorityNormalCommand" Content="Priority Normal" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SetPriorityNormalCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="SetPriorityLowCommand" Content="Priority Low" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SetPriorityLowCommand}"/>
                     </WrapPanel>
 
                     <Grid Grid.Row="1">
@@ -153,7 +153,7 @@
                                         <DataTemplate>
                                             <Grid>
                                                 <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="14"/>
-                                                <TextBlock Text="{Binding ProgressPercent, StringFormat={}{0:F0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
+                                                <TextBlock AutomationProperties.AutomationId="ProgressPercent" Text="{Binding ProgressPercent, StringFormat={}{0:F0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
                                             </Grid>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
@@ -173,14 +173,14 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0"
+                                    <TextBox AutomationProperties.AutomationId="SelectedJob.SourceUrl" Grid.Column="0"
                                              Text="{Binding SelectedJob.SourceUrl}"
                                              IsReadOnly="True"
                                              IsTabStop="True"
                                              TextWrapping="Wrap"
                                              MinHeight="46"
                                              Margin="0,0,6,0"/>
-                                    <Button Grid.Column="1"
+                                    <Button AutomationProperties.AutomationId="CopyInspectorFieldCommand" Grid.Column="1"
                                             Content="Copy"
                                             Style="{StaticResource SecondaryActionButtonStyle}"
                                             Command="{Binding CopyInspectorFieldCommand}"
@@ -192,14 +192,14 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0"
+                                    <TextBox AutomationProperties.AutomationId="SelectedJob.ResolvedUrl" Grid.Column="0"
                                              Text="{Binding SelectedJob.ResolvedUrl}"
                                              IsReadOnly="True"
                                              IsTabStop="True"
                                              TextWrapping="Wrap"
                                              MinHeight="46"
                                              Margin="0,0,6,0"/>
-                                    <Button Grid.Column="1"
+                                    <Button AutomationProperties.AutomationId="CopyInspectorFieldCommand" Grid.Column="1"
                                             Content="Copy"
                                             Style="{StaticResource SecondaryActionButtonStyle}"
                                             Command="{Binding CopyInspectorFieldCommand}"
@@ -211,27 +211,27 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0"
+                                    <TextBox AutomationProperties.AutomationId="SelectedJob.OutputFilePath" Grid.Column="0"
                                              Text="{Binding SelectedJob.OutputFilePath}"
                                              IsReadOnly="True"
                                              IsTabStop="True"
                                              TextWrapping="Wrap"
                                              MinHeight="46"
                                              Margin="0,0,6,0"/>
-                                    <Button Grid.Column="1"
+                                    <Button AutomationProperties.AutomationId="CopyInspectorFieldCommand" Grid.Column="1"
                                             Content="Copy"
                                             Style="{StaticResource SecondaryActionButtonStyle}"
                                             Command="{Binding CopyInspectorFieldCommand}"
                                             CommandParameter="{Binding SelectedJob.OutputFilePath}"/>
                                 </Grid>
                                 <TextBlock Text="Status Message" Style="{StaticResource MetadataTextStyle}"/>
-                                <TextBox Text="{Binding SelectedJob.StatusMessage}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="46" Margin="0,2,0,8"/>
+                                <TextBox AutomationProperties.AutomationId="SelectedJob.StatusMessage" Text="{Binding SelectedJob.StatusMessage}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="46" Margin="0,2,0,8"/>
                                 <TextBlock Text="Error" Style="{StaticResource MetadataTextStyle}"/>
-                                <TextBox Text="{Binding SelectedJob.ErrorSummary}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="46" Margin="0,2,0,8"/>
+                                <TextBox AutomationProperties.AutomationId="SelectedJob.ErrorSummary" Text="{Binding SelectedJob.ErrorSummary}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="46" Margin="0,2,0,8"/>
                                 <WrapPanel>
-                                    <Button Content="Open Source" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenSourceCommand}" Margin="0,0,6,6"/>
-                                    <Button Content="Open Folder" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenContainingFolderCommand}" Margin="0,0,6,6"/>
-                                    <Button Content="Copy URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopySourceUrlCommand}" Margin="0,0,6,6"/>
+                                    <Button AutomationProperties.AutomationId="OpenSourceCommand" Content="Open Source" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenSourceCommand}" Margin="0,0,6,6"/>
+                                    <Button AutomationProperties.AutomationId="OpenContainingFolderCommand" Content="Open Folder" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenContainingFolderCommand}" Margin="0,0,6,6"/>
+                                    <Button AutomationProperties.AutomationId="CopySourceUrlCommand" Content="Copy URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopySourceUrlCommand}" Margin="0,0,6,6"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -247,35 +247,35 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <TextBlock Text="Dedicated media workflow. Default behavior is video; audio-only is explicit." Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
-                    <TextBox Grid.Row="1" Text="{Binding MediaInput, UpdateSourceTrigger=PropertyChanged}" Padding="8,6"/>
+                    <TextBox AutomationProperties.AutomationId="MediaInput" Grid.Row="1" Text="{Binding MediaInput, UpdateSourceTrigger=PropertyChanged}" Padding="8,6"/>
                     <WrapPanel Grid.Row="2" Margin="0,8,0,8">
                         <TextBlock Text="Output:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox Width="130" ItemsSource="{Binding MediaOutputKinds}" SelectedItem="{Binding SelectedMediaOutputKind}" Margin="0,0,8,0"/>
+                        <ComboBox AutomationProperties.AutomationId="SelectedMediaOutputKind" Width="130" ItemsSource="{Binding MediaOutputKinds}" SelectedItem="{Binding SelectedMediaOutputKind}" Margin="0,0,8,0"/>
                         <TextBlock Text="Video Profile:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox Width="220" ItemsSource="{Binding MediaVideoProfiles}" SelectedItem="{Binding SelectedMediaVideoProfile}" Margin="0,0,8,0"/>
+                        <ComboBox AutomationProperties.AutomationId="SelectedMediaVideoProfile" Width="220" ItemsSource="{Binding MediaVideoProfiles}" SelectedItem="{Binding SelectedMediaVideoProfile}" Margin="0,0,8,0"/>
                         <TextBlock Text="Container:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox Width="90" ItemsSource="{Binding MediaContainers}" SelectedItem="{Binding SelectedMediaContainer}" Margin="0,0,8,0"/>
+                        <ComboBox AutomationProperties.AutomationId="SelectedMediaContainer" Width="90" ItemsSource="{Binding MediaContainers}" SelectedItem="{Binding SelectedMediaContainer}" Margin="0,0,8,0"/>
                         <TextBlock Text="Audio Format:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox Width="90" ItemsSource="{Binding MediaAudioFormats}" SelectedItem="{Binding SelectedMediaAudioFormat}" Margin="0,0,12,0"/>
-                        <Button Content="Analyze Media" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AnalyzeMediaCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Add to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddMediaToQueueCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Download Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadMediaNowCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Reset Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetMediaDefaultsCommand}"/>
+                        <ComboBox AutomationProperties.AutomationId="SelectedMediaAudioFormat" Width="90" ItemsSource="{Binding MediaAudioFormats}" SelectedItem="{Binding SelectedMediaAudioFormat}" Margin="0,0,12,0"/>
+                        <Button AutomationProperties.AutomationId="AnalyzeMediaCommand" Content="Analyze Media" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AnalyzeMediaCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="AddMediaToQueueCommand" Content="Add to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddMediaToQueueCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="DownloadMediaNowCommand" Content="Download Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadMediaNowCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="ResetMediaDefaultsCommand" Content="Reset Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetMediaDefaultsCommand}"/>
                     </WrapPanel>
                     <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}">
                         <StackPanel>
                             <TextBlock Text="Effective Media Plan" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <TextBlock Text="{Binding MediaAnalysisSummary}" TextWrapping="Wrap"/>
-                            <TextBlock Text="{Binding MediaRoutingReason}"
+                            <TextBlock AutomationProperties.AutomationId="MediaAnalysisSummary" Text="{Binding MediaAnalysisSummary}" TextWrapping="Wrap"/>
+                            <TextBlock AutomationProperties.AutomationId="MediaRoutingReason" Text="{Binding MediaRoutingReason}"
                                        TextWrapping="Wrap"
                                        Margin="0,4,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}"/>
                             <WrapPanel Margin="0,8,0,0">
-                                <CheckBox Content="Download Subtitles" IsChecked="{Binding Settings.Media.DownloadSubtitles}" Margin="0,0,16,6"/>
-                                <CheckBox Content="Download Thumbnail" IsChecked="{Binding Settings.Media.DownloadThumbnail}" Margin="0,0,16,6"/>
-                                <CheckBox Content="Embed Metadata" IsChecked="{Binding Settings.Media.EmbedMetadata}" Margin="0,0,16,6"/>
-                                <CheckBox Content="Allow Playlist" IsChecked="{Binding Settings.Media.AllowPlaylist}" Margin="0,0,16,6"/>
-                                <CheckBox Content="Save Caption Files" IsChecked="{Binding Settings.Media.SaveCaptionFiles}" Margin="0,0,16,6"/>
+                                <CheckBox AutomationProperties.AutomationId="Settings.Media.DownloadSubtitles" Content="Download Subtitles" IsChecked="{Binding Settings.Media.DownloadSubtitles}" Margin="0,0,16,6"/>
+                                <CheckBox AutomationProperties.AutomationId="Settings.Media.DownloadThumbnail" Content="Download Thumbnail" IsChecked="{Binding Settings.Media.DownloadThumbnail}" Margin="0,0,16,6"/>
+                                <CheckBox AutomationProperties.AutomationId="Settings.Media.EmbedMetadata" Content="Embed Metadata" IsChecked="{Binding Settings.Media.EmbedMetadata}" Margin="0,0,16,6"/>
+                                <CheckBox AutomationProperties.AutomationId="Settings.Media.AllowPlaylist" Content="Allow Playlist" IsChecked="{Binding Settings.Media.AllowPlaylist}" Margin="0,0,16,6"/>
+                                <CheckBox AutomationProperties.AutomationId="Settings.Media.SaveCaptionFiles" Content="Save Caption Files" IsChecked="{Binding Settings.Media.SaveCaptionFiles}" Margin="0,0,16,6"/>
                             </WrapPanel>
                         </StackPanel>
                     </Border>
@@ -290,7 +290,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <TextBlock Text="YouTube-first workflow: paste links, choose exact quality profile, and download to disk quickly." Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
-                    <TextBox Grid.Row="1"
+                    <TextBox AutomationProperties.AutomationId="YoutubeInput" Grid.Row="1"
                              Text="{Binding YoutubeInput, UpdateSourceTrigger=PropertyChanged}"
                              MinHeight="64"
                              AcceptsReturn="True"
@@ -304,48 +304,48 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <WrapPanel>
-                            <Button Content="Analyze YouTube" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AnalyzeYoutubeCommand}" Margin="0,0,6,0"/>
-                            <Button Content="Add to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddYoutubeToQueueCommand}" Margin="0,0,6,0"/>
-                            <Button Content="Download Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadYoutubeNowCommand}" Margin="0,0,6,0"/>
-                            <Button Content="Reset YouTube Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetYoutubeDefaultsCommand}"/>
+                            <Button AutomationProperties.AutomationId="AnalyzeYoutubeCommand" Content="Analyze YouTube" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AnalyzeYoutubeCommand}" Margin="0,0,6,0"/>
+                            <Button AutomationProperties.AutomationId="AddYoutubeToQueueCommand" Content="Add to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddYoutubeToQueueCommand}" Margin="0,0,6,0"/>
+                            <Button AutomationProperties.AutomationId="DownloadYoutubeNowCommand" Content="Download Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadYoutubeNowCommand}" Margin="0,0,6,0"/>
+                            <Button AutomationProperties.AutomationId="ResetYoutubeDefaultsCommand" Content="Reset YouTube Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetYoutubeDefaultsCommand}"/>
                         </WrapPanel>
                         <UniformGrid Grid.Row="1" Rows="2" Columns="3" Margin="0,8,0,0">
                             <StackPanel Margin="0,0,12,8">
                                 <TextBlock Text="Video Quality" Margin="0,0,0,4"/>
-                                <ComboBox ItemsSource="{Binding YoutubeVideoQualities}" SelectedItem="{Binding SelectedYoutubeVideoQuality}"/>
+                                <ComboBox AutomationProperties.AutomationId="SelectedYoutubeVideoQuality" ItemsSource="{Binding YoutubeVideoQualities}" SelectedItem="{Binding SelectedYoutubeVideoQuality}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,12,8">
                                 <TextBlock Text="Frame Rate" Margin="0,0,0,4"/>
-                                <ComboBox ItemsSource="{Binding YoutubeFrameRates}" SelectedItem="{Binding SelectedYoutubeFrameRate}"/>
+                                <ComboBox AutomationProperties.AutomationId="SelectedYoutubeFrameRate" ItemsSource="{Binding YoutubeFrameRates}" SelectedItem="{Binding SelectedYoutubeFrameRate}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,12,8">
                                 <TextBlock Text="Video Codec" Margin="0,0,0,4"/>
-                                <ComboBox ItemsSource="{Binding YoutubeVideoCodecs}" SelectedItem="{Binding SelectedYoutubeVideoCodec}"/>
+                                <ComboBox AutomationProperties.AutomationId="SelectedYoutubeVideoCodec" ItemsSource="{Binding YoutubeVideoCodecs}" SelectedItem="{Binding SelectedYoutubeVideoCodec}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,12,0">
                                 <TextBlock Text="Audio Quality" Margin="0,0,0,4"/>
-                                <ComboBox ItemsSource="{Binding YoutubeAudioQualities}" SelectedItem="{Binding SelectedYoutubeAudioQuality}"/>
+                                <ComboBox AutomationProperties.AutomationId="SelectedYoutubeAudioQuality" ItemsSource="{Binding YoutubeAudioQualities}" SelectedItem="{Binding SelectedYoutubeAudioQuality}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,12,0">
                                 <TextBlock Text="Audio Codec" Margin="0,0,0,4"/>
-                                <ComboBox ItemsSource="{Binding YoutubeAudioCodecs}" SelectedItem="{Binding SelectedYoutubeAudioCodec}"/>
+                                <ComboBox AutomationProperties.AutomationId="SelectedYoutubeAudioCodec" ItemsSource="{Binding YoutubeAudioCodecs}" SelectedItem="{Binding SelectedYoutubeAudioCodec}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,12,0">
                                 <TextBlock Text="Container" Margin="0,0,0,4"/>
-                                <ComboBox ItemsSource="{Binding MediaContainers}" SelectedItem="{Binding SelectedYoutubeContainer}"/>
+                                <ComboBox AutomationProperties.AutomationId="SelectedYoutubeContainer" ItemsSource="{Binding MediaContainers}" SelectedItem="{Binding SelectedYoutubeContainer}"/>
                             </StackPanel>
                         </UniformGrid>
                         <WrapPanel Grid.Row="2" Margin="0,8,0,0">
-                            <CheckBox Content="Download Subtitles" IsChecked="{Binding Settings.Media.DownloadSubtitles}" Margin="0,0,16,6"/>
-                            <CheckBox Content="Download Thumbnail" IsChecked="{Binding Settings.Media.DownloadThumbnail}" Margin="0,0,16,6"/>
-                            <CheckBox Content="Embed Metadata" IsChecked="{Binding Settings.Media.EmbedMetadata}" Margin="0,0,16,6"/>
-                            <CheckBox Content="Allow Playlist" IsChecked="{Binding Settings.Media.AllowPlaylist}" Margin="0,0,16,6"/>
+                            <CheckBox AutomationProperties.AutomationId="Settings.Media.DownloadSubtitles" Content="Download Subtitles" IsChecked="{Binding Settings.Media.DownloadSubtitles}" Margin="0,0,16,6"/>
+                            <CheckBox AutomationProperties.AutomationId="Settings.Media.DownloadThumbnail" Content="Download Thumbnail" IsChecked="{Binding Settings.Media.DownloadThumbnail}" Margin="0,0,16,6"/>
+                            <CheckBox AutomationProperties.AutomationId="Settings.Media.EmbedMetadata" Content="Embed Metadata" IsChecked="{Binding Settings.Media.EmbedMetadata}" Margin="0,0,16,6"/>
+                            <CheckBox AutomationProperties.AutomationId="Settings.Media.AllowPlaylist" Content="Allow Playlist" IsChecked="{Binding Settings.Media.AllowPlaylist}" Margin="0,0,16,6"/>
                         </WrapPanel>
                     </Grid>
                     <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}">
                         <StackPanel>
                             <TextBlock Text="YouTube Execution Plan" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <TextBlock Text="{Binding YoutubeAnalysisSummary}" TextWrapping="Wrap"/>
+                            <TextBlock AutomationProperties.AutomationId="YoutubeAnalysisSummary" Text="{Binding YoutubeAnalysisSummary}" TextWrapping="Wrap"/>
                             <TextBlock Margin="0,8,0,0"
                                        Foreground="{DynamicResource SecondaryTextBrush}"
                                        Text="This tab accepts only youtube.com/youtu.be links and applies the selected quality profile to every added job."/>
@@ -367,33 +367,33 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Text="{Binding ScanUrl, UpdateSourceTrigger=PropertyChanged}" Padding="8,6"/>
-                        <Button Grid.Column="1" Content="Scan Page" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding ScanPageCommand}" Margin="8,0,0,0"/>
+                        <TextBox AutomationProperties.AutomationId="ScanUrl" Grid.Column="0" Text="{Binding ScanUrl, UpdateSourceTrigger=PropertyChanged}" Padding="8,6"/>
+                        <Button AutomationProperties.AutomationId="ScanPageCommand" Grid.Column="1" Content="Scan Page" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding ScanPageCommand}" Margin="8,0,0,0"/>
                     </Grid>
                     <WrapPanel Grid.Row="1" Margin="0,8,0,8">
                         <TextBlock Text="Filter:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox Width="150" ItemsSource="{Binding AssetFilters}" SelectedItem="{Binding SelectedAssetFilter}" Margin="0,0,8,0"/>
-                        <TextBox Width="240" Text="{Binding AssetSearchText, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" Margin="0,0,8,0"/>
-                        <Button Content="Select All" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectAllAssetsCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Select Visible" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectVisibleAssetsCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Select Reachable" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectReachableAssetsCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Deselect All" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding DeselectAllAssetsCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Invert" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding InvertAssetSelectionCommand}" Margin="0,0,12,0"/>
-                        <Button Content="Add Selected to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddSelectedAssetsCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Download Selected Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadSelectedAssetsNowCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Clear Staged" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearDiscoveredAssetsCommand}" Margin="0,0,12,0"/>
-                        <TextBlock Text="{Binding DiscoverySummary}" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                        <TextBlock Text="{Binding ScanStatus}" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,8,0"/>
+                        <ComboBox AutomationProperties.AutomationId="SelectedAssetFilter" Width="150" ItemsSource="{Binding AssetFilters}" SelectedItem="{Binding SelectedAssetFilter}" Margin="0,0,8,0"/>
+                        <TextBox AutomationProperties.AutomationId="AssetSearchText" Width="240" Text="{Binding AssetSearchText, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" Margin="0,0,8,0"/>
+                        <Button AutomationProperties.AutomationId="SelectAllAssetsCommand" Content="Select All" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectAllAssetsCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="SelectVisibleAssetsCommand" Content="Select Visible" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectVisibleAssetsCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="SelectReachableAssetsCommand" Content="Select Reachable" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectReachableAssetsCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="DeselectAllAssetsCommand" Content="Deselect All" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding DeselectAllAssetsCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="InvertAssetSelectionCommand" Content="Invert" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding InvertAssetSelectionCommand}" Margin="0,0,12,0"/>
+                        <Button AutomationProperties.AutomationId="AddSelectedAssetsCommand" Content="Add Selected to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddSelectedAssetsCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="DownloadSelectedAssetsNowCommand" Content="Download Selected Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadSelectedAssetsNowCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="ClearDiscoveredAssetsCommand" Content="Clear Staged" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearDiscoveredAssetsCommand}" Margin="0,0,12,0"/>
+                        <TextBlock AutomationProperties.AutomationId="DiscoverySummary" Text="{Binding DiscoverySummary}" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                        <TextBlock AutomationProperties.AutomationId="ScanStatus" Text="{Binding ScanStatus}" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,8,0"/>
                         <TextBlock Text="Next: select assets, then Add Selected to Queue or Download Selected Now."
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </WrapPanel>
-                    <TextBlock Grid.Row="2"
+                    <TextBlock AutomationProperties.AutomationId="DiscoveryRoutingReason" Grid.Row="2"
                                Margin="0,0,0,6"
                                Text="{Binding DiscoveryRoutingReason}"
                                TextWrapping="Wrap"
                                Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    <DataGrid Grid.Row="3" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False" SelectionMode="Extended">
+                    <DataGrid AutomationProperties.AutomationId="DiscoveredAssetsView" Grid.Row="3" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False" SelectionMode="Extended">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Select all" Command="{Binding SelectAllAssetsCommand}"/>
@@ -434,29 +434,29 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Text="{Binding CrawlUrl, UpdateSourceTrigger=PropertyChanged}" Padding="8,6"/>
-                        <Button Grid.Column="1" Content="Crawl Site" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding CrawlSiteCommand}" Margin="8,0,0,0"/>
+                        <TextBox AutomationProperties.AutomationId="CrawlUrl" Grid.Column="0" Text="{Binding CrawlUrl, UpdateSourceTrigger=PropertyChanged}" Padding="8,6"/>
+                        <Button AutomationProperties.AutomationId="CrawlSiteCommand" Grid.Column="1" Content="Crawl Site" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding CrawlSiteCommand}" Margin="8,0,0,0"/>
                     </Grid>
                     <WrapPanel Grid.Row="1" Margin="0,8,0,8">
-                        <CheckBox Content="Same domain only" IsChecked="{Binding Settings.Scan.SameDomainOnly}" Margin="0,0,16,6"/>
-                        <CheckBox Content="Same subpath only" IsChecked="{Binding Settings.Scan.SameSubPathOnly}" Margin="0,0,16,6"/>
-                        <CheckBox Content="Unique assets only" IsChecked="{Binding Settings.Scan.UniqueAssetsOnly}" Margin="0,0,16,6"/>
-                        <CheckBox Content="Probe content type" IsChecked="{Binding Settings.Scan.ProbeContentType}" Margin="0,0,16,6"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Max Depth" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox Width="50" Text="{Binding Settings.Scan.MaxDepth}"/></StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Max Pages" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox Width="70" Text="{Binding Settings.Scan.MaxPages}"/></StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Workers" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox Width="50" Text="{Binding Settings.Scan.CrawlWorkers}"/></StackPanel>
-                        <Button Content="Select Reachable" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectReachableAssetsCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Add Selected to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddSelectedAssetsCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Download Selected Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadSelectedAssetsNowCommand}"/>
-                        <TextBlock Text="{Binding DiscoverySummary}" VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding ScanStatus}" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.SameDomainOnly" Content="Same domain only" IsChecked="{Binding Settings.Scan.SameDomainOnly}" Margin="0,0,16,6"/>
+                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.SameSubPathOnly" Content="Same subpath only" IsChecked="{Binding Settings.Scan.SameSubPathOnly}" Margin="0,0,16,6"/>
+                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.UniqueAssetsOnly" Content="Unique assets only" IsChecked="{Binding Settings.Scan.UniqueAssetsOnly}" Margin="0,0,16,6"/>
+                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.ProbeContentType" Content="Probe content type" IsChecked="{Binding Settings.Scan.ProbeContentType}" Margin="0,0,16,6"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Max Depth" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox AutomationProperties.AutomationId="Settings.Scan.MaxDepth" Width="50" Text="{Binding Settings.Scan.MaxDepth}"/></StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Max Pages" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox AutomationProperties.AutomationId="Settings.Scan.MaxPages" Width="70" Text="{Binding Settings.Scan.MaxPages}"/></StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,16,6"><TextBlock Text="Workers" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox AutomationProperties.AutomationId="Settings.Scan.CrawlWorkers" Width="50" Text="{Binding Settings.Scan.CrawlWorkers}"/></StackPanel>
+                        <Button AutomationProperties.AutomationId="SelectReachableAssetsCommand" Content="Select Reachable" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SelectReachableAssetsCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="AddSelectedAssetsCommand" Content="Add Selected to Queue" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddSelectedAssetsCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="DownloadSelectedAssetsNowCommand" Content="Download Selected Now" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding DownloadSelectedAssetsNowCommand}"/>
+                        <TextBlock AutomationProperties.AutomationId="DiscoverySummary" Text="{Binding DiscoverySummary}" VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="SemiBold"/>
+                        <TextBlock AutomationProperties.AutomationId="ScanStatus" Text="{Binding ScanStatus}" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </WrapPanel>
-                    <TextBlock Grid.Row="2"
+                    <TextBlock AutomationProperties.AutomationId="DiscoveryRoutingReason" Grid.Row="2"
                                Margin="0,0,0,6"
                                Text="{Binding DiscoveryRoutingReason}"
                                TextWrapping="Wrap"
                                Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    <DataGrid Grid.Row="3" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False">
+                    <DataGrid AutomationProperties.AutomationId="DiscoveredAssetsView" Grid.Row="3" ItemsSource="{Binding DiscoveredAssetsView}" AutoGenerateColumns="False">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Select all" Command="{Binding SelectAllAssetsCommand}"/>
@@ -490,12 +490,12 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <WrapPanel Margin="0,0,0,8">
-                        <Button Content="Redownload Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RedownloadHistoryItemCommand}" CommandParameter="{Binding SelectedItem, ElementName=HistoryGrid}" Margin="0,0,6,0"/>
-                        <Button Content="Open File" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenHistoryFileCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Open Folder" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenHistoryFolderCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Open Source URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenHistorySourceCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Copy URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyHistorySourceCommand}" Margin="0,0,12,0"/>
-                        <Button Content="Clear History" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearHistoryCommand}"/>
+                        <Button AutomationProperties.AutomationId="RedownloadHistoryItemCommand" Content="Redownload Selected" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RedownloadHistoryItemCommand}" CommandParameter="{Binding SelectedItem, ElementName=HistoryGrid}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="OpenHistoryFileCommand" Content="Open File" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenHistoryFileCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="OpenHistoryFolderCommand" Content="Open Folder" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenHistoryFolderCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="OpenHistorySourceCommand" Content="Open Source URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding OpenHistorySourceCommand}" Margin="0,0,6,0"/>
+                        <Button AutomationProperties.AutomationId="CopyHistorySourceCommand" Content="Copy URL" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyHistorySourceCommand}" Margin="0,0,12,0"/>
+                        <Button AutomationProperties.AutomationId="ClearHistoryCommand" Content="Clear History" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearHistoryCommand}"/>
                     </WrapPanel>
                     <DataGrid x:Name="HistoryGrid"
                               Grid.Row="1"
@@ -525,9 +525,9 @@
                     </DataGrid>
                     <WrapPanel Grid.Row="2" Margin="0,8,0,8">
                         <TextBlock Text="Recent Event Log" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                        <Button Content="Export Diagnostics" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ExportDiagnosticsCommand}"/>
+                        <Button AutomationProperties.AutomationId="ExportDiagnosticsCommand" Content="Export Diagnostics" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ExportDiagnosticsCommand}"/>
                     </WrapPanel>
-                    <DataGrid Grid.Row="3" ItemsSource="{Binding RecentEvents}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid AutomationProperties.AutomationId="RecentEvents" Grid.Row="3" ItemsSource="{Binding RecentEvents}" AutoGenerateColumns="False" IsReadOnly="True">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" Width="150"/>
                             <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="90"/>
@@ -548,40 +548,40 @@
                                 <StackPanel>
                                     <TextBlock Text="General" Style="{StaticResource PanelHeaderTextStyle}"/>
                                     <WrapPanel Margin="0,6,0,0">
-                                        <CheckBox Content="Auto start on add" IsChecked="{Binding Settings.General.AutoStartOnAdd}" Margin="0,0,16,8"/>
-                                        <CheckBox Content="Clipboard monitoring" IsChecked="{Binding Settings.General.ClipboardMonitoring}" Margin="0,0,16,8"/>
-                                        <CheckBox Content="Stage links before download" IsChecked="{Binding Settings.General.StageLinksBeforeDownload}" Margin="0,0,16,8"/>
-                                        <CheckBox Content="Compact density mode" IsChecked="{Binding Settings.General.CompactDensityMode}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.General.AutoStartOnAdd" Content="Auto start on add" IsChecked="{Binding Settings.General.AutoStartOnAdd}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.General.ClipboardMonitoring" Content="Clipboard monitoring" IsChecked="{Binding Settings.General.ClipboardMonitoring}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.General.StageLinksBeforeDownload" Content="Stage links before download" IsChecked="{Binding Settings.General.StageLinksBeforeDownload}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.General.CompactDensityMode" Content="Compact density mode" IsChecked="{Binding Settings.General.CompactDensityMode}" Margin="0,0,16,8"/>
                                     </WrapPanel>
-                                    <TextBox Text="{Binding Settings.General.DefaultDownloadFolder}" Padding="6,4" Margin="0,4,0,8"/>
+                                    <TextBox AutomationProperties.AutomationId="Settings.General.DefaultDownloadFolder" Text="{Binding Settings.General.DefaultDownloadFolder}" Padding="6,4" Margin="0,4,0,8"/>
 
                                     <TextBlock Text="Queue" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,10,0,0"/>
                                     <WrapPanel Margin="0,6,0,0">
-                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Max concurrent" Style="{StaticResource MetadataTextStyle}"/><TextBox Width="80" Text="{Binding Settings.Queue.MaxConcurrentDownloads}"/></StackPanel>
-                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Max retries" Style="{StaticResource MetadataTextStyle}"/><TextBox Width="80" Text="{Binding Settings.Queue.MaxRetries}"/></StackPanel>
-                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Retry delay (s)" Style="{StaticResource MetadataTextStyle}"/><TextBox Width="80" Text="{Binding Settings.Queue.RetryDelaySeconds}"/></StackPanel>
-                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Default priority" Style="{StaticResource MetadataTextStyle}"/><TextBox Width="110" Text="{Binding Settings.Queue.DefaultPriority}"/></StackPanel>
+                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Max concurrent" Style="{StaticResource MetadataTextStyle}"/><TextBox AutomationProperties.AutomationId="Settings.Queue.MaxConcurrentDownloads" Width="80" Text="{Binding Settings.Queue.MaxConcurrentDownloads}"/></StackPanel>
+                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Max retries" Style="{StaticResource MetadataTextStyle}"/><TextBox AutomationProperties.AutomationId="Settings.Queue.MaxRetries" Width="80" Text="{Binding Settings.Queue.MaxRetries}"/></StackPanel>
+                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Retry delay (s)" Style="{StaticResource MetadataTextStyle}"/><TextBox AutomationProperties.AutomationId="Settings.Queue.RetryDelaySeconds" Width="80" Text="{Binding Settings.Queue.RetryDelaySeconds}"/></StackPanel>
+                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Default priority" Style="{StaticResource MetadataTextStyle}"/><TextBox AutomationProperties.AutomationId="Settings.Queue.DefaultPriority" Width="110" Text="{Binding Settings.Queue.DefaultPriority}"/></StackPanel>
                                     </WrapPanel>
 
                                     <TextBlock Text="Connections" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,10,0,0"/>
                                     <WrapPanel Margin="0,6,0,0">
-                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Segments" Style="{StaticResource MetadataTextStyle}"/><TextBox Width="80" Text="{Binding Settings.Connections.SegmentsPerDownload}"/></StackPanel>
-                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Segment threshold MB" Style="{StaticResource MetadataTextStyle}"/><TextBox Width="110" Text="{Binding Settings.Connections.SegmentThresholdMb}"/></StackPanel>
-                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Timeout (s)" Style="{StaticResource MetadataTextStyle}"/><TextBox Width="80" Text="{Binding Settings.Connections.TimeoutSeconds}"/></StackPanel>
-                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Max redirects" Style="{StaticResource MetadataTextStyle}"/><TextBox Width="80" Text="{Binding Settings.Connections.MaxRedirects}"/></StackPanel>
+                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Segments" Style="{StaticResource MetadataTextStyle}"/><TextBox AutomationProperties.AutomationId="Settings.Connections.SegmentsPerDownload" Width="80" Text="{Binding Settings.Connections.SegmentsPerDownload}"/></StackPanel>
+                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Segment threshold MB" Style="{StaticResource MetadataTextStyle}"/><TextBox AutomationProperties.AutomationId="Settings.Connections.SegmentThresholdMb" Width="110" Text="{Binding Settings.Connections.SegmentThresholdMb}"/></StackPanel>
+                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Timeout (s)" Style="{StaticResource MetadataTextStyle}"/><TextBox AutomationProperties.AutomationId="Settings.Connections.TimeoutSeconds" Width="80" Text="{Binding Settings.Connections.TimeoutSeconds}"/></StackPanel>
+                                        <StackPanel Margin="0,0,12,8"><TextBlock Text="Max redirects" Style="{StaticResource MetadataTextStyle}"/><TextBox AutomationProperties.AutomationId="Settings.Connections.MaxRedirects" Width="80" Text="{Binding Settings.Connections.MaxRedirects}"/></StackPanel>
                                     </WrapPanel>
 
                                     <TextBlock Text="Scan/Crawl" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,10,0,0"/>
                                     <WrapPanel Margin="0,6,0,0">
-                                        <CheckBox Content="Same domain only" IsChecked="{Binding Settings.Scan.SameDomainOnly}" Margin="0,0,16,8"/>
-                                        <CheckBox Content="Same subpath only" IsChecked="{Binding Settings.Scan.SameSubPathOnly}" Margin="0,0,16,8"/>
-                                        <CheckBox Content="Unique assets only" IsChecked="{Binding Settings.Scan.UniqueAssetsOnly}" Margin="0,0,16,8"/>
-                                        <CheckBox Content="Probe content type" IsChecked="{Binding Settings.Scan.ProbeContentType}" Margin="0,0,16,8"/>
-                                        <CheckBox Content="Scan scripts/json" IsChecked="{Binding Settings.Scan.ScanScriptsAndJson}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.SameDomainOnly" Content="Same domain only" IsChecked="{Binding Settings.Scan.SameDomainOnly}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.SameSubPathOnly" Content="Same subpath only" IsChecked="{Binding Settings.Scan.SameSubPathOnly}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.UniqueAssetsOnly" Content="Unique assets only" IsChecked="{Binding Settings.Scan.UniqueAssetsOnly}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.ProbeContentType" Content="Probe content type" IsChecked="{Binding Settings.Scan.ProbeContentType}" Margin="0,0,16,8"/>
+                                        <CheckBox AutomationProperties.AutomationId="Settings.Scan.ScanScriptsAndJson" Content="Scan scripts/json" IsChecked="{Binding Settings.Scan.ScanScriptsAndJson}" Margin="0,0,16,8"/>
                                     </WrapPanel>
 
                                     <TextBlock Text="Scheduler" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,10,0,0"/>
-                                    <TextBlock Text="{Binding SchedulerStatus}" Margin="0,4,0,8" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <TextBlock AutomationProperties.AutomationId="SchedulerStatus" Text="{Binding SchedulerStatus}" Margin="0,4,0,8" Foreground="{DynamicResource SecondaryTextBrush}"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="220"/>
@@ -592,11 +592,11 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <DatePicker Grid.Column="0" SelectedDate="{Binding ScheduledStartDate}"/>
-                                        <TextBox Grid.Column="1" Text="{Binding ScheduledStartTimeText}" Margin="8,0,0,0"/>
-                                        <Button Grid.Column="2" Content="Schedule Start" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ScheduleStartCommand}" Margin="8,0,16,0"/>
+                                        <TextBox AutomationProperties.AutomationId="ScheduledStartTimeText" Grid.Column="1" Text="{Binding ScheduledStartTimeText}" Margin="8,0,0,0"/>
+                                        <Button AutomationProperties.AutomationId="ScheduleStartCommand" Grid.Column="2" Content="Schedule Start" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ScheduleStartCommand}" Margin="8,0,16,0"/>
                                         <DatePicker Grid.Column="3" SelectedDate="{Binding ScheduledPauseDate}"/>
-                                        <TextBox Grid.Column="4" Text="{Binding ScheduledPauseTimeText}" Margin="8,0,0,0"/>
-                                        <Button Grid.Column="5" Content="Schedule Pause" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SchedulePauseCommand}" Margin="8,0,0,0"/>
+                                        <TextBox AutomationProperties.AutomationId="ScheduledPauseTimeText" Grid.Column="4" Text="{Binding ScheduledPauseTimeText}" Margin="8,0,0,0"/>
+                                        <Button AutomationProperties.AutomationId="SchedulePauseCommand" Grid.Column="5" Content="Schedule Pause" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding SchedulePauseCommand}" Margin="8,0,0,0"/>
                                     </Grid>
                                 </StackPanel>
                             </ScrollViewer>
@@ -609,13 +609,13 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
                                 <WrapPanel Margin="0,0,0,8">
-                                    <Button Content="Add Rule" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddCategoryRuleCommand}" Margin="0,0,6,0"/>
-                                    <Button Content="Remove Rule" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RemoveCategoryRuleCommand}" Margin="0,0,6,0"/>
-                                    <Button Content="Reset Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetCategoryRulesCommand}" Margin="0,0,12,0"/>
-                                    <Button Content="Cookie File" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PickCookieFileCommand}" Margin="0,0,12,0"/>
-                                    <Button Content="Save Settings" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveSettingsCommand}"/>
+                                    <Button AutomationProperties.AutomationId="AddCategoryRuleCommand" Content="Add Rule" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding AddCategoryRuleCommand}" Margin="0,0,6,0"/>
+                                    <Button AutomationProperties.AutomationId="RemoveCategoryRuleCommand" Content="Remove Rule" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RemoveCategoryRuleCommand}" Margin="0,0,6,0"/>
+                                    <Button AutomationProperties.AutomationId="ResetCategoryRulesCommand" Content="Reset Defaults" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ResetCategoryRulesCommand}" Margin="0,0,12,0"/>
+                                    <Button AutomationProperties.AutomationId="PickCookieFileCommand" Content="Cookie File" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding PickCookieFileCommand}" Margin="0,0,12,0"/>
+                                    <Button AutomationProperties.AutomationId="SaveSettingsCommand" Content="Save Settings" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveSettingsCommand}"/>
                                 </WrapPanel>
-                                <DataGrid Grid.Row="1" ItemsSource="{Binding CategoryRules}" SelectedItem="{Binding SelectedCategoryRule, Mode=TwoWay}" AutoGenerateColumns="False">
+                                <DataGrid AutomationProperties.AutomationId="SelectedCategoryRule" Grid.Row="1" ItemsSource="{Binding CategoryRules}" SelectedItem="{Binding SelectedCategoryRule, Mode=TwoWay}" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="160"/>
                                         <DataGridTextColumn Header="Default Folder" Binding="{Binding DefaultFolder}" Width="2*"/>
@@ -636,11 +636,11 @@
                                 <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,8,0">
                                     <StackPanel>
                                         <TextBlock Text="How do I..." FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                        <TextBox Text="{Binding HelpSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                        <TextBox AutomationProperties.AutomationId="HelpSearchText" Text="{Binding HelpSearchText, UpdateSourceTrigger=PropertyChanged}"
                                                  Padding="6,4"
                                                  Margin="0,0,0,8"
                                                  ToolTip="Search help topics"/>
-                                        <ListBox ItemsSource="{Binding HelpTopicsView}" SelectedItem="{Binding SelectedHelpTopic, Mode=TwoWay}" MinHeight="260"/>
+                                        <ListBox AutomationProperties.AutomationId="SelectedHelpTopic" ItemsSource="{Binding HelpTopicsView}" SelectedItem="{Binding SelectedHelpTopic, Mode=TwoWay}" MinHeight="260"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="1" Style="{StaticResource ToolPanelBorderStyle}">
@@ -650,7 +650,7 @@
                                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                                    Margin="0,0,0,8"
                                                    TextWrapping="Wrap"/>
-                                        <TextBox Text="{Binding HelpContent}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MinHeight="260"/>
+                                        <TextBox AutomationProperties.AutomationId="HelpContent" Text="{Binding HelpContent}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MinHeight="260"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -658,8 +658,8 @@
                     </TabControl>
 
                     <WrapPanel Grid.Row="1" Margin="0,8,0,0">
-                        <Button Content="Save Settings" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveSettingsCommand}" Margin="0,0,8,0"/>
-                        <Button Content="Clear Schedule" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearScheduleCommand}" Margin="0,0,8,0"/>
+                        <Button AutomationProperties.AutomationId="SaveSettingsCommand" Content="Save Settings" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveSettingsCommand}" Margin="0,0,8,0"/>
+                        <Button AutomationProperties.AutomationId="ClearScheduleCommand" Content="Clear Schedule" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearScheduleCommand}" Margin="0,0,8,0"/>
                         <TextBlock Text="Changes here control queue, media, crawl, file handling, and diagnostics behavior." VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </WrapPanel>
                 </Grid>
@@ -667,7 +667,7 @@
         </TabControl>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,8,0,0">
-            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}"/>
         </Border>
     </Grid>
 </UserControl>

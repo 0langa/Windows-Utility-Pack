@@ -26,6 +26,10 @@ jobs:
       - name: Run tests
         run: dotnet test tests/WindowsUtilityPack.Tests/WindowsUtilityPack.Tests.csproj --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
 
+      - name: Open every WPF tool in each theme
+        timeout-minutes: 5
+        run: dotnet run --project tests/WindowsUtilityPack.UiSmoke --configuration Release --no-build -- output/validation/ui-smoke.json
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
@@ -33,3 +37,4 @@ jobs:
           name: test-results
           path: |
             **/TestResults/**
+            output/validation/ui-smoke.json*

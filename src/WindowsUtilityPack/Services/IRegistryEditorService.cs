@@ -62,7 +62,7 @@ public sealed class RegistryEditorService : IRegistryEditorService
             foreach (var name in names)
             {
                 var kind = key.GetValueKind(name);
-                var value = key.GetValue(name);
+                var value = key.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
                 rows.Add(new RegistryValueRow
                 {
                     Name = string.IsNullOrEmpty(name) ? "(Default)" : name,
@@ -82,12 +82,12 @@ public sealed class RegistryEditorService : IRegistryEditorService
             cancellationToken.ThrowIfCancellationRequested();
             var normalized = NormalizePath(keyPath);
 
-            using var key = Registry.CurrentUser.CreateSubKey(normalized, writable: true)
-                ?? throw new InvalidOperationException("Unable to open registry key for write.");
-
             var name = valueName == "(Default)" ? string.Empty : valueName;
+            ValidateValueName(name);
             var kind = ParseKind(valueKind);
             var data = ParseValueData(kind, valueData);
+            using var key = Registry.CurrentUser.CreateSubKey(normalized, writable: true)
+                ?? throw new InvalidOperationException("Unable to open registry key for write.");
             key.SetValue(name, data, kind);
         }, cancellationToken);
     }
@@ -119,7 +119,7 @@ public sealed class RegistryEditorService : IRegistryEditorService
 
             var root = BuildNode(key, normalized, cancellationToken);
             var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(outputFilePath, json, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+            await AtomicFile.WriteAllTextAsync(outputFilePath, json, cancellationToken).ConfigureAwait(false);
         }, cancellationToken);
     }
 
@@ -133,6 +133,7 @@ public sealed class RegistryEditorService : IRegistryEditorService
                 throw new FileNotFoundException("Backup file does not exist.", inputFilePath);
             }
 
+            if (new FileInfo(inputFilePath).Length > 16 * 1024 * 1024) throw new InvalidDataException("Registry backups are limited to 16 MiB.");
             var json = await File.ReadAllTextAsync(inputFilePath, cancellationToken).ConfigureAwait(false);
             var node = JsonSerializer.Deserialize<RegistryBackupNode>(json)
                 ?? throw new InvalidOperationException("Backup file content is invalid.");
@@ -143,7 +144,40 @@ public sealed class RegistryEditorService : IRegistryEditorService
                 throw new InvalidOperationException("Backup path must be within HKCU\\Software.");
             }
 
-            RestoreNode(node, cancellationToken);
+            var operations = new List<RestoreOperation>();
+            ValidateTree(node, null, operations, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            var undo = new Stack<Action>();
+            try
+            {
+                foreach (var operation in operations)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    EnsureKey(operation.Path, undo);
+                    using var key = Registry.CurrentUser.OpenSubKey(operation.Path, true)!;
+                    foreach (var value in operation.Values)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var exists = key.GetValueNames().Contains(value.Name, StringComparer.OrdinalIgnoreCase);
+                        var previous = exists ? key.GetValue(value.Name, null, RegistryValueOptions.DoNotExpandEnvironmentNames) : null;
+                        var previousKind = exists ? key.GetValueKind(value.Name) : RegistryValueKind.Unknown;
+                        undo.Push(() =>
+                        {
+                            using var rollbackKey = Registry.CurrentUser.OpenSubKey(operation.Path, true)
+                                ?? throw new IOException($"Cannot reopen {operation.Path} for rollback.");
+                            if (exists) rollbackKey.SetValue(value.Name, previous!, previousKind);
+                            else rollbackKey.DeleteValue(value.Name, false);
+                        });
+                        key.SetValue(value.Name, value.Data, value.Kind);
+                    }
+                }
+            }
+            catch (Exception original)
+            {
+                var failures = new List<Exception>();
+                while (undo.TryPop(out var rollback)) { try { rollback(); } catch (Exception ex) { failures.Add(ex); } }
+                if (failures.Count > 0) throw new AggregateException("Restore failed and some registry changes could not be rolled back.", new[] { original }.Concat(failures));
+                throw;
+            }
         }, cancellationToken);
     }
 
@@ -155,12 +189,13 @@ public sealed class RegistryEditorService : IRegistryEditorService
         {
             cancellationToken.ThrowIfCancellationRequested();
             var kind = key.GetValueKind(valueName);
-            var value = key.GetValue(valueName);
+            var value = key.GetValue(valueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
             node.Values.Add(new RegistryBackupValue
             {
                 Name = string.IsNullOrEmpty(valueName) ? "(Default)" : valueName,
                 Kind = kind.ToString(),
                 Data = SerializeValue(kind, value),
+                Format = kind == RegistryValueKind.MultiString ? "json-string-array" : null,
             });
         }
 
@@ -180,26 +215,58 @@ public sealed class RegistryEditorService : IRegistryEditorService
         return node;
     }
 
-    private static void RestoreNode(RegistryBackupNode node, CancellationToken cancellationToken)
+    private sealed record RestoreValue(string Name, RegistryValueKind Kind, object Data);
+    private sealed record RestoreOperation(string Path, List<RestoreValue> Values);
+
+    private static void ValidateTree(RegistryBackupNode node, string? parent, List<RestoreOperation> operations, HashSet<string> visited)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        if (node is null || node.Values is null || node.Children is null) throw new InvalidDataException("Invalid backup node.");
         var normalized = NormalizePath(node.RelativePath);
-
-        using var key = Registry.CurrentUser.CreateSubKey(normalized, writable: true)
-            ?? throw new InvalidOperationException("Unable to create or open backup restore path.");
-
+        if (parent is not null && !string.Equals(normalized[..normalized.LastIndexOf('\\')], parent, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("A backup child must be directly beneath its parent key.");
+        if (!visited.Add(normalized) || visited.Count > 10_000) throw new InvalidDataException("The backup has duplicate keys or too many keys.");
+        var values = new List<RestoreValue>();
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var value in node.Values)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            if (value is null) throw new InvalidDataException("Invalid backup value.");
             var name = value.Name == "(Default)" ? string.Empty : value.Name;
+            ValidateValueName(name);
+            if (!names.Add(name) || names.Count > 10_000) throw new InvalidDataException("Duplicate registry value or too many values.");
             var kind = ParseKind(value.Kind);
-            key.SetValue(name, ParseValueData(kind, value.Data), kind);
+            var data = kind == RegistryValueKind.MultiString && value.Format is null
+                ? value.Data.Split('|', StringSplitOptions.None) // legacy backups used pipes; retain their whitespace
+                : ParseValueData(kind, value.Data);
+            values.Add(new RestoreValue(name, kind, data));
         }
+        operations.Add(new RestoreOperation(normalized, values));
+        foreach (var child in node.Children) ValidateTree(child, normalized, operations, visited);
+    }
 
-        foreach (var child in node.Children)
+    private static void EnsureKey(string path, Stack<Action> undo)
+    {
+        var parts = path.Split('\\');
+        for (var i = 1; i <= parts.Length; i++)
         {
-            RestoreNode(child, cancellationToken);
+            var prefix = string.Join("\\", parts.Take(i));
+            using var existing = Registry.CurrentUser.OpenSubKey(prefix);
+            if (existing is not null) continue;
+            using var created = Registry.CurrentUser.CreateSubKey(prefix, true);
+            undo.Push(() =>
+            {
+                using (var key = Registry.CurrentUser.OpenSubKey(prefix))
+                {
+                    if (key is null) return;
+                    if (key.SubKeyCount != 0 || key.ValueCount != 0) throw new IOException($"New key {prefix} is no longer empty; it was retained.");
+                }
+                Registry.CurrentUser.DeleteSubKey(prefix, false);
+            });
         }
+    }
+
+    private static void ValidateValueName(string name)
+    {
+        if (name is null || name.Length > 16383 || name.Contains('\0')) throw new InvalidDataException("Invalid registry value name.");
     }
 
     private static string NormalizePath(string keyPath)
@@ -222,14 +289,16 @@ public sealed class RegistryEditorService : IRegistryEditorService
             throw new InvalidOperationException("Only HKCU\\Software paths are supported.");
         }
 
+        if (normalized.Length > 4096 || normalized.Contains('\0') || normalized.Split('\\').Any(s => s.Length is 0 or > 255 || s is "." or ".."))
+            throw new InvalidDataException("Invalid registry path.");
         return normalized;
     }
 
     private static RegistryValueKind ParseKind(string kind)
     {
-        return Enum.TryParse<RegistryValueKind>(kind, ignoreCase: true, out var parsed)
-            ? parsed
-            : RegistryValueKind.String;
+        return Enum.TryParse<RegistryValueKind>(kind, ignoreCase: true, out var parsed) &&
+            parsed is RegistryValueKind.String or RegistryValueKind.ExpandString or RegistryValueKind.MultiString or RegistryValueKind.Binary or RegistryValueKind.DWord or RegistryValueKind.QWord or RegistryValueKind.None
+            ? parsed : throw new InvalidDataException($"Unsupported registry value type: {kind}.");
     }
 
     private static object ParseValueData(RegistryValueKind kind, string data)
@@ -246,9 +315,9 @@ public sealed class RegistryEditorService : IRegistryEditorService
 
             RegistryValueKind.MultiString => string.IsNullOrEmpty(data)
                 ? Array.Empty<string>()
-                : data.Split('|', StringSplitOptions.TrimEntries),
+                : data.TrimStart().StartsWith('[') ? JsonSerializer.Deserialize<string[]>(data) ?? throw new InvalidDataException("Invalid multi-string JSON array.") : data.Split('|'),
 
-            RegistryValueKind.Binary => string.IsNullOrEmpty(data)
+            RegistryValueKind.Binary or RegistryValueKind.None => string.IsNullOrEmpty(data)
                 ? Array.Empty<byte>()
                 : Convert.FromBase64String(data),
 
@@ -265,8 +334,8 @@ public sealed class RegistryEditorService : IRegistryEditorService
 
         return kind switch
         {
-            RegistryValueKind.MultiString when value is string[] values => string.Join("|", values),
-            RegistryValueKind.Binary when value is byte[] bytes => Convert.ToBase64String(bytes),
+            RegistryValueKind.MultiString when value is string[] values => JsonSerializer.Serialize(values),
+            RegistryValueKind.Binary or RegistryValueKind.None when value is byte[] bytes => Convert.ToBase64String(bytes),
             _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
         };
     }

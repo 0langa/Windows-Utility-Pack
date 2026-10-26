@@ -14,7 +14,7 @@ namespace WindowsUtilityPack.ViewModels;
 /// Drives favourites, recents, category browsing, enhanced search, live system vitals,
 /// quick actions, collapsible sections, and usage tracking.
 /// </summary>
-public class HomeViewModel : ViewModelBase, IDisposable
+public class HomeViewModel : ViewModelBase, IDisposable, IViewLifetime
 {
     private const string NoPingHostMessage = "No URL/host detected in clipboard";
 
@@ -34,6 +34,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
     private readonly IClipboardService _clipboard;
     private readonly IUserDialogService? _dialogs;
     private readonly DispatcherTimer _clockTimer;
+    private bool _disposed;
 
     private IReadOnlyList<ToolDefinition> _favoriteTools = [];
     private IReadOnlyList<ToolDefinition> _recentTools = [];
@@ -343,12 +344,12 @@ public class HomeViewModel : ViewModelBase, IDisposable
             SelectedCategory = Categories[0];
 
         // Load persisted view preferences.
-        // Home dashboard sections always start collapsed for a cleaner startup layout.
-        _favoritesExpanded = false;
-        _recentsExpanded = false;
-        _categoryBrowserExpanded = false;
-        _recommendedExpanded = false;
-        _allToolsExpanded = false;
+        var preferences = _settings.Load();
+        _favoritesExpanded = preferences.FavoritesExpanded;
+        _recentsExpanded = preferences.RecentsExpanded;
+        _categoryBrowserExpanded = preferences.CategoryBrowserExpanded;
+        _recommendedExpanded = preferences.RecommendedExpanded;
+        _allToolsExpanded = preferences.AllToolsExpanded;
 
         RefreshPersonalisation();
         RefreshCategorySummaries();
@@ -757,10 +758,15 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         _dashboard.Changed -= OnDashboardChanged;
         if (App.VitalsService is { } vitals)
             vitals.Updated -= OnVitalsUpdated;
 
         _clockTimer.Stop();
     }
+
+    public void Activate() { if (!_disposed) _clockTimer.Start(); }
+    public void Deactivate() => _clockTimer.Stop();
 }

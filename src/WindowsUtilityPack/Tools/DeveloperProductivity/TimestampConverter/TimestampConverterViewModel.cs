@@ -8,8 +8,6 @@ namespace WindowsUtilityPack.Tools.DeveloperProductivity.TimestampConverter;
 public sealed class TimestampConverterViewModel : ViewModelBase
 {
     private readonly IClipboardService _clipboardService;
-    private CancellationTokenSource? _debounceCts;
-    private const int DebounceMs = 400;
 
     private string _unixSeconds = string.Empty;
     private string _unixMilliseconds = string.Empty;
@@ -30,7 +28,10 @@ public sealed class TimestampConverterViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _unixSeconds, value))
-                ScheduleConvert();
+            {
+                IsCurrentTime = false;
+                ConvertUnixToHuman();
+            }
         }
     }
 
@@ -124,22 +125,6 @@ public sealed class TimestampConverterViewModel : ViewModelBase
         IsCurrentTime = true;
     }
 
-    private async void ScheduleConvert()
-    {
-        _debounceCts?.Cancel();
-        _debounceCts?.Dispose();
-        var cts = new CancellationTokenSource();
-        _debounceCts = cts;
-
-        try
-        {
-            await Task.Delay(DebounceMs, cts.Token);
-            ConvertUnixToHuman();
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception) { }
-    }
-
     private void ConvertUnixToHuman()
     {
         if (!long.TryParse(UnixSeconds, out var ts))
@@ -167,6 +152,8 @@ public sealed class TimestampConverterViewModel : ViewModelBase
         catch
         {
             HumanReadableUtc = "Out of range";
+            _parsedDt = null;
+            CustomFormatResult = string.Empty;
             HumanReadableLocal = string.Empty;
             UnixMilliseconds = string.Empty;
             RelativeTime = string.Empty;

@@ -19,6 +19,8 @@ public sealed class AutomationRulesViewModel : ViewModelBase
     private string _simulationDiskFreeGb = "20";
     private string _simulationCpuPercent = "50";
     private string _simulationRamPercent = "60";
+    private string _simulationDiskUsagePercent = "50";
+    private string _simulationProcessCount = "100";
     private string _statusMessage = "Manage and test automation rules.";
 
     public ObservableCollection<AutomationRule> RuleItems { get; } = [];
@@ -63,6 +65,18 @@ public sealed class AutomationRulesViewModel : ViewModelBase
     {
         get => _statusMessage;
         set => SetProperty(ref _statusMessage, value);
+    }
+
+    public string SimulationDiskUsagePercent
+    {
+        get => _simulationDiskUsagePercent;
+        set => SetProperty(ref _simulationDiskUsagePercent, value);
+    }
+
+    public string SimulationProcessCount
+    {
+        get => _simulationProcessCount;
+        set => SetProperty(ref _simulationProcessCount, value);
     }
 
     public AsyncRelayCommand RefreshCommand { get; }
@@ -159,13 +173,17 @@ public sealed class AutomationRulesViewModel : ViewModelBase
             return;
         }
 
-        var saved = await _rules.SaveRuleAsync(SelectedRule).ConfigureAwait(true);
-        SelectedRule = saved;
-
-        await RefreshAsync().ConfigureAwait(true);
-        SelectedRule = RuleItems.FirstOrDefault(r => r.Id == saved.Id);
-
-        StatusMessage = $"Saved rule '{saved.Name}'.";
+        try
+        {
+            var saved = await _rules.SaveRuleAsync(SelectedRule).ConfigureAwait(true);
+            await RefreshAsync().ConfigureAwait(true);
+            SelectedRule = RuleItems.FirstOrDefault(r => r.Id == saved.Id);
+            StatusMessage = $"Saved rule '{saved.Name}'.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Rule was not saved: {ex.Message}";
+        }
     }
 
     private async Task DeleteAsync()
@@ -232,21 +250,28 @@ public sealed class AutomationRulesViewModel : ViewModelBase
         snapshot = new AutomationVitalsSnapshot();
         error = string.Empty;
 
-        if (!double.TryParse(SimulationDiskFreeGb, out var disk) || disk < 0)
+        if (!double.TryParse(SimulationDiskFreeGb, out var disk) || !double.IsFinite(disk) || disk < 0)
         {
             error = "Simulation disk free value must be a non-negative number.";
             return false;
         }
 
-        if (!float.TryParse(SimulationCpuPercent, out var cpu) || cpu < 0 || cpu > 100)
+        if (!float.TryParse(SimulationCpuPercent, out var cpu) || !float.IsFinite(cpu) || cpu < 0 || cpu > 100)
         {
             error = "Simulation CPU value must be between 0 and 100.";
             return false;
         }
 
-        if (!float.TryParse(SimulationRamPercent, out var ram) || ram < 0 || ram > 100)
+        if (!float.TryParse(SimulationRamPercent, out var ram) || !float.IsFinite(ram) || ram < 0 || ram > 100)
         {
             error = "Simulation RAM value must be between 0 and 100.";
+            return false;
+        }
+
+        if (!double.TryParse(SimulationDiskUsagePercent, out var used) || !double.IsFinite(used) || used < 0 || used > 100
+            || !int.TryParse(SimulationProcessCount, out var processes) || processes < 0)
+        {
+            error = "Disk usage must be 0–100% and process count must be a non-negative whole number.";
             return false;
         }
 
@@ -255,6 +280,8 @@ public sealed class AutomationRulesViewModel : ViewModelBase
             DiskFreeGb = disk,
             CpuPercent = cpu,
             RamUsedPercent = ram,
+            DiskUsagePercent = used,
+            ProcessCount = processes,
         };
 
         return true;

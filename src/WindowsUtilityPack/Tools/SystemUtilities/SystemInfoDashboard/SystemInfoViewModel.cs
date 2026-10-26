@@ -10,7 +10,7 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.SystemUtilities.SystemInfoDashboard;
 
-public class SystemInfoViewModel : ViewModelBase, IDisposable
+public class SystemInfoViewModel : ViewModelBase, IDisposable, IViewLifetime
 {
     // P/Invoke for GlobalMemoryStatusEx
     [StructLayout(LayoutKind.Sequential)]
@@ -94,7 +94,7 @@ public class SystemInfoViewModel : ViewModelBase, IDisposable
     {
         _clipboard     = clipboard;
         _reports       = reports;
-        LoadCommand    = new AsyncRelayCommand(LoadInfoAsync);
+        LoadCommand    = new AsyncRelayCommand(LoadInfoAsync, () => !IsLoading && !_disposed);
         CopyAllCommand = new RelayCommand(CopyAll);
         CopyDiagnosticsCommand = new RelayCommand(CopyAll);
         ExportJsonCommand = new AsyncRelayCommand(_ => ExportJsonAsync());
@@ -104,7 +104,7 @@ public class SystemInfoViewModel : ViewModelBase, IDisposable
         {
             Interval = TimeSpan.FromSeconds(1)
         };
-        _refreshTimer.Tick += async (s, e) => await LoadInfoAsync();
+        _refreshTimer.Tick += OnRefreshTick;
         _refreshTimer.Start();
 
         LoadCommand.Execute(null);
@@ -117,16 +117,17 @@ public class SystemInfoViewModel : ViewModelBase, IDisposable
         if (_refreshTimer != null)
         {
             _refreshTimer.Stop();
-            _refreshTimer.Tick -= async (s, e) => await LoadInfoAsync();
+            _refreshTimer.Tick -= OnRefreshTick;
         }
     }
 
     private async Task LoadInfoAsync()
     {
+        if (_disposed || IsLoading) return;
         IsLoading = true;
         try
         {
-            await Task.Run(() =>
+            var snapshot = await Task.Run(() =>
             {
                 var osVer  = Environment.OSVersion;
                 var cpu    = ReadCpuNameFromRegistry();
@@ -137,7 +138,7 @@ public class SystemInfoViewModel : ViewModelBase, IDisposable
                 var managedMemory = FormatBytes((ulong)GC.GetTotalMemory(forceFullCollection: false));
                 var snapshotUtc = DateTime.UtcNow;
 
-                var snapshot = new SystemInfoSnapshot
+                return new SystemInfoSnapshot
                 {
                     OsName = "Windows",
                     OsVersion = osVer.Version.ToString(3),
@@ -148,7 +149,7 @@ public class SystemInfoViewModel : ViewModelBase, IDisposable
                     ComputerName = Environment.MachineName,
                     UserName = Environment.UserName,
                     CpuName = cpu,
-                    CpuCores = Environment.ProcessorCount.ToString(),
+                    CpuCores = ProcessorTopology.PhysicalCoreCount()?.ToString() ?? "Unavailable",
                     CpuLogicalProcessors = Environment.ProcessorCount.ToString(),
                     RamTotal = FormatBytes(memory.total),
                     RamAvailable = FormatBytes(memory.available),
@@ -161,8 +162,8 @@ public class SystemInfoViewModel : ViewModelBase, IDisposable
                     SnapshotUtc = snapshotUtc,
                 };
 
-                Application.Current.Dispatcher.Invoke(() =>
-                {
+            });
+            if (_disposed) return;
                     _latestSnapshot      = snapshot;
                     OsName               = snapshot.OsName;
                     OsVersion            = snapshot.OsVersion;
@@ -184,14 +185,17 @@ public class SystemInfoViewModel : ViewModelBase, IDisposable
                     Uptime               = snapshot.Uptime;
                     ManagedMemory        = snapshot.ManagedMemory;
                     SnapshotUtc          = snapshot.SnapshotUtc;
-                });
-            });
         }
+        catch (Exception ex) { if (!_disposed) OsDescription = $"Refresh failed: {ex.Message}"; }
         finally
         {
             IsLoading = false;
         }
     }
+
+    private async void OnRefreshTick(object? sender, EventArgs e) => await LoadInfoAsync();
+    public void Activate() { if (!_disposed) _refreshTimer?.Start(); }
+    public void Deactivate() => _refreshTimer?.Stop();
 
     private static string ReadCpuNameFromRegistry()
     {

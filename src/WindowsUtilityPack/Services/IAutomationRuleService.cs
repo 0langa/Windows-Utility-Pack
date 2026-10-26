@@ -28,88 +28,6 @@ public interface IAutomationRuleService
 /// </summary>
 public sealed class AutomationRuleService : IAutomationRuleService
 {
-    /// <summary>
-    /// Dispatches the specified automation action.
-    /// </summary>
-    public static async Task DispatchActionAsync(AutomationRule rule, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            switch (rule.ActionType)
-            {
-                case AutomationActionType.LaunchTool:
-                    var toolKey = string.IsNullOrWhiteSpace(rule.ActionTarget) ? string.Empty : rule.ActionTarget.Trim();
-                    if (string.IsNullOrWhiteSpace(toolKey))
-                    {
-                        App.LoggingService.LogWarning($"Automation: Rule '{rule.Name}' has no tool target configured.");
-                        break;
-                    }
-
-                    var def = WindowsUtilityPack.Tools.ToolRegistry.GetByKey(toolKey);
-                    if (def != null)
-                    {
-                        App.NavigationService.NavigateTo(toolKey);
-                        App.LoggingService.LogInfo($"Automation: Launched tool '{toolKey}'");
-                    }
-                    else
-                    {
-                        App.LoggingService.LogWarning($"Automation: Tool key '{toolKey}' not found for LaunchTool action.");
-                    }
-                    break;
-                case AutomationActionType.RunCleanup:
-                    // Trigger a cleanup analysis and log (actual cleanup may require user confirmation)
-                    try
-                    {
-                        // This is a placeholder; real cleanup would require more plumbing
-                        var drives = System.IO.DriveInfo.GetDrives();
-                        foreach (var drive in drives)
-                        {
-                            if (!drive.IsReady) continue;
-                            var root = new WindowsUtilityPack.Models.StorageItem { Name = drive.Name, FullPath = drive.RootDirectory.FullName, IsDirectory = true };
-                            var recs = await App.CleanupRecommendationService.AnalyseAsync(root, null, cancellationToken);
-                            App.LoggingService.LogInfo($"Automation: RunCleanup found {recs.Count} recommendations on {drive.Name}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        App.LoggingService.LogError("Automation: RunCleanup failed", ex);
-                    }
-                    break;
-                case AutomationActionType.KillProcess:
-                    var processName = string.IsNullOrWhiteSpace(rule.ActionTarget) ? string.Empty : rule.ActionTarget.Trim();
-                    if (string.IsNullOrWhiteSpace(processName))
-                    {
-                        App.LoggingService.LogWarning($"Automation: Rule '{rule.Name}' has no process target configured.");
-                        break;
-                    }
-
-                    var processes = await App.ProcessExplorerService.GetProcessesAsync(processName, cancellationToken);
-                    if (processes.Count == 0)
-                    {
-                        App.LoggingService.LogWarning($"Automation: No process found with name '{processName}' for KillProcess action.");
-                        break;
-                    }
-                    foreach (var proc in processes)
-                    {
-                        // Optionally check CPU/memory thresholds here if rule.Threshold is used for that
-                        var killed = await App.ProcessExplorerService.TryTerminateAsync(proc.ProcessId, cancellationToken);
-                        if (killed)
-                            App.LoggingService.LogInfo($"Automation: Killed process {proc.Name} (PID {proc.ProcessId})");
-                        else
-                            App.LoggingService.LogWarning($"Automation: Failed to kill process {proc.Name} (PID {proc.ProcessId})");
-                    }
-                    break;
-                case AutomationActionType.ShowNotification:
-                default:
-                    // Already handled elsewhere
-                    break;
-            }
-        }
-        catch (Exception ex)
-        {
-            App.LoggingService.LogError($"Automation: Action dispatch failed for rule '{rule.Name}'", ex);
-        }
-    }
     private static readonly IReadOnlyList<AutomationRuleTemplate> Templates =
     [
         new AutomationRuleTemplate
@@ -143,6 +61,7 @@ public sealed class AutomationRuleService : IAutomationRuleService
 
     private readonly IAppDataStoreService _store;
     private readonly ConcurrentDictionary<long, DateTime> _lastTriggeredUtc = new();
+    private readonly SemaphoreSlim _evaluationGate = new(1, 1);
 
     public AutomationRuleService(IAppDataStoreService store)
     {
@@ -190,6 +109,11 @@ ORDER BY updated_utc DESC, id DESC;";
             throw new ArgumentException("Rule name is required.", nameof(rule));
         }
 
+        if (!double.IsFinite(rule.Threshold) || rule.Threshold < 0
+            || (rule.TriggerType is AutomationTriggerType.HighCpuPercent or AutomationTriggerType.HighRamPercent
+                or AutomationTriggerType.HighDiskUsagePercent && rule.Threshold > 100))
+            throw new ArgumentOutOfRangeException(nameof(rule), "Enter a finite, non-negative threshold (0–100 for percentages).");
+
         var now = DateTime.UtcNow;
         var created = rule.CreatedUtc == default ? now : rule.CreatedUtc;
 
@@ -208,9 +132,9 @@ ON CONFLICT(id) DO UPDATE SET
     action_target = excluded.action_target,
     action_parameters_json = excluded.action_parameters_json,
     updated_utc = excluded.updated_utc;
-SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
+SELECT CASE WHEN $id IS NULL THEN last_insert_rowid() ELSE $id END;";
 
-        command.Parameters.AddWithValue("$id", rule.Id <= 0 ? 0 : rule.Id);
+        command.Parameters.AddWithValue("$id", rule.Id <= 0 ? DBNull.Value : rule.Id);
         command.Parameters.AddWithValue("$name", rule.Name.Trim());
         command.Parameters.AddWithValue("$trigger", rule.TriggerType.ToString());
         command.Parameters.AddWithValue("$threshold", rule.Threshold);
@@ -260,6 +184,14 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
     {
         ArgumentNullException.ThrowIfNull(vitals);
 
+        await _evaluationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { return await EvaluateCoreAsync(vitals, cancellationToken).ConfigureAwait(false); }
+        finally { _evaluationGate.Release(); }
+    }
+
+    private async Task<IReadOnlyList<AutomationRuleAlert>> EvaluateCoreAsync(SystemVitalsService vitals, CancellationToken cancellationToken)
+    {
+
         var rules = await GetRulesAsync(cancellationToken).ConfigureAwait(false);
         var now = DateTime.UtcNow;
         var alerts = new List<AutomationRuleAlert>();
@@ -275,7 +207,9 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
         catch { }
         try
         {
-            processCount = System.Diagnostics.Process.GetProcesses().Length;
+            var processes = System.Diagnostics.Process.GetProcesses();
+            processCount = processes.Length;
+            foreach (var process in processes) process.Dispose();
         }
         catch { }
 
@@ -353,8 +287,8 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var triggered = IsTriggered(rule, snapshot.DiskFreeGb, snapshot.CpuPercent, snapshot.RamUsedPercent);
-            var detail = BuildSimulationDetail(rule, snapshot, triggered);
+            var triggered = rule.Enabled && IsTriggered(rule, snapshot);
+            var detail = rule.Enabled ? BuildSimulationDetail(rule, snapshot, triggered) : "Rule is disabled and would not trigger.";
 
             results.Add(new AutomationRuleSimulationResult
             {
@@ -367,13 +301,15 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
         return results;
     }
 
-    private static bool IsTriggered(AutomationRule rule, double diskFreeGb, float cpuPercent, float ramUsedPercent)
+    private static bool IsTriggered(AutomationRule rule, AutomationVitalsSnapshot snapshot)
     {
         return rule.TriggerType switch
         {
-            AutomationTriggerType.LowDiskFreeGb => diskFreeGb >= 0 && diskFreeGb <= rule.Threshold,
-            AutomationTriggerType.HighCpuPercent => cpuPercent >= 0 && cpuPercent >= rule.Threshold,
-            AutomationTriggerType.HighRamPercent => ramUsedPercent >= 0 && ramUsedPercent >= rule.Threshold,
+            AutomationTriggerType.LowDiskFreeGb => snapshot.DiskFreeGb >= 0 && snapshot.DiskFreeGb <= rule.Threshold,
+            AutomationTriggerType.HighCpuPercent => snapshot.CpuPercent >= 0 && snapshot.CpuPercent >= rule.Threshold,
+            AutomationTriggerType.HighRamPercent => snapshot.RamUsedPercent >= 0 && snapshot.RamUsedPercent >= rule.Threshold,
+            AutomationTriggerType.HighDiskUsagePercent => snapshot.DiskUsagePercent >= 0 && snapshot.DiskUsagePercent >= rule.Threshold,
+            AutomationTriggerType.ProcessCountExceedsLimit => snapshot.ProcessCount >= 0 && snapshot.ProcessCount > rule.Threshold,
             _ => false,
         };
     }
@@ -408,6 +344,14 @@ SELECT CASE WHEN $id = 0 THEN last_insert_rowid() ELSE $id END;";
 
             AutomationTriggerType.HighRamPercent =>
                 $"{stateText}: RAM {snapshot.RamUsedPercent:F0}% vs threshold {rule.Threshold:F0}%.",
+
+            AutomationTriggerType.HighDiskUsagePercent => snapshot.DiskUsagePercent < 0
+                ? "Disk usage was not supplied for this simulation."
+                : $"{stateText}: disk used {snapshot.DiskUsagePercent:F0}% vs threshold {rule.Threshold:F0}%.",
+
+            AutomationTriggerType.ProcessCountExceedsLimit => snapshot.ProcessCount < 0
+                ? "Process count was not supplied for this simulation."
+                : $"{stateText}: {snapshot.ProcessCount} processes vs threshold {rule.Threshold:F0}.",
 
             _ => $"{stateText}.",
         };

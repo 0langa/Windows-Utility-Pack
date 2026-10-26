@@ -16,19 +16,19 @@
 
         <!-- Controls -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-            <CheckBox Content="Ignore Whitespace" IsChecked="{Binding IgnoreWhitespace}"
+            <CheckBox AutomationProperties.AutomationId="IgnoreWhitespace" Content="Ignore Whitespace" IsChecked="{Binding IgnoreWhitespace}"
                       Margin="0,0,16,0" VerticalAlignment="Center"/>
-            <CheckBox Content="Ignore Case" IsChecked="{Binding IgnoreCase}"
+            <CheckBox AutomationProperties.AutomationId="IgnoreCase" Content="Ignore Case" IsChecked="{Binding IgnoreCase}"
                       Margin="0,0,16,0" VerticalAlignment="Center"/>
-            <Button Content="⇅ Swap" Command="{Binding SwapCommand}"
+            <Button AutomationProperties.AutomationId="SwapCommand" Content="⇅ Swap" Command="{Binding SwapCommand}"
                     Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-            <Button Content="Load Left File" Command="{Binding LoadLeftFileCommand}"
+            <Button AutomationProperties.AutomationId="LoadLeftFileCommand" Content="Load Left File" Command="{Binding LoadLeftFileCommand}"
                     Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-            <Button Content="Load Right File" Command="{Binding LoadRightFileCommand}"
+            <Button AutomationProperties.AutomationId="LoadRightFileCommand" Content="Load Right File" Command="{Binding LoadRightFileCommand}"
                     Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-            <Button Content="Copy Diff" Command="{Binding CopyDiffCommand}"
+            <Button AutomationProperties.AutomationId="CopyDiffCommand" Content="Copy Diff" Command="{Binding CopyDiffCommand}"
                     Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-            <Button Content="Clear" Command="{Binding ClearCommand}"
+            <Button AutomationProperties.AutomationId="ClearCommand" Content="Clear" Command="{Binding ClearCommand}"
                     Style="{StaticResource SecondaryActionButtonStyle}"/>
         </StackPanel>
 
@@ -49,10 +49,10 @@
                     <Border Background="{DynamicResource PanelBackgroundBrush}"
                             BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="0,0,0,1"
                             Padding="10,6">
-                        <TextBlock Text="{Binding LeftLabel}" FontWeight="SemiBold"
+                        <TextBlock AutomationProperties.AutomationId="LeftLabel" Text="{Binding LeftLabel}" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"/>
                     </Border>
-                    <TextBox Grid.Row="1" Text="{Binding LeftText, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox AutomationProperties.AutomationId="LeftText" Grid.Row="1" Text="{Binding LeftText, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                              MinHeight="160"
                              FontFamily="Consolas" FontSize="12"
@@ -70,10 +70,10 @@
                     <Border Background="{DynamicResource PanelBackgroundBrush}"
                             BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="0,0,0,1"
                             Padding="10,6">
-                        <TextBlock Text="{Binding RightLabel}" FontWeight="SemiBold"
+                        <TextBlock AutomationProperties.AutomationId="RightLabel" Text="{Binding RightLabel}" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}"/>
                     </Border>
-                    <TextBox Grid.Row="1" Text="{Binding RightText, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox AutomationProperties.AutomationId="RightText" Grid.Row="1" Text="{Binding RightText, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                              MinHeight="160"
                              FontFamily="Consolas" FontSize="12"
@@ -145,7 +145,7 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <TextBlock Grid.Column="1" Text="{Binding Content}"
+                                    <TextBlock AutomationProperties.AutomationId="Content" Grid.Column="1" Text="{Binding Content}"
                                                FontFamily="Consolas" FontSize="12" Padding="4,1"
                                                Foreground="{DynamicResource PrimaryTextBrush}"
                                                TextTrimming="CharacterEllipsis"/>
@@ -158,7 +158,7 @@
         </Border>
 
         <!-- Status -->
-        <TextBlock Grid.Row="4" Text="{Binding StatusMessage}"
+        <TextBlock AutomationProperties.AutomationId="StatusMessage" Grid.Row="4" Text="{Binding StatusMessage}"
                    Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Margin="0,6,0,0"/>
     </Grid>
 </UserControl>

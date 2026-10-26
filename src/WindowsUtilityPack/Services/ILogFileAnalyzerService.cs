@@ -20,7 +20,10 @@ public interface ILogFileAnalyzerService
 /// </summary>
 public sealed class LogFileAnalyzerService : ILogFileAnalyzerService
 {
-    public async Task<LogAnalysisResult> AnalyzeAsync(
+    public Task<LogAnalysisResult> AnalyzeAsync(string filePath, string? textFilter, LogSeverity? minSeverity, CancellationToken cancellationToken = default)
+        => Task.Run(() => AnalyzeCoreAsync(filePath, textFilter, minSeverity, cancellationToken), cancellationToken);
+
+    private static async Task<LogAnalysisResult> AnalyzeCoreAsync(
         string filePath,
         string? textFilter,
         LogSeverity? minSeverity,
@@ -45,11 +48,11 @@ public sealed class LogFileAnalyzerService : ILogFileAnalyzerService
         var infoCount = 0;
 
         using var stream = File.OpenRead(filePath);
+        if (stream.Length > 256L * 1024 * 1024) throw new InvalidDataException("Log analysis is limited to 256 MiB files.");
         using var reader = new StreamReader(stream);
-        string? line;
         var lineNo = 0;
 
-        while ((line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
+        await foreach (var line in BoundedTextFile.ReadLinesAsync(reader, 65_536, cancellationToken).ConfigureAwait(false))
         {
             cancellationToken.ThrowIfCancellationRequested();
             lineNo++;
@@ -80,11 +83,11 @@ public sealed class LogFileAnalyzerService : ILogFileAnalyzerService
                 continue;
             }
 
-            entries.Add(new LogEntryRow
+            if (entries.Count < 5_000) entries.Add(new LogEntryRow
             {
                 LineNumber = lineNo,
                 Severity = severity,
-                Message = line,
+                Message = line.Length <= 4096 ? line : line[..4096] + "… [line truncated]",
             });
             matched++;
         }

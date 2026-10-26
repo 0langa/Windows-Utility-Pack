@@ -12,7 +12,7 @@ namespace WindowsUtilityPack.Services.Downloader;
 /// Scrapes web pages for downloadable assets using HtmlAgilityPack and regex-based
 /// extraction from inline scripts, styles, and embedded JSON data.
 /// </summary>
-public partial class WebScraperService : IWebScraperService
+public partial class WebScraperService : IWebScraperService, IDisposable
 {
     /// <summary>Null-safe wrapper around <see cref="HtmlNode.SelectNodes"/>.</summary>
     private static IEnumerable<HtmlNode> SafeSelect(HtmlNode node, string xpath)
@@ -143,11 +143,16 @@ public partial class WebScraperService : IWebScraperService
     ];
 
     private readonly IDependencyManagerService _depManager;
+    private readonly Engines.DirectHttpDownloadEngine _assetDownloads = new();
+    public void Dispose() => _assetDownloads.Dispose();
+    private readonly HttpClient _pageHttp;
+    private static readonly HttpClient PageHttp = new(new HttpClientHandler { AllowAutoRedirect = false });
 
     /// <summary>Initialises a new <see cref="WebScraperService"/>.</summary>
-    public WebScraperService(IDependencyManagerService depManager)
+    public WebScraperService(IDependencyManagerService depManager, HttpClient? pageHttp = null)
     {
         _depManager = depManager;
+        _pageHttp = pageHttp ?? PageHttp;
     }
 
     /// <inheritdoc/>
@@ -159,10 +164,13 @@ public partial class WebScraperService : IWebScraperService
         Action<(int pagesScraped, int assetsFound)>? onProgress,
         CancellationToken ct = default)
     {
-        var baseUri = new Uri(pageUrl);
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!Uri.TryCreate(pageUrl, UriKind.Absolute, out var baseUri) || baseUri.Scheme is not ("http" or "https"))
+            throw new ArgumentException("Enter an HTTP or HTTPS page URL.", nameof(pageUrl));
+        maxDepth = Math.Clamp(maxDepth, 0, 6);
+        maxPages = Math.Clamp(maxPages, 1, 500);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         var assets = new List<ScrapedAsset>();
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { NormaliseUrl(baseUri) };
+        var visited = new HashSet<string>(StringComparer.Ordinal) { NormaliseUrl(baseUri) };
         var queue = new Queue<(Uri url, int depth)>();
         queue.Enqueue((baseUri, 0));
 
@@ -172,20 +180,20 @@ public partial class WebScraperService : IWebScraperService
         {
             ct.ThrowIfCancellationRequested();
             var (currentUrl, depth) = queue.Dequeue();
+            pagesScraped++;
 
             string html;
             try
             {
-                html = await Http.GetStringAsync(currentUrl, ct);
+                html = await ReadPageAsync(currentUrl, ct);
             }
-            catch
+            catch (HttpRequestException)
             {
                 continue;
             }
 
             var pageAssets = await ExtractAssetsFromHtmlAsync(html, currentUrl, seen, ct);
             assets.AddRange(pageAssets);
-            pagesScraped++;
             onProgress?.Invoke((pagesScraped, assets.Count));
 
             if (crawlSubdirectories && depth < maxDepth)
@@ -193,6 +201,7 @@ public partial class WebScraperService : IWebScraperService
                 var links = ExtractCrawlLinks(html, currentUrl, baseUri);
                 foreach (var link in links)
                 {
+                    if (visited.Count >= maxPages) break;
                     var norm = NormaliseUrl(link);
                     if (visited.Add(norm))
                     {
@@ -206,80 +215,60 @@ public partial class WebScraperService : IWebScraperService
     }
 
     /// <inheritdoc/>
-    public async Task<string> DownloadAssetAsync(
-        ScrapedAsset asset,
-        string outputDir,
-        IProgress<double>? progress,
-        CancellationToken ct = default)
+    public async Task<string> DownloadAssetAsync(ScrapedAsset asset, string outputDir, IProgress<double>? progress, CancellationToken ct = default)
     {
         Directory.CreateDirectory(outputDir);
-        var safeFileName = SanitiseFileName(asset.FileName);
-        var outputPath = GetUniqueFilePath(outputDir, safeFileName);
-
-        if (asset.IsHls || asset.IsDash)
+        var name = SanitiseFileName(asset.FileName);
+        if (!FileTools.BatchRenameService.IsValidFileName(name)) throw new IOException("Invalid output file name.");
+        if (asset.IsHls || asset.IsDash) name = Path.ChangeExtension(name, ".mp4");
+        var outputPath = GetUniqueFilePath(outputDir, name);
+        if (!asset.IsHls && !asset.IsDash && !asset.Url.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
         {
-            var mp4Name = Path.ChangeExtension(safeFileName, ".mp4");
-            outputPath = GetUniqueFilePath(outputDir, mp4Name);
-
-            var psi = new ProcessStartInfo
-            {
-                FileName = _depManager.FfmpegPath,
-                Arguments = $"-i \"{asset.Url}\" -c copy \"{outputPath}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-
-            using var process = Process.Start(psi);
-            if (process is not null)
-            {
-                await process.WaitForExitAsync(ct);
-            }
-
+            await _assetDownloads.ExecuteAsync(new() { SourceUrl = asset.Url, SegmentCount = 1 }, new(),
+                new() { TargetDirectory = outputDir, TargetFileName = Path.GetFileName(outputPath), AutoRenameExisting = false },
+                new AssetProgress(progress), ct);
             return outputPath;
         }
-
-        if (asset.Url.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        var temporary = Path.Combine(outputDir, ".wup-asset-" + Guid.NewGuid().ToString("N") + Path.GetExtension(outputPath));
+        try
         {
-            var base64Match = DataUriRegex().Match(asset.Url);
-            if (base64Match.Success)
+            if (asset.IsHls || asset.IsDash)
             {
-                var bytes = Convert.FromBase64String(base64Match.Groups[2].Value);
-                await File.WriteAllBytesAsync(outputPath, bytes, ct);
-                return outputPath;
+                if (!Uri.TryCreate(asset.Url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+                    throw new ArgumentException("Media streams require an HTTP or HTTPS URL.", nameof(asset));
+                var start = new ProcessStartInfo(_depManager.FfmpegPath);
+                foreach (var argument in new[] { "-nostdin", "-loglevel", "error", "-i", asset.Url, "-c", "copy", temporary })
+                    start.ArgumentList.Add(argument);
+                var result = await new ProcessRunner(Timeout.InfiniteTimeSpan).RunAsync(start, ct);
+                if (result.ExitCode != 0 || !File.Exists(temporary))
+                    throw new IOException($"Media tool failed ({result.ExitCode}): {result.StdErr}");
             }
-        }
-
-        using var response = await Http.GetAsync(asset.Url, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength ?? 0;
-        await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
-        await using var fs = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-
-        var buffer = new byte[81920];
-        long bytesRead = 0;
-        int read;
-
-        while ((read = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct)) > 0)
-        {
-            await fs.WriteAsync(buffer.AsMemory(0, read), ct);
-            bytesRead += read;
-
-            if (totalBytes > 0)
+            else
             {
-                progress?.Report((double)bytesRead / totalBytes * 100);
+                var match = DataUriRegex().Match(asset.Url);
+                if (!match.Success || match.Groups[2].Length > 6 * 1024 * 1024)
+                    throw new InvalidDataException("Invalid or oversized inline asset.");
+                await File.WriteAllBytesAsync(temporary, Convert.FromBase64String(match.Groups[2].Value), ct);
             }
+            ct.ThrowIfCancellationRequested();
+            File.Move(temporary, outputPath, overwrite: false);
+            progress?.Report(100);
+            return outputPath;
         }
-
-        progress?.Report(100);
-        return outputPath;
+        finally { File.Delete(temporary); }
     }
 
-    private async Task<List<ScrapedAsset>> ExtractAssetsFromHtmlAsync(
-        string html, Uri pageUrl, HashSet<string> seen, CancellationToken ct)
+    private sealed class AssetProgress(IProgress<double>? progress) : IProgress<DownloadProgressUpdate>
     {
+        public void Report(DownloadProgressUpdate value)
+        {
+            if (value.ProgressPercent is double percent) progress?.Report(percent);
+        }
+    }
+    private async Task<List<ScrapedAsset>> ExtractAssetsFromHtmlAsync(
+        string html, Uri pageUrl, HashSet<string> seen, CancellationToken ct, bool includeFrames = true)
+    {
+        ct.ThrowIfCancellationRequested();
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
         var assets = new List<ScrapedAsset>();
@@ -355,18 +344,19 @@ public partial class WebScraperService : IWebScraperService
         }
 
         // <iframe src> — one level of recursion
-        foreach (var iframe in SafeSelect(doc.DocumentNode, "//iframe[@src]"))
+        foreach (var iframe in SafeSelect(doc.DocumentNode, "//iframe[@src]").Take(includeFrames ? 16 : 0))
         {
             var src = iframe.GetAttributeValue("src", "");
-            if (!string.IsNullOrWhiteSpace(src) && Uri.TryCreate(pageUrl, src, out var iframeUri))
+            if (!string.IsNullOrWhiteSpace(src) && Uri.TryCreate(pageUrl, src, out var iframeUri) &&
+                Pentesting.SiteMapExplorerService.IsSameOrigin(pageUrl, iframeUri))
             {
                 try
                 {
-                    var iframeHtml = await Http.GetStringAsync(iframeUri, ct);
-                    var iframeAssets = await ExtractAssetsFromHtmlAsync(iframeHtml, iframeUri, seen, ct);
+                    var iframeHtml = await ReadPageAsync(iframeUri, ct);
+                    var iframeAssets = await ExtractAssetsFromHtmlAsync(iframeHtml, iframeUri, seen, ct, includeFrames: false);
                     assets.AddRange(iframeAssets);
                 }
-                catch
+                catch (HttpRequestException)
                 {
                     // Iframe content may be unreachable — skip.
                 }
@@ -436,7 +426,8 @@ public partial class WebScraperService : IWebScraperService
                         var token = JToken.Parse(jsonText);
                         CollectUrlsFromJson(token, pageUrl, seen, assets);
                     }
-                    catch
+                    catch (OperationCanceledException) { throw; }
+                catch
                     {
                         // Malformed JSON — skip.
                     }
@@ -477,7 +468,7 @@ public partial class WebScraperService : IWebScraperService
             {
                 try
                 {
-                    var m3u8Content = await Http.GetStringAsync(asset.Url, ct);
+                    var m3u8Content = await ReadPageAsync(new Uri(asset.Url), ct);
                     var variants = ParseHlsPlaylist(m3u8Content, asset.Url);
                     if (variants.Count > 0)
                     {
@@ -496,6 +487,7 @@ public partial class WebScraperService : IWebScraperService
                         asset.IsHls = true;
                     }
                 }
+                catch (OperationCanceledException) { throw; }
                 catch
                 {
                     asset.IsHls = true;
@@ -506,7 +498,7 @@ public partial class WebScraperService : IWebScraperService
                 asset.IsDash = true;
                 try
                 {
-                    var mpdContent = await Http.GetStringAsync(asset.Url, ct);
+                    var mpdContent = await ReadPageAsync(new Uri(asset.Url), ct);
                     var mpdDoc = new HtmlDocument();
                     mpdDoc.LoadHtml(mpdContent);
                     foreach (var baseUrl in SafeSelect(mpdDoc.DocumentNode, "//BaseURL"))
@@ -518,6 +510,7 @@ public partial class WebScraperService : IWebScraperService
                         }
                     }
                 }
+                catch (OperationCanceledException) { throw; }
                 catch
                 {
                     // Use manifest URL as-is.
@@ -606,12 +599,13 @@ public partial class WebScraperService : IWebScraperService
                 continue;
             }
 
-            if (!resolved.Host.Equals(baseUrl.Host, StringComparison.OrdinalIgnoreCase))
+            if (!Pentesting.SiteMapExplorerService.IsSameOrigin(baseUrl, resolved))
             {
                 continue;
             }
 
-            if (!resolved.AbsolutePath.StartsWith(baseUrl.AbsolutePath, StringComparison.OrdinalIgnoreCase))
+            var scopePath = baseUrl.AbsolutePath.EndsWith('/') ? baseUrl.AbsolutePath : baseUrl.AbsolutePath + "/";
+            if (resolved.AbsolutePath != baseUrl.AbsolutePath && !resolved.AbsolutePath.StartsWith(scopePath, StringComparison.Ordinal))
             {
                 continue;
             }
@@ -625,6 +619,27 @@ public partial class WebScraperService : IWebScraperService
         }
 
         return links;
+    }
+
+    private async Task<string> ReadPageAsync(Uri uri, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        var current = uri;
+        for (var hop = 0; hop <= 5; hop++)
+        {
+            using var response = await _pageHttp.GetAsync(current, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+            if ((int)response.StatusCode is 301 or 302 or 303 or 307 or 308)
+            {
+                if (response.Headers.Location is null || !Uri.TryCreate(current, response.Headers.Location, out var next) ||
+                    !Pentesting.SiteMapExplorerService.IsSameOrigin(uri, next)) throw new HttpRequestException("Redirect leaves the page's origin.");
+                current = next;
+                continue;
+            }
+            response.EnsureSuccessStatusCode();
+            return await BoundedHttpContent.ReadTextAsync(response.Content, deadline.Token);
+        }
+        throw new HttpRequestException("Redirect limit reached.");
     }
 
     private static void TryAddUrl(string url, Uri pageUrl, HashSet<string> seen,
@@ -882,4 +897,4 @@ public partial class WebScraperService : IWebScraperService
     [GeneratedRegex(@"data:(image/[^;]+);base64,([A-Za-z0-9+/=]+)")]
     private static partial Regex DataUriRegex();
 }
-        
+

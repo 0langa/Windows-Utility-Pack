@@ -88,7 +88,8 @@ public sealed class WorkspaceProfileCoordinator : IWorkspaceProfileCoordinator
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        _settings.Save(settings);
+        if (!_settings.TrySave(settings, out var saveError))
+            throw new System.IO.IOException(saveError ?? "Could not save workspace settings.");
 
         if (_activityLog is not null)
         {

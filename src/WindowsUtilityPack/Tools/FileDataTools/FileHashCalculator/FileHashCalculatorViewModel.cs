@@ -1,6 +1,4 @@
 using System.IO;
-using System.Security.Cryptography;
-using System.Windows;
 using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
@@ -8,7 +6,7 @@ using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.FileDataTools.FileHashCalculator;
 
-public class FileHashCalculatorViewModel : ViewModelBase
+public class FileHashCalculatorViewModel : ViewModelBase, IDisposable, IViewLifetime
 {
     private string _filePath      = string.Empty;
     private string _md5Hash       = string.Empty;
@@ -21,14 +19,19 @@ public class FileHashCalculatorViewModel : ViewModelBase
     private double _progress;
     private string _statusMessage = string.Empty;
     private bool   _hasFile;
+    private CancellationTokenSource? _computation;
+    private bool _disposed;
 
     public string FilePath
     {
         get => _filePath;
         set
         {
-            SetProperty(ref _filePath, value);
-            HasFile = !string.IsNullOrEmpty(value);
+            if (!SetProperty(ref _filePath, value)) return;
+            _computation?.Cancel();
+            HasFile = !string.IsNullOrWhiteSpace(value);
+            ClearResults();
+            StatusMessage = string.Empty;
         }
     }
 
@@ -65,7 +68,7 @@ public class FileHashCalculatorViewModel : ViewModelBase
     public string VerifyHash
     {
         get => _verifyHash;
-        set => SetProperty(ref _verifyHash, value);
+        set { if (SetProperty(ref _verifyHash, value)) VerifyResult = string.Empty; }
     }
 
     public string VerifyResult
@@ -101,6 +104,7 @@ public class FileHashCalculatorViewModel : ViewModelBase
     public AsyncRelayCommand BrowseCommand    { get; }
     public AsyncRelayCommand ComputeCommand   { get; }
     public RelayCommand      VerifyCommand    { get; }
+    public RelayCommand      CancelCommand    { get; }
     public RelayCommand      CopyMd5Command    { get; }
     public RelayCommand      CopySha1Command   { get; }
     public RelayCommand      CopySha256Command { get; }
@@ -113,6 +117,7 @@ public class FileHashCalculatorViewModel : ViewModelBase
         _clipboard       = clipboard;
         BrowseCommand     = new AsyncRelayCommand(BrowseAsync);
         ComputeCommand    = new AsyncRelayCommand(ComputeAsync);
+        CancelCommand     = new RelayCommand(() => _computation?.Cancel());
         VerifyCommand     = new RelayCommand(Verify);
         CopyMd5Command    = new RelayCommand(() => CopyHash(Md5Hash));
         CopySha1Command   = new RelayCommand(() => CopyHash(Sha1Hash));
@@ -131,92 +136,55 @@ public class FileHashCalculatorViewModel : ViewModelBase
 
     public async Task ComputeAsync()
     {
-        if (string.IsNullOrWhiteSpace(FilePath) || !File.Exists(FilePath))
+        if (_disposed || IsComputing) return;
+        var path = FilePath;
+        ClearResults();
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
             StatusMessage = "File not found.";
             return;
         }
 
-        IsComputing   = true;
-        Progress      = 0;
-        VerifyResult  = string.Empty;
-        Md5Hash       = string.Empty;
-        Sha1Hash      = string.Empty;
-        Sha256Hash    = string.Empty;
-        Sha512Hash    = string.Empty;
+        using var cancellation = new CancellationTokenSource();
+        _computation = cancellation;
+        IsComputing = true;
+        Progress = 0;
         StatusMessage = "Computing hashes…";
-
         try
         {
-            var (md5, sha1, sha256, sha512) = await Task.Run(() => ComputeAllHashes(FilePath));
-
-            Application.Current.Dispatcher.Invoke(() =>
+            var result = await Task.Run(async () =>
             {
-                Md5Hash    = md5;
-                Sha1Hash   = sha1;
-                Sha256Hash = sha256;
-                Sha512Hash = sha512;
-                Progress   = 100;
-                StatusMessage = "Hashes computed successfully.";
-            });
+                await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+                    128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                return await StreamingHashService.ComputeAsync(stream, cancellation.Token);
+            }, cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            if (_disposed || FilePath != path) return;
+            Md5Hash = result.Md5;
+            Sha1Hash = result.Sha1;
+            Sha256Hash = result.Sha256;
+            Sha512Hash = result.Sha512;
+            Progress = 100;
+            StatusMessage = "Hashes computed.";
         }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Error: {ex.Message}";
-        }
+        catch (OperationCanceledException) { if (FilePath == path) StatusMessage = "Hashing canceled."; }
+        catch (Exception ex) { if (FilePath == path) StatusMessage = $"Error: {ex.Message}"; }
         finally
         {
+            _computation = null;
             IsComputing = false;
         }
     }
 
-    private (string md5, string sha1, string sha256, string sha512) ComputeAllHashes(string path)
+    private void ClearResults()
     {
-        const int bufferSize = 4096;
-        var fileInfo = new FileInfo(path);
-        long totalBytes = fileInfo.Length;
-        long bytesRead  = 0;
-
-        using var md5Alg    = MD5.Create();
-        using var sha1Alg   = SHA1.Create();
-        using var sha256Alg = SHA256.Create();
-        using var sha512Alg = SHA512.Create();
-
-        using var stream = File.OpenRead(path);
-        var buffer = new byte[bufferSize];
-        int read;
-
-        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-        {
-            md5Alg.TransformBlock(buffer,    0, read, null, 0);
-            sha1Alg.TransformBlock(buffer,   0, read, null, 0);
-            sha256Alg.TransformBlock(buffer, 0, read, null, 0);
-            sha512Alg.TransformBlock(buffer, 0, read, null, 0);
-
-            bytesRead += read;
-
-            if (totalBytes > 0)
-            {
-                double pct = bytesRead / (double)totalBytes * 100.0;
-                Application.Current.Dispatcher.Invoke(() => Progress = pct);
-            }
-        }
-
-        md5Alg.TransformFinalBlock(buffer,    0, 0);
-        sha1Alg.TransformFinalBlock(buffer,   0, 0);
-        sha256Alg.TransformFinalBlock(buffer, 0, 0);
-        sha512Alg.TransformFinalBlock(buffer, 0, 0);
-
-        return (
-            HexString(md5Alg.Hash!),
-            HexString(sha1Alg.Hash!),
-            HexString(sha256Alg.Hash!),
-            HexString(sha512Alg.Hash!)
-        );
+        Md5Hash = Sha1Hash = Sha256Hash = Sha512Hash = VerifyResult = string.Empty;
+        Progress = 0;
     }
 
-    private static string HexString(byte[] bytes) =>
-        Convert.ToHexString(bytes).ToLowerInvariant();
+    public void Activate() { }
+    public void Deactivate() => _computation?.Cancel();
+    public void Dispose() { _disposed = true; Deactivate(); }
 
     private void Verify()
     {
@@ -224,6 +192,12 @@ public class FileHashCalculatorViewModel : ViewModelBase
         if (string.IsNullOrEmpty(input))
         {
             VerifyResult = string.Empty;
+            return;
+        }
+
+        if (IsComputing || string.IsNullOrEmpty(Sha256Hash))
+        {
+            VerifyResult = "Compute a file hash first.";
             return;
         }
 

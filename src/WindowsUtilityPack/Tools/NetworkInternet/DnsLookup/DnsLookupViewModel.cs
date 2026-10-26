@@ -19,10 +19,13 @@ public class DnsRecord
 /// <summary>
 /// ViewModel for DNS lookup (A, AAAA, CNAME, MX, TXT).
 /// </summary>
-public class DnsLookupViewModel : ViewModelBase
+public class DnsLookupViewModel : ViewModelBase, IDisposable
 {
     private readonly IClipboardService _clipboard;
     private readonly LookupClient _lookupClient;
+    private CancellationTokenSource? _lookupCancellation;
+    public RelayCommand CancelCommand { get; }
+    public void Dispose() => _lookupCancellation?.Cancel();
 
     private string _host = "example.com";
     private bool _isLooking;
@@ -64,7 +67,8 @@ public class DnsLookupViewModel : ViewModelBase
 
         LookupCommand = new AsyncRelayCommand(_ => RunLookupAsync(), _ => !IsLooking);
         CopyResultsCommand = new RelayCommand(_ => CopyResults(), _ => Results.Count > 0);
-        ClearCommand = new RelayCommand(_ => Clear());
+        ClearCommand = new RelayCommand(_ => Clear(), _ => !IsLooking);
+        CancelCommand = new RelayCommand(() => _lookupCancellation?.Cancel(), () => IsLooking);
     }
 
     private async Task RunLookupAsync()
@@ -76,25 +80,25 @@ public class DnsLookupViewModel : ViewModelBase
             return;
         }
 
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        _lookupCancellation = cancellation;
         IsLooking = true;
         Results.Clear();
         StatusMessage = $"Looking up {host}...";
 
         try
         {
-            await QueryAndAddAsync(host, QueryType.A);
-            await QueryAndAddAsync(host, QueryType.AAAA);
-            await QueryAndAddAsync(host, QueryType.CNAME);
-            await QueryAndAddAsync(host, QueryType.MX);
-            await QueryAndAddAsync(host, QueryType.TXT);
-
+            var types = new[] { QueryType.A, QueryType.AAAA, QueryType.CNAME, QueryType.MX, QueryType.TXT };
+            var responses = await Task.WhenAll(types.Select(type => _lookupClient.QueryAsync(host, type, QueryClass.IN, cancellation.Token)));
+            foreach (var response in responses) AddResponse(response);
             StatusMessage = Results.Count > 0
                 ? $"Found {Results.Count} record(s) for {host}."
                 : $"No records found for {host}.";
         }
+        catch (OperationCanceledException) { StatusMessage = "Lookup canceled or timed out."; }
         catch (DnsResponseException ex)
         {
-            StatusMessage = $"DNS query failed: {ex.Code}.";
+            StatusMessage = $"DNS query failed ({ex.Code}): {ex.Message}";
         }
         catch (Exception ex)
         {
@@ -103,12 +107,12 @@ public class DnsLookupViewModel : ViewModelBase
         finally
         {
             IsLooking = false;
+            _lookupCancellation = null;
         }
     }
 
-    private async Task QueryAndAddAsync(string host, QueryType queryType)
+    private void AddResponse(IDnsQueryResponse response)
     {
-        var response = await _lookupClient.QueryAsync(host, queryType);
         foreach (var answer in response.Answers)
         {
             switch (answer)

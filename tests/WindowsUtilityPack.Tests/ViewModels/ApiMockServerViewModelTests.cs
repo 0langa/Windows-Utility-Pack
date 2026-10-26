@@ -7,6 +7,25 @@ namespace WindowsUtilityPack.Tests.ViewModels;
 
 public class ApiMockServerViewModelTests
 {
+    [Theory]
+    [InlineData(999, "application/json")]
+    [InlineData(200, "invalid content type")]
+    public async Task SaveEndpointsCommand_InvalidEditIsReportedWithoutLosingDraftOrActiveConfiguration(int status, string type)
+    {
+        var service = new ApiMockServerService();
+        var original = new ApiMockEndpoint { Name = "fixture", Method = "GET", Path = "/fixture", StatusCode = 200, ContentType = "application/json", ResponseBody = "{}" };
+        service.SetEndpoints([original]);
+        var vm = new ApiMockServerViewModel(service, new StubDialogs());
+        vm.Endpoints[0].StatusCode = status; vm.Endpoints[0].ContentType = type;
+        var error = Record.Exception(() => vm.SaveEndpointsCommand.Execute(null));
+        Assert.Null(error);
+        Assert.Contains("not saved", vm.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(status, vm.Endpoints[0].StatusCode);
+        Assert.Equal(200, Assert.Single(service.GetEndpoints()).StatusCode);
+        await vm.StartAsync();
+        Assert.False(service.IsRunning);
+    }
+
     [Fact]
     public async Task StartAsync_UpdatesRunningStateMessage()
     {

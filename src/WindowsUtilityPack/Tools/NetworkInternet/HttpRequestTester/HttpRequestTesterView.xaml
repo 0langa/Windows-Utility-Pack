@@ -38,21 +38,22 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <ComboBox ItemsSource="{Binding Methods}"
+                        <ComboBox AutomationProperties.AutomationId="Method" ItemsSource="{Binding Methods}"
                                   SelectedItem="{Binding Method}"
                                   Width="120"
                                   Margin="0,0,10,0"
                                   FontWeight="SemiBold"
                                   AutomationProperties.Name="HTTP method"/>
-                        <TextBox Grid.Column="1"
+                        <TextBox AutomationProperties.AutomationId="Url" Grid.Column="1"
                                  Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="Request URL"/>
-                        <Button Grid.Column="2"
+                        <Button AutomationProperties.AutomationId="SendCommand" Grid.Column="2"
                                 Content="Send"
                                 Command="{Binding SendCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}"
                                 Margin="10,0,8,0"/>
-                        <Button Grid.Column="3"
+                        <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                        <Button AutomationProperties.AutomationId="ClearCommand" Grid.Column="3"
                                 Content="Clear"
                                 Command="{Binding ClearCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
@@ -72,7 +73,7 @@
                                     Margin="0,0,12,0"
                                     VerticalAlignment="Center"
                                     Background="{DynamicResource AccentBrush}">
-                                <TextBlock Text="{Binding ResponseStatus}" FontWeight="SemiBold" Foreground="{DynamicResource TextOnAccentBrush}"/>
+                                <TextBlock AutomationProperties.AutomationId="ResponseStatus" Text="{Binding ResponseStatus}" FontWeight="SemiBold" Foreground="{DynamicResource TextOnAccentBrush}"/>
                             </Border>
 
                             <TextBlock Grid.Column="1"
@@ -89,7 +90,7 @@
                                        VerticalAlignment="Center"
                                        Margin="16,0,0,0"/>
 
-                            <Button Grid.Column="3"
+                            <Button AutomationProperties.AutomationId="CopyResponseCommand" Grid.Column="3"
                                     Content="Copy Response"
                                     Command="{Binding CopyResponseCommand}"
                                     Style="{StaticResource SecondaryActionButtonStyle}"/>
@@ -112,7 +113,7 @@
                             <TextBlock Text="Use `Key: Value` pairs, one header per line."
                                        Style="{StaticResource MetadataTextStyle}"
                                        Margin="0,4,0,10"/>
-                            <TextBox Text="{Binding RequestHeaders, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox AutomationProperties.AutomationId="RequestHeaders" Text="{Binding RequestHeaders, UpdateSourceTrigger=PropertyChanged}"
                                      MinHeight="120"
                                      MaxHeight="240"
                                      FontFamily="Consolas"
@@ -131,7 +132,7 @@
                             <TextBlock Text="Shown for methods that typically send a payload."
                                        Style="{StaticResource MetadataTextStyle}"
                                        Margin="0,4,0,10"/>
-                            <TextBox Text="{Binding RequestBody, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox AutomationProperties.AutomationId="RequestBody" Text="{Binding RequestBody, UpdateSourceTrigger=PropertyChanged}"
                                      MinHeight="220"
                                      MaxHeight="420"
                                      FontFamily="Consolas"
@@ -148,7 +149,7 @@
                     <Border Style="{StaticResource ElevatedSurfaceStyle}" Margin="0,0,0,12">
                         <StackPanel>
                             <TextBlock Text="Response Headers" Style="{StaticResource SectionHeadingTextStyle}" FontSize="18"/>
-                            <TextBox Text="{Binding ResponseHeaders, Mode=OneWay}"
+                            <TextBox AutomationProperties.AutomationId="ResponseHeaders" Text="{Binding ResponseHeaders, Mode=OneWay}"
                                      IsReadOnly="True"
                                      MinHeight="120"
                                      MaxHeight="220"
@@ -164,7 +165,7 @@
                     <Border Style="{StaticResource ElevatedSurfaceStyle}">
                         <StackPanel>
                             <TextBlock Text="Response Body" Style="{StaticResource SectionHeadingTextStyle}" FontSize="18"/>
-                            <TextBox Text="{Binding ResponseBody, Mode=OneWay}"
+                            <TextBox AutomationProperties.AutomationId="ResponseBody" Text="{Binding ResponseBody, Mode=OneWay}"
                                      IsReadOnly="True"
                                      MinHeight="320"
                                      MaxHeight="640"

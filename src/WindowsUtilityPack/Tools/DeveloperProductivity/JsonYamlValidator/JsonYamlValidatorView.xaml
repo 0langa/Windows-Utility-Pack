@@ -18,13 +18,13 @@
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                     <TextBlock Text="Mode" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox Width="120" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}"/>
+                    <ComboBox AutomationProperties.AutomationId="Mode" Width="120" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}"/>
                 </StackPanel>
                 <WrapPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Content="Validate" Command="{Binding ValidateCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Prettify" Command="{Binding FormatCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Copy Output" Command="{Binding CopyOutputCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Clear" Command="{Binding ClearCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="ValidateCommand" Content="Validate" Command="{Binding ValidateCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="FormatCommand" Content="Prettify" Command="{Binding FormatCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="CopyOutputCommand" Content="Copy Output" Command="{Binding CopyOutputCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="ClearCommand" Content="Clear" Command="{Binding ClearCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                 </WrapPanel>
             </DockPanel>
         </Border>
@@ -36,7 +36,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <TextBlock Text="Input" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
-                <TextBox Grid.Row="1"
+                <TextBox AutomationProperties.AutomationId="InputText" Grid.Row="1"
                          Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
                          AcceptsReturn="True"
                          TextWrapping="NoWrap"
@@ -54,8 +54,8 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <TextBlock Text="Formatted Output" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
-                <TextBox Grid.Row="1"
-                         Text="{Binding OutputText}"
+                <TextBox AutomationProperties.AutomationId="OutputText" Grid.Row="1"
+                         Text="{Binding OutputText, Mode=OneWay}"
                          IsReadOnly="True"
                          AcceptsReturn="True"
                          TextWrapping="NoWrap"
@@ -67,7 +67,7 @@
         </Border>
 
         <Border Grid.Row="4" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,10,0,0">
-            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
         </Border>
     </Grid>
 </UserControl>

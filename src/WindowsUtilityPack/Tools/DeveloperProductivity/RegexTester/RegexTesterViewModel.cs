@@ -28,15 +28,17 @@ public class MatchItem
 /// A per-evaluation timeout of <see cref="RegexMatchTimeout"/> guards against
 /// catastrophic backtracking (ReDoS) caused by pathological patterns.
 /// </summary>
-public class RegexTesterViewModel : ViewModelBase
+public class RegexTesterViewModel : ViewModelBase, IDisposable, IViewLifetime
 {
     // Maximum time allowed for a single regex evaluation.
-    private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromMilliseconds(250);
 
     // How long to wait after the last property change before running the regex.
     private const int DebounceMs = 250;
 
     private CancellationTokenSource? _debounceCts;
+    private readonly SemaphoreSlim _evaluationGate = new(1, 1);
+    private bool _disposed;
 
     private string _inputText     = "Hello World! This is a test string with numbers like 123 and 456.";
     private string _pattern       = @"\d+";
@@ -114,82 +116,70 @@ public class RegexTesterViewModel : ViewModelBase
     /// </summary>
     private async void ScheduleRunRegex()
     {
+        if (_disposed) return;
         _debounceCts?.Cancel();
         _debounceCts?.Dispose();
         var cts = new CancellationTokenSource();
+        var token = cts.Token;
         _debounceCts = cts;
-
+        var pattern = Pattern; var input = InputText; var options = GetOptions();
+        Matches.Clear(); MatchCount = 0; StatusMessage = "Evaluating…";
         try
         {
-            await Task.Delay(DebounceMs, cts.Token);
-            RunRegex();
+            await Task.Delay(DebounceMs, token);
+            await _evaluationGate.WaitAsync(token);
+            Evaluation result;
+            try { result = await Task.Run(() => Evaluate(pattern, input, options, token), token); }
+            finally { _evaluationGate.Release(); }
+            if (!token.IsCancellationRequested && !_disposed) Apply(result);
         }
-        catch (OperationCanceledException)
-        {
-            // Another property change arrived before the debounce expired — expected.
-        }
-        catch (Exception)
-        {
-            try
-            {
-                App.TryGetLoggingService()?.LogError("Unexpected error while debouncing regex evaluation");
-            }
-            catch
-            {
-                System.Diagnostics.Debug.WriteLine("[RegexTesterViewModel] Unexpected debounce failure.");
-            }
-        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { if (!token.IsCancellationRequested && !_disposed) StatusMessage = $"Evaluation failed: {ex.Message}"; }
+        finally { if (ReferenceEquals(_debounceCts, cts)) _debounceCts = null; cts.Dispose(); }
     }
 
-    /// <summary>
-    /// Evaluates <see cref="Pattern"/> against <see cref="InputText"/> using the current
-    /// option flags and populates <see cref="Matches"/> and <see cref="StatusMessage"/>.
-    /// Invalid patterns set a descriptive error in <see cref="StatusMessage"/> instead of throwing.
-    /// </summary>
     internal void RunRegex()
     {
-        Matches.Clear();
-        StatusMessage = string.Empty;
-        MatchCount    = 0;
-
-        if (string.IsNullOrEmpty(Pattern) || string.IsNullOrEmpty(InputText))
-            return;
-
+        _debounceCts?.Cancel();
+        Apply(Evaluate(Pattern, InputText, GetOptions(), CancellationToken.None));
+    }
+    private RegexOptions GetOptions() => (IgnoreCase ? RegexOptions.IgnoreCase : 0) |
+        (Multiline ? RegexOptions.Multiline : 0) | (SingleLine ? RegexOptions.Singleline : 0);
+    private sealed record Evaluation(List<MatchItem> Matches, string Status);
+    private static Evaluation Evaluate(string pattern, string input, RegexOptions options, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(pattern) || string.IsNullOrEmpty(input)) return new([], "");
+        if (input.Length > 1_000_000 || pattern.Length > 4096)
+            return new([], "Input is limited to 1,000,000 characters and patterns to 4,096 characters.");
         try
         {
-            var opts = RegexOptions.None;
-            if (IgnoreCase)  opts |= RegexOptions.IgnoreCase;
-            if (Multiline)   opts |= RegexOptions.Multiline;
-            if (SingleLine)  opts |= RegexOptions.Singleline;
-
-            var regex   = new Regex(Pattern, opts, RegexMatchTimeout);
-            var matches = regex.Matches(InputText);
-            MatchCount  = matches.Count;
-
-            foreach (Match m in matches)
+            var regex = new Regex(pattern, options, RegexMatchTimeout);
+            var results = new List<MatchItem>();
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            for (var match = regex.Match(input); match.Success; match = match.NextMatch())
             {
-                // Build a readable summary of named/numbered capture groups (skip group[0] = full match).
-                var groups = string.Join(", ", m.Groups.Cast<Group>()
-                    .Skip(1).Select((g, i) => $"[{i + 1}]: \"{g.Value}\""));
-
-                Matches.Add(new MatchItem
+                token.ThrowIfCancellationRequested();
+                if (results.Count == 1000 || timer.Elapsed > TimeSpan.FromSeconds(2))
+                    return new(results, $"Showing the first {results.Count} matches; result or time limit reached.");
+                static string Preview(string text, int max) => text.Length <= max ? text : text[..max] + "…";
+                results.Add(new MatchItem
                 {
-                    Index  = m.Index,
-                    Length = m.Length,
-                    Value  = m.Value,
-                    Groups = groups,
+                    Index = match.Index, Length = match.Length, Value = Preview(match.Value, 512),
+                    Groups = string.Join(", ", match.Groups.Cast<Group>().Skip(1).Take(32).Select((g, i) => $"[{i + 1}]: \"{Preview(g.Value, 128)}\""))
                 });
             }
-
-            StatusMessage = MatchCount == 0 ? "No matches found" : $"{MatchCount} match(es) found";
+            return new(results, results.Count == 0 ? "No matches found" : $"{results.Count} match(es) found");
         }
-        catch (RegexParseException ex)
-        {
-            StatusMessage = $"Pattern error: {ex.Message}";
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            StatusMessage = "Match timed out — the pattern may cause catastrophic backtracking.";
-        }
+        catch (RegexParseException ex) { return new([], $"Pattern error: {ex.Message}"); }
+        catch (RegexMatchTimeoutException) { return new([], "Match timed out — the pattern may cause catastrophic backtracking."); }
     }
+    private void Apply(Evaluation result)
+    {
+        Matches.Clear();
+        foreach (var match in result.Matches) Matches.Add(match);
+        MatchCount = result.Matches.Count; StatusMessage = result.Status;
+    }
+    public void Activate() { }
+    public void Deactivate() { _debounceCts?.Cancel(); }
+    public void Dispose() { _disposed = true; _debounceCts?.Cancel(); _debounceCts?.Dispose(); _debounceCts = null; }
 }

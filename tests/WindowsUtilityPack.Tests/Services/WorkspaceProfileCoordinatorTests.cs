@@ -7,6 +7,21 @@ namespace WindowsUtilityPack.Tests.Services;
 public class WorkspaceProfileCoordinatorTests
 {
     [Fact]
+    public async Task ApplyProfileAsync_FailedSettingsWriteDoesNotReportApplied()
+    {
+        var profiles = new StubWorkspaceProfileService { Stored = new WorkspaceProfile { Name = "fixture", StartupToolKey = "home" } };
+        var coordinator = new WorkspaceProfileCoordinator(profiles, new RefusingSettings());
+        await Assert.ThrowsAsync<System.IO.IOException>(() => coordinator.ApplyProfileAsync("fixture"));
+    }
+
+    private sealed class RefusingSettings : ISettingsService
+    {
+        public AppSettings Load() => new();
+        public void Save(AppSettings settings) { }
+        public bool TrySave(AppSettings settings, out string? error) { error = "fixture write failure"; return false; }
+    }
+
+    [Fact]
     public async Task CaptureCurrentAsync_SavesNormalizedProfile()
     {
         var stubProfiles = new StubWorkspaceProfileService();

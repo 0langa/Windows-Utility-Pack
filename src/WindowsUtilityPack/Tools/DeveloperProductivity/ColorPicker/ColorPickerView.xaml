@@ -62,19 +62,19 @@
                             <StackPanel Grid.Column="1">
                                 <WrapPanel Margin="0,0,0,10">
                                     <TextBlock Text="HEX" Width="70" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
-                                    <TextBox Text="{Binding HexColor, UpdateSourceTrigger=PropertyChanged}" Width="140" FontFamily="Consolas"/>
-                                    <Button Content="Copy HEX" Command="{Binding CopyHexCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
+                                    <TextBox AutomationProperties.AutomationId="HexColor" Text="{Binding HexColor, UpdateSourceTrigger=PropertyChanged}" Width="140" FontFamily="Consolas"/>
+                                    <Button AutomationProperties.AutomationId="CopyHexCommand" Content="Copy HEX" Command="{Binding CopyHexCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
                                 </WrapPanel>
                                 <WrapPanel Margin="0,0,0,10">
                                     <TextBlock Text="CSS RGB" Width="70" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
-                                    <TextBox Text="{Binding CssRgb, Mode=OneWay}" IsReadOnly="True" Width="190" FontFamily="Consolas"/>
-                                    <Button Content="Copy RGB" Command="{Binding CopyRgbCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
+                                    <TextBox AutomationProperties.AutomationId="CssRgb" Text="{Binding CssRgb, Mode=OneWay}" IsReadOnly="True" Width="190" FontFamily="Consolas"/>
+                                    <Button AutomationProperties.AutomationId="CopyRgbCommand" Content="Copy RGB" Command="{Binding CopyRgbCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
                                 </WrapPanel>
                                 <WrapPanel>
                                     <TextBlock Text="CSS HSL" Width="70" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold"/>
-                                    <TextBox Text="{Binding CssHsl, Mode=OneWay}" IsReadOnly="True" Width="190" FontFamily="Consolas"/>
-                                    <Button Content="Copy HSL" Command="{Binding CopyHslCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
-                                    <Button Content="Pick From Screen" Command="{Binding PickFromScreenCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="8,0,0,0"/>
+                                    <TextBox AutomationProperties.AutomationId="CssHsl" Text="{Binding CssHsl, Mode=OneWay}" IsReadOnly="True" Width="190" FontFamily="Consolas"/>
+                                    <Button AutomationProperties.AutomationId="CopyHslCommand" Content="Copy HSL" Command="{Binding CopyHslCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
+                                    <Button AutomationProperties.AutomationId="PickFromScreenCommand" Content="Pick From Screen" Command="{Binding PickFromScreenCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="8,0,0,0"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Grid>
@@ -91,8 +91,8 @@
                                     <ColumnDefinition Width="60"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="R" Foreground="{StaticResource ColorPickerRedChannelBrush}" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding R}" Margin="10,0"/>
-                                <TextBox Grid.Column="2" Text="{Binding R, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
+                                <Slider AutomationProperties.AutomationId="R" Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding R}" Margin="10,0"/>
+                                <TextBox AutomationProperties.AutomationId="R" Grid.Column="2" Text="{Binding R, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
                             </Grid>
 
                             <Grid Margin="0,0,0,12">
@@ -102,8 +102,8 @@
                                     <ColumnDefinition Width="60"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="G" Foreground="{StaticResource ColorPickerGreenChannelBrush}" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding G}" Margin="10,0"/>
-                                <TextBox Grid.Column="2" Text="{Binding G, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
+                                <Slider AutomationProperties.AutomationId="G" Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding G}" Margin="10,0"/>
+                                <TextBox AutomationProperties.AutomationId="G" Grid.Column="2" Text="{Binding G, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
                             </Grid>
 
                             <Grid>
@@ -113,8 +113,8 @@
                                     <ColumnDefinition Width="60"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="B" Foreground="{StaticResource ColorPickerBlueChannelBrush}" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <Slider Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding B}" Margin="10,0"/>
-                                <TextBox Grid.Column="2" Text="{Binding B, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
+                                <Slider AutomationProperties.AutomationId="B" Grid.Column="1" Minimum="0" Maximum="255" SmallChange="1" LargeChange="16" Value="{Binding B}" Margin="10,0"/>
+                                <TextBox AutomationProperties.AutomationId="B" Grid.Column="2" Text="{Binding B, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"/>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -125,15 +125,15 @@
                             <UniformGrid Columns="3">
                                 <StackPanel Margin="0,0,12,0">
                                     <TextBlock Text="Hue" Style="{StaticResource MetadataTextStyle}" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding H, Mode=OneWay, StringFormat={}{0:F1}°}" IsReadOnly="True" FontFamily="Consolas"/>
+                                    <TextBox AutomationProperties.AutomationId="H" Text="{Binding H, Mode=OneWay, StringFormat={}{0:F1}°}" IsReadOnly="True" FontFamily="Consolas"/>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,12,0">
                                     <TextBlock Text="Saturation" Style="{StaticResource MetadataTextStyle}" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding S, Mode=OneWay, StringFormat={}{0:F1}%}" IsReadOnly="True" FontFamily="Consolas"/>
+                                    <TextBox AutomationProperties.AutomationId="S" Text="{Binding S, Mode=OneWay, StringFormat={}{0:F1}%}" IsReadOnly="True" FontFamily="Consolas"/>
                                 </StackPanel>
                                 <StackPanel>
                                     <TextBlock Text="Lightness" Style="{StaticResource MetadataTextStyle}" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding L, Mode=OneWay, StringFormat={}{0:F1}%}" IsReadOnly="True" FontFamily="Consolas"/>
+                                    <TextBox AutomationProperties.AutomationId="L" Text="{Binding L, Mode=OneWay, StringFormat={}{0:F1}%}" IsReadOnly="True" FontFamily="Consolas"/>
                                 </StackPanel>
                             </UniformGrid>
                         </StackPanel>
@@ -148,9 +148,9 @@
                                    Margin="0,4,0,12"/>
 
                         <WrapPanel Margin="0,0,0,14">
-                            <TextBox Text="{Binding PaletteName, UpdateSourceTrigger=PropertyChanged}" Width="210" Margin="0,0,8,0"/>
-                            <Button Content="Add to Palette" Command="{Binding AddToPaletteCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
-                            <Button Content="Clear All" Command="{Binding ClearPaletteCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox AutomationProperties.AutomationId="PaletteName" Text="{Binding PaletteName, UpdateSourceTrigger=PropertyChanged}" Width="210" Margin="0,0,8,0"/>
+                            <Button AutomationProperties.AutomationId="AddToPaletteCommand" Content="Add to Palette" Command="{Binding AddToPaletteCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                            <Button AutomationProperties.AutomationId="ClearPaletteCommand" Content="Clear All" Command="{Binding ClearPaletteCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                         </WrapPanel>
 
                         <ItemsControl ItemsSource="{Binding Palette}">
@@ -179,9 +179,9 @@
                                                 </Border.Background>
                                             </Border>
                                             <StackPanel Margin="8,6,8,8">
-                                                <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{DynamicResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding Hex}" FontSize="10" FontFamily="Consolas" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,2,0,8"/>
-                                                <Button Content="Remove"
+                                                <TextBlock AutomationProperties.AutomationId="Name" Text="{Binding Name}" FontSize="11" Foreground="{DynamicResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock AutomationProperties.AutomationId="Hex" Text="{Binding Hex}" FontSize="10" FontFamily="Consolas" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,2,0,8"/>
+                                                <Button AutomationProperties.AutomationId="DataContext.RemoveFromPaletteCommand" Content="Remove"
                                                         Command="{Binding DataContext.RemoveFromPaletteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                         CommandParameter="{Binding}"
                                                         Style="{StaticResource SecondaryActionButtonStyle}"

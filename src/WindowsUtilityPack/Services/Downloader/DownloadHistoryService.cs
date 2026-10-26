@@ -17,9 +17,7 @@ public sealed class DownloadHistoryService : IDownloadHistoryService
 
     /// <summary>Creates a service that stores history in the default <c>%LOCALAPPDATA%\WindowsUtilityPack</c> folder.</summary>
     public DownloadHistoryService()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "WindowsUtilityPack"))
+        : this(AppDataPaths.LocalDirectory)
     {
     }
 

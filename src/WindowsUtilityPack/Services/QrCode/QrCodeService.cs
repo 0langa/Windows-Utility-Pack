@@ -114,6 +114,9 @@ public sealed class QrCodeService : IQrCodeService
     public async Task<QrCodeExportResult> ExportAsync(QrCodeExportRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (!Enum.IsDefined(request.Format)) throw new ArgumentOutOfRangeException(nameof(request.Format));
+        if (request.ExportSizePixels is < 120 or > 4096) throw new ArgumentOutOfRangeException(nameof(request.ExportSizePixels));
+        if (request.RasterDpi is < 72 or > 1200) throw new ArgumentOutOfRangeException(nameof(request.RasterDpi));
         var style = Sanitize(request.Style, request.NormalizedUrl);
 
         await Task.Run(() =>
@@ -128,22 +131,29 @@ public sealed class QrCodeService : IQrCodeService
             using var generator = new QRCodeGenerator();
             using var qrData = generator.CreateQrCode(request.NormalizedUrl, MapErrorCorrection(style.ErrorCorrectionLevel), forceUtf8: true, utf8BOM: false, eciMode: QRCodeGenerator.EciMode.Utf8);
 
+            var temporary = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(request.FilePath))!, ".wup-qr-" + Guid.NewGuid().ToString("N") + Path.GetExtension(request.FilePath));
+            try
+            {
             switch (request.Format)
             {
                 case QrCodeExportFormat.Svg:
                     var svg = RenderSvg(qrData, style, request.ExportSizePixels);
-                    File.WriteAllText(request.FilePath, svg, Encoding.UTF8);
+                    File.WriteAllText(temporary, svg, Encoding.UTF8);
                     break;
 
                 case QrCodeExportFormat.Pdf:
-                    ExportPdf(qrData, style, request.ExportSizePixels, request.FilePath);
+                    ExportPdf(qrData, style, request.ExportSizePixels, temporary);
                     break;
 
                 default:
                     var bitmap = RenderRaster(qrData, style, request.ExportSizePixels, request.RasterDpi);
-                    ExportRaster(bitmap, request.FilePath, request.Format);
+                    ExportRaster(bitmap, temporary, request.Format);
                     break;
             }
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporary, request.FilePath, overwrite: true);
+            }
+            finally { File.Delete(temporary); }
         }, cancellationToken).ConfigureAwait(false);
 
         return new QrCodeExportResult
@@ -235,7 +245,8 @@ public sealed class QrCodeService : IQrCodeService
     private static BitmapSource RenderRaster(QRCodeData qrData, QrCodeStyleOptions style, int sizePixels, int dpi)
     {
         var matrix = qrData.ModuleMatrix;
-        var qrModules = matrix.Count;
+        // QRCoder includes a four-module border; render the user-selected quiet zone once.
+        var qrModules = matrix.Count - 8;
         var totalModules = qrModules + (style.QuietZoneModules * 2);
         var modulePixels = Math.Max(1, sizePixels / totalModules);
         var qrBodyPixels = totalModules * modulePixels;
@@ -247,6 +258,9 @@ public sealed class QrCodeService : IQrCodeService
         var visual = new DrawingVisual();
         using (var context = visual.RenderOpen())
         {
+            // WPF coordinates are DIPs, while our layout above is in output pixels.
+            // Compensate for RenderTargetBitmap DPI so metadata cannot crop the code.
+            context.PushTransform(new ScaleTransform(96d / dpi, 96d / dpi));
             var canvasRect = new Rect(0, 0, contentWidth, canvasHeight);
             if (!style.TransparentBackground)
             {
@@ -271,7 +285,7 @@ public sealed class QrCodeService : IQrCodeService
             {
                 for (var column = 0; column < qrModules; column++)
                 {
-                    if (!matrix[row][column])
+                    if (!matrix[row + 4][column + 4])
                     {
                         continue;
                     }
@@ -284,6 +298,7 @@ public sealed class QrCodeService : IQrCodeService
 
             DrawLogo(context, style, qrOriginX, qrOriginY, qrBodyPixels);
             DrawCaption(context, style, contentWidth, contentWidth + 10);
+            context.Pop();
         }
 
         var target = new RenderTargetBitmap(contentWidth, canvasHeight, dpi, dpi, PixelFormats.Pbgra32);
@@ -295,7 +310,8 @@ public sealed class QrCodeService : IQrCodeService
     private static string RenderSvg(QRCodeData qrData, QrCodeStyleOptions style, int sizePixels)
     {
         var matrix = qrData.ModuleMatrix;
-        var qrModules = matrix.Count;
+        // QRCoder includes a four-module border; render the user-selected quiet zone once.
+        var qrModules = matrix.Count - 8;
         var totalModules = qrModules + (style.QuietZoneModules * 2);
         var modulePixels = Math.Max(1, sizePixels / totalModules);
         var qrBodyPixels = totalModules * modulePixels;
@@ -329,7 +345,7 @@ public sealed class QrCodeService : IQrCodeService
         {
             for (var column = 0; column < qrModules; column++)
             {
-                if (!matrix[row][column])
+                if (!matrix[row + 4][column + 4])
                 {
                     continue;
                 }

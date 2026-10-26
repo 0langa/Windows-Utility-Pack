@@ -19,14 +19,14 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" ToolTip="Filter by task name"/>
-                <Button Grid.Column="1" Margin="0,0,8,0" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Grid.Column="2" Content="Run Selected" Command="{Binding RunSelectedCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <TextBox AutomationProperties.AutomationId="SearchQuery" Grid.Column="0" Margin="0,0,8,0" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" ToolTip="Filter by task name"/>
+                <Button AutomationProperties.AutomationId="RefreshCommand" Grid.Column="1" Margin="0,0,8,0" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="RunSelectedCommand" Grid.Column="2" Content="Run Selected" Command="{Binding RunSelectedCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
             </Grid>
         </Border>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
-            <DataGrid ItemsSource="{Binding Tasks}"
+            <DataGrid AutomationProperties.AutomationId="SelectedTask" ItemsSource="{Binding Tasks}"
                       SelectedItem="{Binding SelectedTask, Mode=TwoWay}"
                       AutoGenerateColumns="False"
                       CanUserAddRows="False"
@@ -46,7 +46,7 @@
         </Border>
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

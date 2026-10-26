@@ -26,32 +26,32 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0"
+                <TextBox AutomationProperties.AutomationId="SearchText" Grid.Column="0"
                          Margin="0,0,10,0"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          VerticalContentAlignment="Center"
                          MinHeight="36"
                          ToolTip="Search history content"/>
 
-                <ToggleButton Grid.Column="1"
+                <ToggleButton AutomationProperties.AutomationId="IsMonitoring" Grid.Column="1"
                               Margin="0,0,10,0"
                               IsChecked="{Binding IsMonitoring, Mode=TwoWay}"
                               Content="Monitor"
                               Style="{StaticResource SecondaryActionToggleButtonStyle}"/>
 
-                <Button Grid.Column="2"
+                <Button AutomationProperties.AutomationId="RefreshCommand" Grid.Column="2"
                         Margin="0,0,10,0"
                         Content="Refresh"
                         Command="{Binding RefreshCommand}"
                         Style="{StaticResource SecondaryActionButtonStyle}"/>
 
-                <Button Grid.Column="3"
+                <Button AutomationProperties.AutomationId="CopySelectedCommand" Grid.Column="3"
                         Margin="0,0,10,0"
                         Content="Copy Selected"
                         Command="{Binding CopySelectedCommand}"
                         Style="{StaticResource PrimaryActionButtonStyle}"/>
 
-                <Button Grid.Column="4"
+                <Button AutomationProperties.AutomationId="ClearAllCommand" Grid.Column="4"
                         Content="Clear All"
                         Command="{Binding ClearAllCommand}"
                         Style="{StaticResource DangerActionButtonStyle}"/>
@@ -87,13 +87,13 @@
                                Style="{StaticResource MetadataTextStyle}"
                                VerticalAlignment="Center"
                                Margin="0,0,8,0"/>
-                    <TextBox Width="72"
+                    <TextBox AutomationProperties.AutomationId="RetentionDays" Width="72"
                              MinHeight="32"
                              VerticalContentAlignment="Center"
                              Text="{Binding RetentionDays, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
-                <CheckBox Grid.Column="2"
+                <CheckBox AutomationProperties.AutomationId="CaptureSensitiveContent" Grid.Column="2"
                           IsChecked="{Binding CaptureSensitiveContent, Mode=TwoWay}"
                           Content="Capture sensitive content"
                           VerticalAlignment="Center"/>
@@ -108,7 +108,7 @@
                            Style="{StaticResource PanelHeaderTextStyle}"
                            Margin="0,0,0,8"/>
 
-                <ListView ItemsSource="{Binding Entries}"
+                <ListView AutomationProperties.AutomationId="SelectedEntry" ItemsSource="{Binding Entries}"
                           SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
                           Background="{DynamicResource AppSurfaceAltBrush}"
                           BorderBrush="{DynamicResource BorderBrush}"
@@ -129,10 +129,10 @@
                 Margin="0,12,0,0"
                 Style="{StaticResource StatusSurfaceStyle}">
             <DockPanel>
-                <TextBlock Text="{Binding StatusMessage}"
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                            Style="{StaticResource MetadataTextStyle}"
                            VerticalAlignment="Center"/>
-                <Button DockPanel.Dock="Right"
+                <Button AutomationProperties.AutomationId="DeleteSelectedCommand" DockPanel.Dock="Right"
                         Content="Delete Selected"
                         Command="{Binding DeleteSelectedCommand}"
                         Style="{StaticResource SecondaryActionButtonStyle}"/>

@@ -13,21 +13,21 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="Type:" Width="80" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <ComboBox ItemsSource="{Binding IdTypes}"
+                        <ComboBox AutomationProperties.AutomationId="IdType" ItemsSource="{Binding IdTypes}"
                                   SelectedItem="{Binding IdType}"
                                   Width="160" Padding="8,4"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="Format:" Width="80" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <ComboBox ItemsSource="{Binding Formats}"
+                        <ComboBox AutomationProperties.AutomationId="Format" ItemsSource="{Binding Formats}"
                                   SelectedItem="{Binding Format}"
                                   Width="160" Padding="8,4"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Count:" Width="80" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
-                        <TextBox Text="{Binding GenerateCount, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox AutomationProperties.AutomationId="GenerateCount" Text="{Binding GenerateCount, UpdateSourceTrigger=PropertyChanged}"
                                  Width="80" Padding="6,4"
                                  Foreground="{DynamicResource PrimaryTextBrush}"/>
                         <TextBlock Text="(max 1000)" VerticalAlignment="Center" Margin="8,0,0,0"
@@ -41,14 +41,14 @@
                 <StackPanel>
                     <TextBlock Text="Single Identifier" FontWeight="SemiBold"
                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,12"/>
-                    <TextBox Text="{Binding SingleId, Mode=OneWay}" IsReadOnly="True"
+                    <TextBox AutomationProperties.AutomationId="SingleId" Text="{Binding SingleId, Mode=OneWay}" IsReadOnly="True"
                              FontFamily="Consolas" FontSize="16" FontWeight="SemiBold"
                              Foreground="{DynamicResource AccentBrush}" Padding="10,8"
                              Margin="0,0,0,10" TextWrapping="Wrap"/>
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Generate New" Command="{Binding GenerateSingleCommand}"
+                        <Button AutomationProperties.AutomationId="GenerateSingleCommand" Content="Generate New" Command="{Binding GenerateSingleCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}"/>
-                        <Button Content="Copy" Command="{Binding CopySingleCommand}"
+                        <Button AutomationProperties.AutomationId="CopySingleCommand" Content="Copy" Command="{Binding CopySingleCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="8,0,0,0"/>
                     </StackPanel>
                 </StackPanel>
@@ -60,11 +60,11 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="Bulk Generation" FontWeight="SemiBold"
                                    Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
-                        <Button Content="Generate Bulk" Command="{Binding GenerateBulkCommand}"
+                        <Button AutomationProperties.AutomationId="GenerateBulkCommand" Content="Generate Bulk" Command="{Binding GenerateBulkCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}" Margin="16,0,8,0"/>
-                        <Button Content="Copy All" Command="{Binding CopyAllCommand}"
+                        <Button AutomationProperties.AutomationId="CopyAllCommand" Content="Copy All" Command="{Binding CopyAllCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                        <Button Content="Clear" Command="{Binding ClearCommand}"
+                        <Button AutomationProperties.AutomationId="ClearCommand" Content="Clear" Command="{Binding ClearCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
                     </StackPanel>
 
@@ -74,7 +74,7 @@
                             <ItemsControl ItemsSource="{Binding GeneratedIds}" Padding="4">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding Id}" FontFamily="Consolas" FontSize="12"
+                                        <TextBlock AutomationProperties.AutomationId="Id" Text="{Binding Id}" FontFamily="Consolas" FontSize="12"
                                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                                    Padding="6,2"/>
                                     </DataTemplate>

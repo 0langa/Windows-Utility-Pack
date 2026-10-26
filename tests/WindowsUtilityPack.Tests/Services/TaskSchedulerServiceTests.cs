@@ -7,6 +7,29 @@ namespace WindowsUtilityPack.Tests.Services;
 public class TaskSchedulerServiceTests
 {
     [Fact]
+    public async Task Query_UsesStructuredUnicodeResultsIndependentOfCulture()
+    {
+        var prior = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new("de-DE");
+            var data = System.Text.Json.JsonSerializer.Serialize(new[] { new WindowsUtilityPack.Models.ScheduledTaskRow { TaskName = "\\Übung\\任务", Status = "Ready", LastResult = "0", Author = "Jürgen" } });
+            var service = new TaskSchedulerService(new StubRunner((0, data, "")));
+            var row = Assert.Single(await service.GetTasksAsync("Übung"));
+            Assert.Equal("\\Übung\\任务", row.TaskName); Assert.Equal("Jürgen", row.Author);
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = prior; }
+    }
+
+    [Fact]
+    public async Task Query_LocalSchedulerReturnsNamedRows()
+    {
+        var rows = await new TaskSchedulerService().GetTasksAsync();
+        Assert.NotEmpty(rows);
+        Assert.All(rows, row => Assert.False(string.IsNullOrWhiteSpace(row.TaskName)));
+    }
+
+    [Fact]
     public void ParseTasksFromCsv_ParsesRows()
     {
         var csv = "\"TaskName\",\"Next Run Time\",\"Status\",\"Last Run Time\",\"Last Result\",\"Author\"\n" +

@@ -23,16 +23,17 @@
 
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Input Mode:" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                    <ComboBox Width="120" ItemsSource="{Binding InputModes}" SelectedItem="{Binding InputMode}"/>
-                    <Button Content="Browse File"
+                    <ComboBox AutomationProperties.AutomationId="InputMode" Width="120" ItemsSource="{Binding InputModes}" SelectedItem="{Binding InputMode}"/>
+                    <Button AutomationProperties.AutomationId="BrowseFileCommand" Content="Browse File"
                             Command="{Binding BrowseFileCommand}"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Margin="12,0,0,0"/>
-                    <Button Content="Inspect Certificate"
+                    <Button AutomationProperties.AutomationId="InspectCommand" Content="Inspect Certificate"
                             Command="{Binding InspectCommand}"
                             Style="{StaticResource PrimaryActionButtonStyle}"
                             Margin="8,0,0,0"/>
-                    <Button Content="Copy Info"
+                    <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="CopyInfoCommand" Content="Copy Info"
                             Command="{Binding CopyInfoCommand}"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Margin="8,0,0,0"/>
@@ -43,12 +44,12 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="110"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Text="{Binding UrlOrHost}" Visibility="{Binding IsUrlMode, Converter={StaticResource BoolToVisibilityConverter}}" />
-                    <TextBox Grid.Column="0" Text="{Binding FilePath}" Visibility="{Binding IsFileMode, Converter={StaticResource BoolToVisibilityConverter}}" IsReadOnly="True"/>
-                    <TextBox Grid.Column="1" Text="{Binding Port}" Margin="8,0,0,0" Visibility="{Binding IsUrlMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    <TextBox AutomationProperties.AutomationId="UrlOrHost" Grid.Column="0" Text="{Binding UrlOrHost}" Visibility="{Binding IsUrlMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    <TextBox AutomationProperties.AutomationId="FilePath" Grid.Column="0" Text="{Binding FilePath}" Visibility="{Binding IsFileMode, Converter={StaticResource BoolToVisibilityConverter}}" IsReadOnly="True"/>
+                    <TextBox AutomationProperties.AutomationId="Port" Grid.Column="1" Text="{Binding Port}" Margin="8,0,0,0" Visibility="{Binding IsUrlMode, Converter={StaticResource BoolToVisibilityConverter}}" />
                 </Grid>
 
-                <TextBox Grid.Row="2"
+                <TextBox AutomationProperties.AutomationId="PemText" Grid.Row="2"
                          Text="{Binding PemText}"
                          Visibility="{Binding IsPemMode, Converter={StaticResource BoolToVisibilityConverter}}"
                          AcceptsReturn="True"
@@ -86,25 +87,25 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Subject"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Certificate.Subject}" TextWrapping="Wrap"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.Subject" Grid.Row="0" Grid.Column="1" Text="{Binding Certificate.Subject}" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Issuer"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Certificate.Issuer}" TextWrapping="Wrap"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.Issuer" Grid.Row="1" Grid.Column="1" Text="{Binding Certificate.Issuer}" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Valid From"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Certificate.ValidFrom}"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.ValidFrom" Grid.Row="2" Grid.Column="1" Text="{Binding Certificate.ValidFrom}"/>
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Valid To"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Certificate.ValidTo}"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.ValidTo" Grid.Row="3" Grid.Column="1" Text="{Binding Certificate.ValidTo}"/>
                             <TextBlock Grid.Row="4" Grid.Column="0" Text="Expiry Status"/>
-                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Certificate.ExpiryStatus}"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.ExpiryStatus" Grid.Row="4" Grid.Column="1" Text="{Binding Certificate.ExpiryStatus}"/>
                             <TextBlock Grid.Row="5" Grid.Column="0" Text="Days Until Expiry"/>
-                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Certificate.DaysUntilExpiry}"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.DaysUntilExpiry" Grid.Row="5" Grid.Column="1" Text="{Binding Certificate.DaysUntilExpiry}"/>
                             <TextBlock Grid.Row="6" Grid.Column="0" Text="Thumbprint"/>
-                            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Certificate.Thumbprint}" TextWrapping="Wrap"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.Thumbprint" Grid.Row="6" Grid.Column="1" Text="{Binding Certificate.Thumbprint}" TextWrapping="Wrap"/>
                             <TextBlock Grid.Row="7" Grid.Column="0" Text="Signature Algorithm"/>
-                            <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding Certificate.SignatureAlgorithm}"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.SignatureAlgorithm" Grid.Row="7" Grid.Column="1" Text="{Binding Certificate.SignatureAlgorithm}"/>
                             <TextBlock Grid.Row="8" Grid.Column="0" Text="Public Key"/>
-                            <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding Certificate.PublicKeyAlgorithm}"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.PublicKeyAlgorithm" Grid.Row="8" Grid.Column="1" Text="{Binding Certificate.PublicKeyAlgorithm}"/>
                             <TextBlock Grid.Row="9" Grid.Column="0" Text="Key Size"/>
-                            <TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding Certificate.KeySize}"/>
+                            <TextBlock AutomationProperties.AutomationId="Certificate.KeySize" Grid.Row="9" Grid.Column="1" Text="{Binding Certificate.KeySize}"/>
                         </Grid>
                         <TextBlock Text="Subject Alternative Names" FontWeight="SemiBold" Margin="0,10,0,4"/>
                         <ItemsControl ItemsSource="{Binding Certificate.SubjectAlternativeNames}" />
@@ -114,7 +115,7 @@
         </Border>
 
         <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,10,0,0">
-            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
         </Border>
     </Grid>
 </UserControl>

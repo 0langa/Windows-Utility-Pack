@@ -15,15 +15,15 @@
 
         <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <CheckBox IsChecked="{Binding HotkeysEnabled, Mode=TwoWay}"
+                <CheckBox AutomationProperties.AutomationId="HotkeysEnabled" IsChecked="{Binding HotkeysEnabled, Mode=TwoWay}"
                           VerticalAlignment="Center"
                           Content="Enable shell hotkeys"
                           Margin="0,0,16,0"/>
-                <Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
-                <Button Content="Reset Defaults" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Export Profile" Command="{Binding ExportProfileCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Import Profile" Command="{Binding ImportProfileCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Reload" Command="{Binding ReloadCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="SaveCommand" Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="ResetDefaultsCommand" Content="Reset Defaults" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="ExportProfileCommand" Content="Export Profile" Command="{Binding ExportProfileCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="ImportProfileCommand" Content="Import Profile" Command="{Binding ImportProfileCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="ReloadCommand" Content="Reload" Command="{Binding ReloadCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
             </StackPanel>
         </Border>
 
@@ -33,7 +33,7 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <DataGrid ItemsSource="{Binding Bindings}"
+                <DataGrid AutomationProperties.AutomationId="Bindings" ItemsSource="{Binding Bindings}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
@@ -64,7 +64,7 @@
                     <ItemsControl ItemsSource="{Binding RegistrationIssues}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Foreground="{DynamicResource WarningBrush}"
+                                <TextBlock AutomationProperties.AutomationId="Message" Foreground="{DynamicResource WarningBrush}"
                                            Text="{Binding Message}"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -74,7 +74,7 @@
         </Border>
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

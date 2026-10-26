@@ -13,8 +13,7 @@ namespace WindowsUtilityPack.Services;
 public class LoggingService : ILoggingService
 {
     private static readonly string LogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "WindowsUtilityPack", "app.log");
+        AppDataPaths.LocalDirectory, "app.log");
 
     private const long MaxLogSizeBytes = 1_048_576; // 1 MB
 

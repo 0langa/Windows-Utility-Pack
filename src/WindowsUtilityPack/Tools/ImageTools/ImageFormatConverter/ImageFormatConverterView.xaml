@@ -17,14 +17,14 @@
         <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,10">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <Button Content="Add Files" Command="{Binding AddFilesCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Remove Selected" Command="{Binding RemoveSelectedFileCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Clear" Command="{Binding ClearFilesCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="AddFilesCommand" Content="Add Files" Command="{Binding AddFilesCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="RemoveSelectedFileCommand" Content="Remove Selected" Command="{Binding RemoveSelectedFileCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="ClearFilesCommand" Content="Clear" Command="{Binding ClearFilesCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                    <Button Content="Browse Output Folder" Command="{Binding BrowseOutputDirectoryCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Convert" Command="{Binding ConvertCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="BrowseOutputDirectoryCommand" Content="Browse Output Folder" Command="{Binding BrowseOutputDirectoryCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="ConvertCommand" Content="Convert" Command="{Binding ConvertCommand}" Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0"/>
+                    <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -38,17 +38,17 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" Text="{Binding OutputDirectory}" IsReadOnly="True" Margin="0,0,10,0"/>
+                <TextBox AutomationProperties.AutomationId="OutputDirectory" Grid.Column="0" Text="{Binding OutputDirectory}" IsReadOnly="True" Margin="0,0,10,0"/>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
                     <TextBlock Text="Format:" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <ComboBox Width="100" ItemsSource="{Binding TargetFormats}" SelectedItem="{Binding TargetFormat}"/>
+                    <ComboBox AutomationProperties.AutomationId="TargetFormat" Width="100" ItemsSource="{Binding TargetFormats}" SelectedItem="{Binding TargetFormat}"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
                     <TextBlock Text="Quality:" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Width="50" Text="{Binding Quality, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox AutomationProperties.AutomationId="Quality" Width="50" Text="{Binding Quality, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
-                <CheckBox Grid.Column="3" Content="Overwrite Existing" IsChecked="{Binding OverwriteExisting}" VerticalAlignment="Center"/>
-                <Button Grid.Column="4" Content="Copy Summary" Command="{Binding CopySummaryCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="10,0,0,0"/>
+                <CheckBox AutomationProperties.AutomationId="OverwriteExisting" Grid.Column="3" Content="Overwrite Existing" IsChecked="{Binding OverwriteExisting}" VerticalAlignment="Center"/>
+                <Button AutomationProperties.AutomationId="CopySummaryCommand" Grid.Column="4" Content="Copy Summary" Command="{Binding CopySummaryCommand}" Style="{StaticResource SecondaryActionButtonStyle}" Margin="10,0,0,0"/>
             </Grid>
         </Border>
 
@@ -66,7 +66,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <TextBlock Text="Input Files" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
-                    <ListBox Grid.Row="1"
+                    <ListBox AutomationProperties.AutomationId="SelectedInputFile" Grid.Row="1"
                              ItemsSource="{Binding InputFiles}"
                              SelectedItem="{Binding SelectedInputFile, Mode=TwoWay}"
                              FontFamily="Consolas"
@@ -75,7 +75,7 @@
             </Border>
 
             <Border Grid.Column="2" Style="{StaticResource ToolPanelBorderStyle}">
-                <DataGrid ItemsSource="{Binding Results}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+                <DataGrid AutomationProperties.AutomationId="Results" ItemsSource="{Binding Results}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
                     <DataGrid.Columns>
                         <DataGridCheckBoxColumn Header="OK" Binding="{Binding Success}" Width="50"/>
                         <DataGridTextColumn Header="Input" Binding="{Binding Input}" Width="180"/>
@@ -87,7 +87,7 @@
         </Grid>
 
         <Border Grid.Row="4" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,10,0,0">
-            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
         </Border>
     </Grid>
 </UserControl>

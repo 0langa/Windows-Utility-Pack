@@ -9,7 +9,7 @@ namespace WindowsUtilityPack.Tools.SystemUtilities.EventLogViewer;
 /// <summary>
 /// ViewModel for event log filtering and diagnostics review.
 /// </summary>
-public sealed class EventLogViewerViewModel : ViewModelBase
+public sealed class EventLogViewerViewModel : ViewModelBase, IDisposable
 {
     private readonly IWindowsEventLogService _eventLogService;
     private readonly IClipboardService _clipboard;
@@ -63,6 +63,9 @@ public sealed class EventLogViewerViewModel : ViewModelBase
 
     public AsyncRelayCommand RefreshCommand { get; }
     public RelayCommand CopyCsvCommand { get; }
+    public RelayCommand CancelCommand { get; }
+    private CancellationTokenSource? _queryCts;
+    private bool _disposed;
 
     public EventLogViewerViewModel(IWindowsEventLogService eventLogService, IClipboardService clipboard)
     {
@@ -70,19 +73,29 @@ public sealed class EventLogViewerViewModel : ViewModelBase
         _clipboard = clipboard ?? throw new ArgumentNullException(nameof(clipboard));
 
         RefreshCommand = new AsyncRelayCommand(_ => RefreshAsync());
+        CancelCommand = new RelayCommand(() => _queryCts?.Cancel(), () => _queryCts is not null);
         CopyCsvCommand = new RelayCommand(_ => CopyCsv(), _ => Entries.Count > 0);
     }
 
     internal async Task RefreshAsync()
     {
+        if (_queryCts is not null || _disposed) return;
+        if (!string.IsNullOrWhiteSpace(EventIdFilterText) && (!int.TryParse(EventIdFilterText, out var validId) || validId is < 0 or > 65535))
+        { StatusMessage = "Event ID must be a number from 0 to 65535."; return; }
+        using var cts = new CancellationTokenSource(); _queryCts = cts;
+        var logName = SelectedLogName;
+        Entries.Clear(); StatusMessage = "Reading events…";
+        try
+        {
         var eventIdFilter = int.TryParse(EventIdFilterText, out var parsedId) ? parsedId : (int?)null;
         var entries = await _eventLogService.QueryAsync(
-            SelectedLogName,
+            logName,
             SourceFilter,
             LevelFilter,
             eventIdFilter,
             DateTime.UtcNow.AddDays(-7),
-            Limit).ConfigureAwait(true);
+            Limit, cts.Token).ConfigureAwait(true);
+        if (_disposed || cts.IsCancellationRequested) return;
 
         Entries.Clear();
         foreach (var entry in entries)
@@ -92,7 +105,11 @@ public sealed class EventLogViewerViewModel : ViewModelBase
 
         StatusMessage = Entries.Count == 0
             ? "No events found for current filter."
-            : $"Loaded {Entries.Count:N0} events from {SelectedLogName}.";
+            : $"Loaded {Entries.Count:N0} events from {logName}.";
+        }
+        catch (OperationCanceledException) { StatusMessage = "Event query cancelled."; }
+        catch (Exception ex) { StatusMessage = $"Could not read events: {ex.Message}"; }
+        finally { _queryCts = null; }
     }
 
     private void CopyCsv()
@@ -123,4 +140,5 @@ public sealed class EventLogViewerViewModel : ViewModelBase
             return $"\"{escaped}\"";
         return escaped;
     }
+    public void Dispose() { _disposed = true; _queryCts?.Cancel(); }
 }

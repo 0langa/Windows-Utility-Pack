@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using WindowsUtilityPack.Commands;
+using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
 
 namespace WindowsUtilityPack.Tools.SystemUtilities.HostsFileEditor;
@@ -29,11 +30,17 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
                      @"drivers\etc\hosts");
     private static readonly string DefaultBackupPath =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "WindowsUtilityPack", "hosts.backup");
+        Path.Combine(AppDataPaths.RoamingDirectory, "hosts.backup");
 
     private readonly string _hostsPath;
     private readonly string _backupPath;
+    private readonly IUserDialogService _dialogs;
+    private readonly Dictionary<HostsEntry, (string Text, string Signature)> _originalLines = [];
+    private byte[]? _loadedBytes;
+    private Encoding _encoding = new UTF8Encoding(false, true);
+    private string _newline = Environment.NewLine;
+    private bool _loading, _busy;
+    public bool IsBusy { get => _busy; private set { SetProperty(ref _busy, value); RelayCommand.RaiseCanExecuteChanged(); } }
 
     private static readonly string[] BlocklistEntries =
     [
@@ -112,18 +119,25 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
     {
     }
 
-    internal HostsFileEditorViewModel(string? hostsPath, string? backupPath, bool autoLoad)
+    internal HostsFileEditorViewModel(string? hostsPath, string? backupPath, bool autoLoad, IUserDialogService? dialogs = null)
     {
         _hostsPath = string.IsNullOrWhiteSpace(hostsPath) ? DefaultHostsPath : hostsPath;
         _backupPath = string.IsNullOrWhiteSpace(backupPath) ? DefaultBackupPath : backupPath;
+        _dialogs = dialogs ?? new UserDialogService();
+        Entries.CollectionChanged += (_, args) =>
+        {
+            if (args.OldItems is not null) foreach (HostsEntry entry in args.OldItems) entry.PropertyChanged -= EntryChanged;
+            if (args.NewItems is not null) foreach (HostsEntry entry in args.NewItems) entry.PropertyChanged += EntryChanged;
+            if (!_loading) IsModified = true;
+        };
 
-        LoadCommand         = new AsyncRelayCommand(LoadAsync);
-        SaveCommand         = new AsyncRelayCommand(SaveAsync);
-        AddEntryCommand     = new RelayCommand(AddEntry);
-        DeleteEntryCommand  = new RelayCommand(DeleteEntry, () => SelectedEntry != null);
-        ToggleEntryCommand  = new RelayCommand(ToggleEntry, () => SelectedEntry != null);
-        AddBlocklistCommand = new RelayCommand(AddBlocklist);
-        RestoreBackupCommand = new AsyncRelayCommand(RestoreBackupAsync);
+        LoadCommand         = new AsyncRelayCommand(LoadAsync, () => !IsBusy);
+        SaveCommand         = new AsyncRelayCommand(SaveAsync, () => !IsBusy && _loadedBytes is not null);
+        AddEntryCommand     = new RelayCommand(AddEntry, () => !IsBusy);
+        DeleteEntryCommand  = new RelayCommand(DeleteEntry, () => !IsBusy && SelectedEntry != null);
+        ToggleEntryCommand  = new RelayCommand(ToggleEntry, () => !IsBusy && SelectedEntry != null);
+        AddBlocklistCommand = new RelayCommand(AddBlocklist, () => !IsBusy);
+        RestoreBackupCommand = new AsyncRelayCommand(RestoreBackupAsync, () => !IsBusy);
 
         if (autoLoad)
         {
@@ -133,18 +147,11 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
 
     private async Task LoadAsync()
     {
+        if (IsBusy || !ConfirmDiscard()) return;
+        IsBusy = true;
         try
         {
-            var lines = await File.ReadAllLinesAsync(_hostsPath);
-
-            RunOnUi(() =>
-            {
-                Entries.Clear();
-                foreach (var line in lines)
-                    ParseAndAdd(line);
-                IsModified    = false;
-                StatusMessage = $"Loaded {Entries.Count} entries from {_hostsPath}.";
-            });
+            await LoadCoreAsync();
         }
         catch (UnauthorizedAccessException)
         {
@@ -154,7 +161,48 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         {
             StatusMessage = $"Load failed: {ex.Message}";
         }
+        finally { IsBusy = false; }
     }
+
+    private void EntryChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) { if (!_loading) IsModified = true; }
+
+    private async Task LoadCoreAsync()
+    {
+        var bytes = await Task.Run(() => ReadBounded(_hostsPath));
+        using var reader = new StreamReader(new MemoryStream(bytes), new UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
+        var text = await reader.ReadToEndAsync();
+        _encoding = reader.CurrentEncoding;
+        // Preserve whether UTF-8 had a BOM; StreamReader's detected UTF-8 may otherwise add one.
+        if (_encoding.CodePage == Encoding.UTF8.CodePage) _encoding = new UTF8Encoding(bytes.AsSpan().StartsWith(new byte[] { 239, 187, 191 }), true);
+        _newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        _loading = true;
+        try
+        {
+            foreach (var entry in Entries) entry.PropertyChanged -= EntryChanged;
+            Entries.Clear(); _originalLines.Clear();
+            using var lines = new StringReader(text);
+            while (lines.ReadLine() is { } line)
+            {
+                var before = Entries.Count;
+                ParseAndAdd(line);
+                if (Entries.Count == before) Entries.Add(new HostsEntry { IsComment = true, Hostname = line });
+                var entry = Entries[^1];
+                _originalLines[entry] = (line, Signature(entry));
+            }
+            _loadedBytes = bytes;
+            IsModified = false;
+            StatusMessage = $"Loaded {Entries.Count} entries from {_hostsPath}.";
+        }
+        finally { _loading = false; }
+    }
+
+    private static byte[] ReadBounded(string path)
+    {
+        using var stream = File.OpenRead(path);
+        if (stream.Length > 4 * 1024 * 1024) throw new InvalidDataException("Hosts files are limited to 4 MiB.");
+        var bytes = new byte[checked((int)stream.Length)]; stream.ReadExactly(bytes); return bytes;
+    }
+    private static string Signature(HostsEntry entry) => System.Text.Json.JsonSerializer.Serialize(new { entry.IpAddress, entry.Hostname, entry.Comment, entry.IsEnabled, entry.IsComment });
 
     private void ParseAndAdd(string line)
     {
@@ -168,17 +216,16 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         {
             // Try to detect disabled entries like "# 0.0.0.0 hostname"
             var inner = trimmed[1..].Trim();
-            var parts = Regex.Split(inner, @"\s+");
+            var commentIndex = inner.IndexOf('#');
+            var parts = Regex.Split(commentIndex < 0 ? inner : inner[..commentIndex], @"\s+").Where(p => p.Length > 0).ToArray();
             if (parts.Length >= 2 && IsIpAddress(parts[0]))
             {
-                var commentPart = parts.Length >= 3 && parts[2].StartsWith('#')
-                    ? string.Join(" ", parts.Skip(3))
-                    : string.Empty;
+                var commentPart = commentIndex < 0 ? string.Empty : inner[(commentIndex + 1)..].Trim();
 
                 Entries.Add(new HostsEntry
                 {
                     IpAddress = parts[0],
-                    Hostname  = parts[1],
+                    Hostname  = string.Join(" ", parts.Skip(1)),
                     Comment   = commentPart,
                     IsEnabled = false,
                     IsComment = false
@@ -208,7 +255,7 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
             Entries.Add(new HostsEntry
             {
                 IpAddress = segments[0],
-                Hostname  = segments[1],
+                Hostname  = string.Join(" ", segments.Skip(1)),
                 Comment   = comment,
                 IsEnabled = true,
                 IsComment = false
@@ -221,15 +268,25 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
 
     private async Task SaveAsync()
     {
+        if (IsBusy) return;
+        if (_loadedBytes is null) { StatusMessage = "Load the hosts file before saving changes."; return; }
+        IsBusy = true;
         try
         {
-            var backupWarning = await TryCreateBackupAsync();
             var content = BuildFileContent();
-            await File.WriteAllTextAsync(_hostsPath, content, Encoding.ASCII);
-            IsModified    = false;
-            StatusMessage = backupWarning is null
-                ? "Hosts file saved successfully."
-                : $"Hosts file saved successfully. {backupWarning}";
+            var submitted = Entries.Select(Signature).ToArray();
+            var original = _loadedBytes;
+            var encoding = _encoding;
+            var bytes = encoding.GetPreamble().Concat(encoding.GetBytes(content)).ToArray();
+            await Task.Run(() =>
+            {
+                if (!ReadBounded(_hostsPath).AsSpan().SequenceEqual(original)) throw new IOException("The hosts file changed outside this editor. Reload it before saving.");
+                AtomicFile.WriteAllBytes(_backupPath, original);
+                AtomicFile.WriteAllBytes(_hostsPath, bytes);
+            });
+            _loadedBytes = bytes;
+            IsModified = !submitted.SequenceEqual(Entries.Select(Signature));
+            StatusMessage = "Hosts file saved successfully.";
         }
         catch (UnauthorizedAccessException)
         {
@@ -239,34 +296,13 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         {
             StatusMessage = $"Save failed: {ex.Message}";
         }
-    }
-
-    private async Task<string?> TryCreateBackupAsync()
-    {
-        try
-        {
-            var backupDir = Path.GetDirectoryName(_backupPath);
-            if (!string.IsNullOrWhiteSpace(backupDir))
-            {
-                Directory.CreateDirectory(backupDir);
-            }
-
-            if (File.Exists(_hostsPath))
-            {
-                var source = await File.ReadAllTextAsync(_hostsPath, Encoding.ASCII);
-                await File.WriteAllTextAsync(_backupPath, source, Encoding.ASCII);
-            }
-
-            return null;
-        }
-        catch (Exception ex)
-        {
-            return $"Backup could not be written ({ex.Message}).";
-        }
+        finally { IsBusy = false; }
     }
 
     private async Task RestoreBackupAsync()
     {
+        if (IsBusy || !_dialogs.Confirm("Restore hosts backup", "Replace the hosts file with the saved backup? The current file will be kept in a .before-restore copy.")) return;
+        IsBusy = true;
         try
         {
             if (!File.Exists(_backupPath))
@@ -275,9 +311,13 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
                 return;
             }
 
-            var backupContent = await File.ReadAllTextAsync(_backupPath, Encoding.ASCII);
-            await File.WriteAllTextAsync(_hostsPath, backupContent, Encoding.ASCII);
-            await LoadAsync();
+            await Task.Run(() =>
+            {
+                var bytes = ReadBounded(_backupPath);
+                AtomicFile.WriteAllBytes(_backupPath + ".before-restore", ReadBounded(_hostsPath));
+                AtomicFile.WriteAllBytes(_hostsPath, bytes);
+            });
+            await LoadCoreAsync();
             StatusMessage = "Hosts file restored from backup.";
         }
         catch (UnauthorizedAccessException)
@@ -288,6 +328,7 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         {
             StatusMessage = $"Restore failed: {ex.Message}";
         }
+        finally { IsBusy = false; }
     }
 
     private string BuildFileContent()
@@ -295,11 +336,20 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
         var sb = new StringBuilder();
         foreach (var entry in Entries)
         {
+            if (_originalLines.TryGetValue(entry, out var original) && original.Signature == Signature(entry))
+            { sb.Append(original.Text).Append(_newline); continue; }
+            if (new[] { entry.IpAddress, entry.Hostname, entry.Comment }.Any(s => s.IndexOfAny(['\r', '\n', '\0']) >= 0))
+                throw new InvalidDataException("Hosts entries must not contain line breaks or null characters.");
             if (entry.IsComment)
             {
-                sb.AppendLine(entry.Hostname);
+                if (!string.IsNullOrWhiteSpace(entry.Hostname) && !entry.Hostname.TrimStart().StartsWith('#'))
+                    throw new InvalidDataException("Comment lines must start with #.");
+                sb.Append(entry.Hostname).Append(_newline);
                 continue;
             }
+            var names = entry.Hostname.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            if (!IsIpAddress(entry.IpAddress) || names.Length == 0 || names.Any(name => !IsValidHostname(name)))
+                throw new InvalidDataException("Every hosts entry needs a valid IP address and hostname(s).");
 
             var line = $"{entry.IpAddress}\t{entry.Hostname}";
             if (!string.IsNullOrEmpty(entry.Comment))
@@ -308,7 +358,7 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
             if (!entry.IsEnabled)
                 line = "# " + line;
 
-            sb.AppendLine(line);
+            sb.Append(line).Append(_newline);
         }
         return sb.ToString();
     }
@@ -398,17 +448,9 @@ public class HostsFileEditorViewModel : ViewModelBase, INavigationGuard
 
     public bool CanNavigateAway()
     {
-        if (!IsModified)
-        {
-            return true;
-        }
-
-        return MessageBox.Show(
-            "You have unsaved changes in Hosts File Editor.\n\nLeave this page and discard changes?",
-            "Unsaved Changes",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning) == MessageBoxResult.Yes;
+        return !IsBusy && ConfirmDiscard();
     }
+    private bool ConfirmDiscard() => !IsModified || _dialogs.Confirm("Unsaved hosts changes", "Discard the unsaved hosts file changes?");
 
     private static bool IsValidHostname(string host)
     {

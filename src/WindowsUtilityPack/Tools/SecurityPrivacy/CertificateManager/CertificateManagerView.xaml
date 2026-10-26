@@ -22,17 +22,17 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <ComboBox Grid.Column="0" Margin="0,0,8,0" ItemsSource="{Binding StoreLocations}" SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"/>
-                <ComboBox Grid.Column="1" Margin="0,0,8,0" ItemsSource="{Binding StoreNames}" SelectedItem="{Binding SelectedStoreName, Mode=TwoWay}"/>
-                <TextBox Grid.Column="2" Margin="0,0,8,0" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                <Button Grid.Column="3" Margin="0,0,8,0" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Grid.Column="4" Margin="0,0,8,0" Content="Copy Details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Grid.Column="5" Content="Copy PEM" Command="{Binding CopyPemCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <ComboBox AutomationProperties.AutomationId="SelectedLocation" Grid.Column="0" Margin="0,0,8,0" ItemsSource="{Binding StoreLocations}" SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"/>
+                <ComboBox AutomationProperties.AutomationId="SelectedStoreName" Grid.Column="1" Margin="0,0,8,0" ItemsSource="{Binding StoreNames}" SelectedItem="{Binding SelectedStoreName, Mode=TwoWay}"/>
+                <TextBox AutomationProperties.AutomationId="SearchQuery" Grid.Column="2" Margin="0,0,8,0" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                <Button AutomationProperties.AutomationId="RefreshCommand" Grid.Column="3" Margin="0,0,8,0" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="CopyDetailsCommand" Grid.Column="4" Margin="0,0,8,0" Content="Copy Details" Command="{Binding CopyDetailsCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="CopyPemCommand" Grid.Column="5" Content="Copy PEM" Command="{Binding CopyPemCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
             </Grid>
         </Border>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
-            <DataGrid ItemsSource="{Binding Certificates}"
+            <DataGrid AutomationProperties.AutomationId="SelectedCertificate" ItemsSource="{Binding Certificates}"
                       SelectedItem="{Binding SelectedCertificate, Mode=TwoWay}"
                       AutoGenerateColumns="False"
                       CanUserAddRows="False"
@@ -52,7 +52,7 @@
         </Border>
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

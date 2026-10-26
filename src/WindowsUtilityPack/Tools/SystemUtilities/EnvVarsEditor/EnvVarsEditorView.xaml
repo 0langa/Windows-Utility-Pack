@@ -33,16 +33,16 @@
                 <WrapPanel>
                     <TextBlock Text="Scope" VerticalAlignment="Center" Margin="0,0,8,0"
                                Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    <ComboBox SelectedValue="{Binding ScopeFilter}" Width="140" Margin="0,0,18,0">
-                        <ComboBoxItem Content="All" IsSelected="True"/>
+                    <ComboBox AutomationProperties.AutomationId="ScopeFilter" SelectedValue="{Binding ScopeFilter, Mode=TwoWay}" SelectedValuePath="Content" Width="140" Margin="0,0,18,0">
+                        <ComboBoxItem Content="All"/>
                         <ComboBoxItem Content="User"/>
                         <ComboBoxItem Content="Machine"/>
                     </ComboBox>
                     <TextBlock Text="Search" VerticalAlignment="Center" Margin="0,0,8,0"
                                Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox AutomationProperties.AutomationId="SearchText" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              Width="260"/>
-                    <Button Content="Refresh"
+                    <Button AutomationProperties.AutomationId="LoadCommand" Content="Refresh"
                             Style="{StaticResource SecondaryActionButtonStyle}"
                             Command="{Binding LoadCommand}"
                             Margin="12,0,0,0"/>
@@ -67,7 +67,7 @@
                             <TextBlock Text="Variables" Style="{StaticResource PanelHeaderTextStyle}"/>
                         </Border>
 
-                        <DataGrid Grid.Row="1"
+                        <DataGrid AutomationProperties.AutomationId="SelectedEntry" Grid.Row="1"
                                   ItemsSource="{Binding FilteredEntries}"
                                   SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
                                   AutoGenerateColumns="False"
@@ -106,10 +106,10 @@
                                    Margin="0,4,0,14"/>
 
                         <TextBlock Text="Name" Style="{StaticResource MetadataTextStyle}" Margin="0,0,0,4"/>
-                        <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14"/>
+                        <TextBox AutomationProperties.AutomationId="EditName" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14"/>
 
                         <TextBlock Text="Value" Style="{StaticResource MetadataTextStyle}" Margin="0,0,0,4"/>
-                        <TextBox Text="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox AutomationProperties.AutomationId="EditValue" Text="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
                                  MinHeight="120"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
@@ -117,20 +117,20 @@
                                  Margin="0,0,0,14"/>
 
                         <WrapPanel Margin="0,0,0,8">
-                            <Button Content="Save" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveCommand}" Margin="0,0,8,8"/>
-                            <Button Content="New" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding NewCommand}" Margin="0,0,8,8"/>
-                            <Button Content="Revert" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RevertCommand}" Margin="0,0,8,8"/>
+                            <Button AutomationProperties.AutomationId="SaveCommand" Content="Save" Style="{StaticResource PrimaryActionButtonStyle}" Command="{Binding SaveCommand}" Margin="0,0,8,8"/>
+                            <Button AutomationProperties.AutomationId="NewCommand" Content="New" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding NewCommand}" Margin="0,0,8,8"/>
+                            <Button AutomationProperties.AutomationId="RevertCommand" Content="Revert" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding RevertCommand}" Margin="0,0,8,8"/>
                         </WrapPanel>
                         <WrapPanel>
-                            <Button Content="Copy Value" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyValueCommand}" Margin="0,0,8,8"/>
-                            <Button Content="Delete" Style="{StaticResource DangerActionButtonStyle}" Command="{Binding DeleteCommand}" Margin="0,0,8,8"/>
+                            <Button AutomationProperties.AutomationId="CopyValueCommand" Content="Copy Value" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding CopyValueCommand}" Margin="0,0,8,8"/>
+                            <Button AutomationProperties.AutomationId="DeleteCommand" Content="Delete" Style="{StaticResource DangerActionButtonStyle}" Command="{Binding DeleteCommand}" Margin="0,0,8,8"/>
                         </WrapPanel>
                     </StackPanel>
                 </Border>
             </Grid>
 
             <Border Style="{StaticResource StatusSurfaceStyle}" Margin="0,12,0,0">
-                <TextBlock Text="{Binding StatusMessage}"
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                            Foreground="{DynamicResource SecondaryTextBrush}"
                            FontSize="12"/>
             </Border>

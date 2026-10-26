@@ -13,7 +13,7 @@ namespace WindowsUtilityPack.Tools.NetworkInternet.HttpRequestTester;
 /// ViewModel for the HTTP Request Tester tool.
 /// Sends HTTP requests and displays response status, headers, body, and timing.
 /// </summary>
-public class HttpRequestTesterViewModel : ViewModelBase
+public class HttpRequestTesterViewModel : ViewModelBase, IDisposable
 {
     private static readonly HttpClient SharedHttpClient = new();
 
@@ -108,6 +108,10 @@ public class HttpRequestTesterViewModel : ViewModelBase
     public AsyncRelayCommand SendCommand         { get; }
     public RelayCommand      CopyResponseCommand { get; }
     public RelayCommand      ClearCommand        { get; }
+    public RelayCommand CancelCommand { get; }
+    private CancellationTokenSource? _requestCancellation;
+    private bool _cancelledByUser;
+    public void Dispose() => _requestCancellation?.Cancel();
 
     public HttpRequestTesterViewModel(IClipboardService clipboard)
         : this(clipboard, SharedHttpClient)
@@ -121,12 +125,18 @@ public class HttpRequestTesterViewModel : ViewModelBase
 
         SendCommand         = new AsyncRelayCommand(_ => SendRequestAsync(), _ => !IsSending);
         CopyResponseCommand = new RelayCommand(_ => CopyResponse(),         _ => !string.IsNullOrEmpty(ResponseBody));
-        ClearCommand        = new RelayCommand(_ => ClearAll());
+        ClearCommand        = new RelayCommand(_ => ClearAll(), _ => !IsSending);
+        CancelCommand = new RelayCommand(() => { _cancelledByUser = true; _requestCancellation?.Cancel(); }, () => IsSending);
     }
 
     private async Task SendRequestAsync()
     {
         if (string.IsNullOrWhiteSpace(Url)) return;
+        if (!Uri.TryCreate(Url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+        { ResponseStatus = "Enter a valid HTTP or HTTPS URL."; return; }
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        _requestCancellation = cancellation;
+        _cancelledByUser = false;
 
         IsSending     = true;
         ResponseBody    = string.Empty;
@@ -138,18 +148,6 @@ public class HttpRequestTesterViewModel : ViewModelBase
         {
             using var request = new HttpRequestMessage(new HttpMethod(Method), Url);
 
-            // Parse and add custom request headers
-            foreach (var line in RequestHeaders.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var colon = line.IndexOf(':');
-                if (colon > 0)
-                {
-                    var key = line[..colon].Trim();
-                    var val = line[(colon + 1)..].Trim();
-                    request.Headers.TryAddWithoutValidation(key, val);
-                }
-            }
-
             // Add body for appropriate methods
             if (ShowRequestBody && !string.IsNullOrWhiteSpace(RequestBody))
             {
@@ -158,9 +156,24 @@ public class HttpRequestTesterViewModel : ViewModelBase
                 request.Content = new StringContent(RequestBody, Encoding.UTF8, contentType);
             }
 
+            // Parse and add custom request headers
+            foreach (var line in RequestHeaders.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var colon = line.IndexOf(':');
+                if (colon > 0)
+                {
+                    var key = line[..colon].Trim();
+                    var val = line[(colon + 1)..].Trim();
+                    if (!request.Headers.TryAddWithoutValidation(key, val) && request.Content is not null)
+                    {
+                        request.Content.Headers.Remove(key);
+                        request.Content.Headers.TryAddWithoutValidation(key, val);
+                    }
+                }
+            }
+
             var sw = Stopwatch.StartNew();
-            using var response = await _httpClient.SendAsync(request);
-            sw.Stop();
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation.Token);
 
             ResponseTimeMs     = sw.ElapsedMilliseconds;
             ResponseStatusCode = (int)response.StatusCode;
@@ -175,7 +188,9 @@ public class HttpRequestTesterViewModel : ViewModelBase
             ResponseHeaders = headerSb.ToString().TrimEnd();
 
             // Read body
-            var body = await response.Content.ReadAsStringAsync();
+            var body = await BoundedHttpContent.ReadTextAsync(response.Content, cancellation.Token);
+            sw.Stop();
+            ResponseTimeMs = sw.ElapsedMilliseconds;
 
             // Pretty-print JSON
             var responseContentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
@@ -191,14 +206,22 @@ public class HttpRequestTesterViewModel : ViewModelBase
 
             ResponseBody = body;
         }
+        catch (OperationCanceledException)
+        {
+            ResponseStatus = _cancelledByUser ? "Request cancelled." : "Request timed out.";
+            ResponseBody = string.Empty;
+            ResponseStatusCode = 0;
+        }
         catch (Exception ex)
         {
             ResponseStatus = "Error";
             ResponseBody   = ex.Message;
+            ResponseStatusCode = 0;
         }
         finally
         {
             IsSending = false;
+            _requestCancellation = null;
         }
     }
 

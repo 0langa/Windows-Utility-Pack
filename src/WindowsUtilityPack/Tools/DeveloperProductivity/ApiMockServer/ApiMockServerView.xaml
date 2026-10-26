@@ -22,22 +22,22 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0" Margin="0,0,8,0" Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                <Button Grid.Column="1" Margin="0,0,8,0" Content="Start" Command="{Binding StartCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
-                <Button Grid.Column="2" Margin="0,0,8,0" Content="Stop" Command="{Binding StopCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Grid.Column="3" Margin="0,0,8,0" Content="Save Endpoints" Command="{Binding SaveEndpointsCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="{Binding BaseUrl}" Style="{StaticResource MetadataTextStyle}"/>
+                <TextBox AutomationProperties.AutomationId="Port" Grid.Column="0" Margin="0,0,8,0" Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                <Button AutomationProperties.AutomationId="StartCommand" Grid.Column="1" Margin="0,0,8,0" Content="Start" Command="{Binding StartCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="StopCommand" Grid.Column="2" Margin="0,0,8,0" Content="Stop" Command="{Binding StopCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="SaveEndpointsCommand" Grid.Column="3" Margin="0,0,8,0" Content="Save Endpoints" Command="{Binding SaveEndpointsCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <TextBlock AutomationProperties.AutomationId="BaseUrl" Grid.Column="4" VerticalAlignment="Center" Text="{Binding BaseUrl}" Style="{StaticResource MetadataTextStyle}"/>
             </Grid>
         </Border>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <Button Content="Add Endpoint" Command="{Binding AddEndpointCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                    <Button Content="Remove Selected" Command="{Binding RemoveEndpointCommand}" Style="{StaticResource DangerActionButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="AddEndpointCommand" Content="Add Endpoint" Command="{Binding AddEndpointCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="RemoveEndpointCommand" Content="Remove Selected" Command="{Binding RemoveEndpointCommand}" Style="{StaticResource DangerActionButtonStyle}"/>
                 </StackPanel>
 
-                <DataGrid ItemsSource="{Binding Endpoints}"
+                <DataGrid AutomationProperties.AutomationId="SelectedEndpoint" ItemsSource="{Binding Endpoints}"
                           SelectedItem="{Binding SelectedEndpoint, Mode=TwoWay}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
@@ -61,11 +61,11 @@
         <Border Grid.Row="3" Style="{StaticResource ToolPanelBorderStyle}">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <Button Content="Refresh Log" Command="{Binding RefreshLogCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                    <Button Content="Clear Log" Command="{Binding ClearLogCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="RefreshLogCommand" Content="Refresh Log" Command="{Binding RefreshLogCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="ClearLogCommand" Content="Clear Log" Command="{Binding ClearLogCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
                 </StackPanel>
 
-                <DataGrid ItemsSource="{Binding RequestLog}"
+                <DataGrid AutomationProperties.AutomationId="RequestLog" ItemsSource="{Binding RequestLog}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
@@ -84,7 +84,7 @@
         </Border>
 
         <Border Grid.Row="4" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

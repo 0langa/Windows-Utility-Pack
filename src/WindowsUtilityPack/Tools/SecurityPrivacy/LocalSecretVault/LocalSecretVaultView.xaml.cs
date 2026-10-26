@@ -12,7 +12,7 @@ public partial class LocalSecretVaultView : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
-        Loaded += (_, _) => SyncPasswordBoxFromViewModel();
+        Loaded += (_, _) => OnDataContextChanged(this, new System.Windows.DependencyPropertyChangedEventArgs(DataContextProperty, null, DataContext));
         Unloaded += (_, _) =>
         {
             if (_subscribedViewModel is not null)
@@ -25,6 +25,7 @@ public partial class LocalSecretVaultView : UserControl
 
     private void MasterPasswordBox_PasswordChanged(object sender, System.Windows.RoutedEventArgs e)
     {
+        if (_suppressSync) return;
         if (DataContext is LocalSecretVaultViewModel vm && sender is PasswordBox pb)
             vm.MasterPassword = pb.Password;
     }
@@ -65,7 +66,8 @@ public partial class LocalSecretVaultView : UserControl
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(LocalSecretVaultViewModel.EditValue)
+        if (e.PropertyName is nameof(LocalSecretVaultViewModel.MasterPassword)
+            or nameof(LocalSecretVaultViewModel.EditValue)
             or nameof(LocalSecretVaultViewModel.SelectedSecret)
             or nameof(LocalSecretVaultViewModel.IsValueVisible))
         {
@@ -80,12 +82,8 @@ public partial class LocalSecretVaultView : UserControl
             return;
         }
 
-        if (EditValuePasswordBox.Password == vm.EditValue)
-        {
-            return;
-        }
-
         _suppressSync = true;
+        MasterPasswordBox.Password = vm.MasterPassword;
         EditValuePasswordBox.Password = vm.EditValue ?? string.Empty;
         _suppressSync = false;
     }

@@ -15,18 +15,18 @@
 
         <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <Button Content="Refresh"
+                <Button AutomationProperties.AutomationId="RefreshCommand" Content="Refresh"
                         Command="{Binding RefreshCommand}"
                         Margin="0,0,8,0"
                         Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Cancel Selected"
+                <Button AutomationProperties.AutomationId="CancelSelectedCommand" Content="Cancel Selected"
                         Command="{Binding CancelSelectedCommand}"
                         Style="{StaticResource DangerActionButtonStyle}"/>
             </StackPanel>
         </Border>
 
         <Border Grid.Row="2" Style="{StaticResource ToolPanelBorderStyle}">
-            <ListView ItemsSource="{Binding TaskItems}"
+            <ListView AutomationProperties.AutomationId="SelectedTask" ItemsSource="{Binding TaskItems}"
                       SelectedItem="{Binding SelectedTask, Mode=TwoWay}">
                 <ListView.View>
                     <GridView>
@@ -43,7 +43,7 @@
         </Border>
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

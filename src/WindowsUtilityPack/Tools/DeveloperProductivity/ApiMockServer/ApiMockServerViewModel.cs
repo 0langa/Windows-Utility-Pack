@@ -67,7 +67,7 @@ public sealed class ApiMockServerViewModel : ViewModelBase
         StopCommand = new AsyncRelayCommand(_ => StopAsync());
         AddEndpointCommand = new RelayCommand(_ => AddEndpoint());
         RemoveEndpointCommand = new RelayCommand(_ => RemoveEndpoint());
-        SaveEndpointsCommand = new RelayCommand(_ => SaveEndpoints());
+        SaveEndpointsCommand = new RelayCommand(_ => TrySaveEndpoints());
         RefreshLogCommand = new RelayCommand(_ => RefreshLog());
         ClearLogCommand = new RelayCommand(_ => ClearLog());
 
@@ -80,7 +80,7 @@ public sealed class ApiMockServerViewModel : ViewModelBase
         IsBusy = true;
         try
         {
-            SaveEndpoints();
+            if (!TrySaveEndpoints()) return;
             await _service.StartAsync(Port).ConfigureAwait(true);
             OnPropertyChanged(nameof(IsRunning));
             OnPropertyChanged(nameof(BaseUrl));
@@ -152,10 +152,20 @@ public sealed class ApiMockServerViewModel : ViewModelBase
         StatusMessage = "Endpoint removed. Click Save Endpoints to apply.";
     }
 
-    private void SaveEndpoints()
+    private bool TrySaveEndpoints()
     {
-        _service.SetEndpoints(Endpoints.ToList());
-        StatusMessage = "Endpoint configuration saved.";
+        try
+        {
+            _service.SetEndpoints(Endpoints.ToList());
+            StatusMessage = "Endpoint configuration saved.";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Endpoint configuration not saved: {ex.Message}";
+            _dialogs.ShowError("API Mock Server", ex.Message);
+            return false;
+        }
     }
 
     private void RefreshLog()

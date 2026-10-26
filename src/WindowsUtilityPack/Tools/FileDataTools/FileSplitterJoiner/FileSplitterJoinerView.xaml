@@ -27,19 +27,19 @@
                         <TextBlock Text="Split File" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,10"/>
                         <TextBlock Text="Source File" Margin="0,0,0,4"/>
                         <DockPanel Margin="0,0,0,8">
-                            <Button Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseSplitInputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                            <TextBox Text="{Binding SplitInputFilePath}" IsReadOnly="True"/>
+                            <Button AutomationProperties.AutomationId="BrowseSplitInputCommand" Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseSplitInputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox AutomationProperties.AutomationId="SplitInputFilePath" Text="{Binding SplitInputFilePath}" IsReadOnly="True"/>
                         </DockPanel>
 
                         <TextBlock Text="Output Directory" Margin="0,0,0,4"/>
                         <DockPanel Margin="0,0,0,8">
-                            <Button Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseSplitOutputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                            <TextBox Text="{Binding SplitOutputDirectory}" IsReadOnly="True"/>
+                            <Button AutomationProperties.AutomationId="BrowseSplitOutputCommand" Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseSplitOutputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox AutomationProperties.AutomationId="SplitOutputDirectory" Text="{Binding SplitOutputDirectory}" IsReadOnly="True"/>
                         </DockPanel>
 
                         <TextBlock Text="Chunk Size (MB)" Margin="0,0,0,4"/>
-                        <TextBox Text="{Binding ChunkSizeMb, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
-                        <Button Content="Split File" Command="{Binding SplitCommand}" Style="{StaticResource PrimaryActionButtonStyle}" />
+                        <TextBox AutomationProperties.AutomationId="ChunkSizeMb" Text="{Binding ChunkSizeMb, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
+                        <Button AutomationProperties.AutomationId="SplitCommand" Content="Split File" Command="{Binding SplitCommand}" Style="{StaticResource PrimaryActionButtonStyle}" />
                     </StackPanel>
                 </Border>
 
@@ -48,21 +48,21 @@
                         <TextBlock Text="Join Parts" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,10"/>
                         <TextBlock Text="Part File" Margin="0,0,0,4"/>
                         <DockPanel Margin="0,0,0,8">
-                            <Button Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseJoinPartCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                            <TextBox Text="{Binding JoinPartFilePath}" IsReadOnly="True"/>
+                            <Button AutomationProperties.AutomationId="BrowseJoinPartCommand" Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseJoinPartCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox AutomationProperties.AutomationId="JoinPartFilePath" Text="{Binding JoinPartFilePath}" IsReadOnly="True"/>
                         </DockPanel>
 
                         <TextBlock Text="Output File" Margin="0,0,0,4"/>
                         <DockPanel Margin="0,0,0,8">
-                            <Button Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseJoinOutputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                            <TextBox Text="{Binding JoinOutputFilePath}" IsReadOnly="True"/>
+                            <Button AutomationProperties.AutomationId="BrowseJoinOutputCommand" Content="Browse..." DockPanel.Dock="Right" Margin="8,0,0,0" Command="{Binding BrowseJoinOutputCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                            <TextBox AutomationProperties.AutomationId="JoinOutputFilePath" Text="{Binding JoinOutputFilePath}" IsReadOnly="True"/>
                         </DockPanel>
 
-                        <CheckBox Content="Verify checksum from manifest"
+                        <CheckBox AutomationProperties.AutomationId="VerifyChecksum" Content="Verify checksum from manifest"
                                   IsChecked="{Binding VerifyChecksum}"
                                   Margin="0,0,0,10"/>
 
-                        <Button Content="Join Parts" Command="{Binding JoinCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                        <Button AutomationProperties.AutomationId="JoinCommand" Content="Join Parts" Command="{Binding JoinCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -74,7 +74,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/>
                         <ProgressBar Height="14"
                                      Margin="0,8,0,0"
                                      Minimum="0"
@@ -82,11 +82,11 @@
                                      Value="{Binding ProgressPercent, Mode=OneWay}"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                        <Button Content="Cancel"
+                        <Button AutomationProperties.AutomationId="CancelCommand" Content="Cancel"
                                 Command="{Binding CancelCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"
                                 Margin="0,0,8,0"/>
-                        <Button Content="Copy Status"
+                        <Button AutomationProperties.AutomationId="CopyStatusCommand" Content="Copy Status"
                                 Command="{Binding CopyStatusCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
                     </StackPanel>
@@ -100,7 +100,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <TextBlock Text="Recent Outputs" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding RecentOutputFiles}" MinHeight="120"/>
+                    <ListBox AutomationProperties.AutomationId="RecentOutputFiles" Grid.Row="1" ItemsSource="{Binding RecentOutputFiles}" MinHeight="120"/>
                 </Grid>
             </Border>
         </Grid>

@@ -15,7 +15,7 @@ public interface ITaskSchedulerService
 }
 
 /// <summary>
-/// schtasks-based Task Scheduler service.
+/// Structured Windows PowerShell task queries and exact-name schtasks execution.
 /// </summary>
 public sealed class TaskSchedulerService : ITaskSchedulerService
 {
@@ -33,7 +33,33 @@ public sealed class TaskSchedulerService : ITaskSchedulerService
 
     public async Task<IReadOnlyList<ScheduledTaskRow>> GetTasksAsync(string? query = null, CancellationToken cancellationToken = default)
     {
-        var psi = CreateStartInfo("/Query /FO CSV /V");
+        const string script = """
+            $ErrorActionPreference = 'Stop'
+            $ProgressPreference = 'SilentlyContinue'
+            [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+            $rows = @(Get-ScheduledTask | ForEach-Object {
+                $task = $_
+                try {
+                    $info = $task | Get-ScheduledTaskInfo
+                    $next = if ($null -ne $info.NextRunTime) { $info.NextRunTime.ToString('O') } else { '' }
+                    $last = if ($null -ne $info.LastRunTime) { $info.LastRunTime.ToString('O') } else { '' }
+                    $result = [string]$info.LastTaskResult
+                } catch { $next = ''; $last = ''; $result = 'Details unavailable: ' + $_.Exception.Message }
+                [pscustomobject]@{
+                    TaskName = $task.TaskPath + $task.TaskName
+                    Status = [string]$task.State
+                    NextRunTime = $next; LastRunTime = $last; LastResult = $result; Author = [string]$task.Author
+                }
+            })
+            ConvertTo-Json -InputObject $rows -Compress -Depth 3
+            """;
+        var psi = new ProcessStartInfo
+        {
+            FileName = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), @"WindowsPowerShell\v1.0\powershell.exe"),
+            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
+        };
+        foreach (var argument in new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Convert.ToBase64String(Encoding.Unicode.GetBytes(script)) }) psi.ArgumentList.Add(argument);
         var result = await _runner.RunAsync(psi, cancellationToken).ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
@@ -42,7 +68,8 @@ public sealed class TaskSchedulerService : ITaskSchedulerService
                 : result.StdErr.Trim());
         }
 
-        var rows = ParseTasksFromCsv(result.StdOut);
+        var rows = System.Text.Json.JsonSerializer.Deserialize<List<ScheduledTaskRow>>(result.StdOut)
+            ?? throw new InvalidOperationException("The scheduler returned no structured result.");
         if (!string.IsNullOrWhiteSpace(query))
         {
             rows = rows.Where(t => t.TaskName.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -60,8 +87,9 @@ public sealed class TaskSchedulerService : ITaskSchedulerService
             return false;
         }
 
-        var escaped = taskName.Replace("\"", "\"\"");
-        var psi = CreateStartInfo($"/Run /TN \"{escaped}\"");
+        if (taskName.IndexOfAny(['\0', '\r', '\n']) >= 0) throw new ArgumentException("Invalid task name.", nameof(taskName));
+        var psi = CreateStartInfo(string.Empty);
+        psi.ArgumentList.Add("/Run"); psi.ArgumentList.Add("/TN"); psi.ArgumentList.Add(taskName);
         var result = await _runner.RunAsync(psi, cancellationToken).ConfigureAwait(false);
         return result.ExitCode == 0;
     }
@@ -107,7 +135,7 @@ public sealed class TaskSchedulerService : ITaskSchedulerService
     {
         return new ProcessStartInfo
         {
-            FileName = "schtasks.exe",
+            FileName = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "schtasks.exe"),
             Arguments = arguments,
             UseShellExecute = false,
             CreateNoWindow = true,

@@ -13,12 +13,12 @@
 
         <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <Button Content="New" Command="{Binding NewDocumentCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Open" Command="{Binding OpenCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
-                <Button Content="Save As" Command="{Binding SaveAsCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Render" Command="{Binding RenderCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Copy HTML" Command="{Binding CopyHtmlCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="NewDocumentCommand" Content="New" Command="{Binding NewDocumentCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="OpenCommand" Content="Open" Command="{Binding OpenCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="SaveCommand" Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="SaveAsCommand" Content="Save As" Command="{Binding SaveAsCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="RenderCommand" Content="Render" Command="{Binding RenderCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="CopyHtmlCommand" Content="Copy HTML" Command="{Binding CopyHtmlCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
             </StackPanel>
         </Border>
 
@@ -31,8 +31,8 @@
 
             <Border Grid.Column="0" Style="{StaticResource ToolPanelBorderStyle}">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Markdown" Style="{StaticResource SecondaryHeadingTextStyle}" Margin="0,0,0,8"/>
-                    <TextBox Text="{Binding MarkdownText, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBlock DockPanel.Dock="Top" Text="Markdown" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
+                    <TextBox AutomationProperties.AutomationId="MarkdownText" Text="{Binding MarkdownText, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True"
                              AcceptsTab="True"
                              VerticalScrollBarVisibility="Auto"
@@ -45,8 +45,8 @@
 
             <Border Grid.Column="2" Style="{StaticResource ToolPanelBorderStyle}">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="HTML Preview" Style="{StaticResource SecondaryHeadingTextStyle}" Margin="0,0,0,8"/>
-                    <TextBox Text="{Binding RenderedHtml}"
+                    <TextBlock DockPanel.Dock="Top" Text="HTML Source" Style="{StaticResource PanelHeaderTextStyle}" Margin="0,0,0,8"/>
+                    <TextBox AutomationProperties.AutomationId="RenderedHtml" Text="{Binding RenderedHtml, Mode=OneWay}"
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              VerticalScrollBarVisibility="Auto"
@@ -60,10 +60,10 @@
 
         <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,16,0"/>
-                <TextBlock Text="{Binding LineCount, StringFormat=Lines: {0:N0}}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0"/>
-                <TextBlock Text="{Binding WordCount, StringFormat=Words: {0:N0}}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0"/>
-                <TextBlock Text="{Binding CharacterCount, StringFormat=Chars: {0:N0}}" Style="{StaticResource MetadataTextStyle}"/>
+                <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,16,0"/>
+                <TextBlock AutomationProperties.AutomationId="LineCount" Text="{Binding LineCount, StringFormat=Lines: {0:N0}}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0"/>
+                <TextBlock AutomationProperties.AutomationId="WordCount" Text="{Binding WordCount, StringFormat=Words: {0:N0}}" Style="{StaticResource MetadataTextStyle}" Margin="0,0,8,0"/>
+                <TextBlock AutomationProperties.AutomationId="CharacterCount" Text="{Binding CharacterCount, StringFormat=Chars: {0:N0}}" Style="{StaticResource MetadataTextStyle}"/>
             </StackPanel>
         </Border>
     </Grid>

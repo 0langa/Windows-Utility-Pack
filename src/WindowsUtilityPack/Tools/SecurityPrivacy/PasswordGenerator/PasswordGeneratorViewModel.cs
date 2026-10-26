@@ -36,7 +36,7 @@ public class PasswordGeneratorViewModel : ViewModelBase
     public int Length
     {
         get => _length;
-        set { if (SetProperty(ref _length, value)) Generate(); }
+        set { if (SetProperty(ref _length, Math.Clamp(value, 4, 64))) Generate(); }
     }
 
     /// <summary>Include A–Z uppercase letters.</summary>

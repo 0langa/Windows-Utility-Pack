@@ -15,10 +15,10 @@
 
         <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <Button Content="Add" Command="{Binding AddCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
-                <Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
-                <Button Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,8,0" Style="{StaticResource DangerActionButtonStyle}"/>
-                <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="AddCommand" Content="Add" Command="{Binding AddCommand}" Margin="0,0,8,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="SaveCommand" Content="Save" Command="{Binding SaveCommand}" Margin="0,0,8,0" Style="{StaticResource SecondaryActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="DeleteCommand" Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,8,0" Style="{StaticResource DangerActionButtonStyle}"/>
+                <Button AutomationProperties.AutomationId="RefreshCommand" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButtonStyle}"/>
             </StackPanel>
         </Border>
 
@@ -26,23 +26,27 @@
             <StackPanel>
                 <TextBlock Text="Templates and Dry-Run" Style="{StaticResource SectionHeadingTextStyle}" Margin="0,0,0,8"/>
                 <WrapPanel>
-                    <ComboBox Width="250"
+                    <ComboBox AutomationProperties.AutomationId="SelectedTemplate" Width="250"
                               Margin="0,0,8,8"
                               ItemsSource="{Binding Templates}"
                               SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}"
                               DisplayMemberPath="Name"/>
-                    <Button Content="Add From Template"
+                    <Button AutomationProperties.AutomationId="AddFromTemplateCommand" Content="Add From Template"
                             Margin="0,0,12,8"
                             Command="{Binding AddFromTemplateCommand}"
                             Style="{StaticResource SecondaryActionButtonStyle}"/>
 
                     <TextBlock Text="Disk Free (GB)" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Width="70" Margin="0,0,8,8" Text="{Binding SimulationDiskFreeGb, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox AutomationProperties.AutomationId="SimulationDiskFreeGb" Width="70" Margin="0,0,8,8" Text="{Binding SimulationDiskFreeGb, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Text="CPU (%)" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Width="60" Margin="0,0,8,8" Text="{Binding SimulationCpuPercent, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox AutomationProperties.AutomationId="SimulationCpuPercent" Width="60" Margin="0,0,8,8" Text="{Binding SimulationCpuPercent, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Text="RAM (%)" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Width="60" Margin="0,0,8,8" Text="{Binding SimulationRamPercent, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Button Content="Run Dry-Run" Margin="0,0,0,8" Command="{Binding RunDryRunCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                    <TextBox AutomationProperties.AutomationId="SimulationRamPercent" Width="60" Margin="0,0,8,8" Text="{Binding SimulationRamPercent, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Disk used (%)" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBox AutomationProperties.AutomationId="SimulationDiskUsagePercent" Width="60" Margin="0,0,8,8" Text="{Binding SimulationDiskUsagePercent, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Processes" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBox AutomationProperties.AutomationId="SimulationProcessCount" Width="60" Margin="0,0,8,8" Text="{Binding SimulationProcessCount, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button AutomationProperties.AutomationId="RunDryRunCommand" Content="Run Dry-Run" Margin="0,0,0,8" Command="{Binding RunDryRunCommand}" Style="{StaticResource PrimaryActionButtonStyle}"/>
                 </WrapPanel>
             </StackPanel>
         </Border>
@@ -54,7 +58,7 @@
             </Grid.RowDefinitions>
 
             <Border Grid.Row="0" Style="{StaticResource ToolPanelBorderStyle}" Margin="0,0,0,12">
-                <DataGrid ItemsSource="{Binding RuleItems}"
+                <DataGrid AutomationProperties.AutomationId="SelectedRule" ItemsSource="{Binding RuleItems}"
                           SelectedItem="{Binding SelectedRule, Mode=TwoWay}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
@@ -65,16 +69,24 @@
                     <DataGrid.Columns>
                         <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, Mode=TwoWay}" Width="80"/>
                         <DataGridTextColumn Header="Name" Binding="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="220"/>
-                        <DataGridComboBoxColumn Header="Trigger"
-                                                Width="180"
-                                                SelectedItemBinding="{Binding TriggerType, Mode=TwoWay}"
-                                                ItemsSource="{Binding DataContext.TriggerTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <DataGridTemplateColumn Header="Trigger" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox AutomationProperties.AutomationId="TriggerType" SelectedItem="{Binding TriggerType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              ItemsSource="{Binding DataContext.TriggerTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Threshold" Binding="{Binding Threshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
                         <DataGridTextColumn Header="Cooldown (min)" Binding="{Binding CooldownMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130"/>
-                        <DataGridComboBoxColumn Header="Action"
-                                                Width="170"
-                                                SelectedItemBinding="{Binding ActionType, Mode=TwoWay}"
-                                                ItemsSource="{Binding DataContext.ActionTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <DataGridTemplateColumn Header="Action" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox AutomationProperties.AutomationId="ActionType" SelectedItem="{Binding ActionType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              ItemsSource="{Binding DataContext.ActionTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Action Target"
                                             Width="220"
                                             Binding="{Binding ActionTarget, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
@@ -83,7 +95,7 @@
             </Border>
 
             <Border Grid.Row="1" Style="{StaticResource ToolPanelBorderStyle}">
-                <DataGrid ItemsSource="{Binding SimulationResults}"
+                <DataGrid AutomationProperties.AutomationId="SimulationResults" ItemsSource="{Binding SimulationResults}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
@@ -100,7 +112,7 @@
         </Grid>
 
         <Border Grid.Row="4" Margin="0,12,0,0" Style="{StaticResource StatusSurfaceStyle}">
-            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
+            <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}" Style="{StaticResource MetadataTextStyle}"/>
         </Border>
     </Grid>
 </UserControl>

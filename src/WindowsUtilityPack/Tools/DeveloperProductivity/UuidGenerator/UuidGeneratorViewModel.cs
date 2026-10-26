@@ -22,6 +22,8 @@ public sealed class UuidGeneratorViewModel : ViewModelBase
     private string _format = "Standard";
     private int _generateCount = 5;
     private string _singleId = string.Empty;
+    private Guid _currentGuid;
+    private string _currentUlid = "";
 
     private static readonly string[] UuidFormats = ["Standard", "No Hyphens", "Uppercase", "Braces {}", "URN Prefix", "Lowercase"];
     private static readonly string[] UlidFormats = ["Uppercase", "Lowercase"];
@@ -45,7 +47,11 @@ public sealed class UuidGeneratorViewModel : ViewModelBase
     public string Format
     {
         get => _format;
-        set => SetProperty(ref _format, value);
+        set
+        {
+            if (SetProperty(ref _format, value) && !string.IsNullOrEmpty(SingleId))
+                SingleId = ApplyFormat(_currentGuid, _currentUlid);
+        }
     }
 
     public int GenerateCount
@@ -118,9 +124,9 @@ public sealed class UuidGeneratorViewModel : ViewModelBase
 
     private void GenerateSingle()
     {
-        var guid = Guid.NewGuid();
-        var ulid = _ulidGenerator.Generate();
-        SingleId = ApplyFormat(guid, ulid);
+        if (IdType == "ULID") _currentUlid = _ulidGenerator.Generate();
+        else _currentGuid = Guid.NewGuid();
+        SingleId = ApplyFormat(_currentGuid, _currentUlid);
     }
 
     private void GenerateBulk()
@@ -128,8 +134,8 @@ public sealed class UuidGeneratorViewModel : ViewModelBase
         GeneratedIds.Clear();
         for (int i = 0; i < GenerateCount; i++)
         {
-            var guid = Guid.NewGuid();
-            var ulid = _ulidGenerator.Generate();
+            var guid = IdType == "UUID" ? Guid.NewGuid() : Guid.Empty;
+            var ulid = IdType == "ULID" ? _ulidGenerator.Generate() : "";
             GeneratedIds.Add(new GeneratedId
             {
                 Id = ApplyFormat(guid, ulid),

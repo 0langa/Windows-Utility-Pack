@@ -1,14 +1,13 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
-using System.Windows;
-using System.Windows.Media.Imaging;
+using WindowsUtilityPack.Services.FileTools;
+using WindowsUtilityPack.Services.ImageTools;
 using Microsoft.Win32;
 using WindowsUtilityPack.Commands;
 using WindowsUtilityPack.Services;
 using WindowsUtilityPack.ViewModels;
 using TagLibFile = TagLib.File;
-using TagLibTagTypes = TagLib.TagTypes;
 
 namespace WindowsUtilityPack.Tools.FileDataTools.MetadataEditor;
 
@@ -85,8 +84,8 @@ public class MetadataEditorViewModel : ViewModelBase
     public MetadataEditorViewModel(IClipboardService clipboard)
     {
         _clipboard           = clipboard;
-        BrowseCommand        = new AsyncRelayCommand(BrowseAsync);
-        StripMetadataCommand = new AsyncRelayCommand(StripMetadataAsync);
+        BrowseCommand        = new AsyncRelayCommand(BrowseAsync, () => !IsLoading);
+        StripMetadataCommand = new AsyncRelayCommand(StripMetadataAsync, () => HasFile && !IsLoading);
         CopyAllCommand       = new RelayCommand(CopyAll);
     }
 
@@ -113,7 +112,7 @@ public class MetadataEditorViewModel : ViewModelBase
 
         try
         {
-            await Task.Run(() =>
+            var loaded = await Task.Run(async () =>
             {
                 var items = new List<MetadataItem>();
                 var info  = new FileInfo(path);
@@ -136,58 +135,26 @@ public class MetadataEditorViewModel : ViewModelBase
                 if (ImageExtensions.Contains(ext))
                 {
                     fileType = "Image";
-                    try
-                    {
-                        // Must decode on the calling thread since BitmapDecoder can need UI context for some codecs
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            try
-                            {
-                                using var stream = File.OpenRead(path);
-                                var decoder = BitmapDecoder.Create(
-                                    stream,
-                                    BitmapCreateOptions.PreservePixelFormat,
-                                    BitmapCacheOption.OnLoad);
-
-                                var frame = decoder.Frames[0];
-                                items.Add(new MetadataItem { Category = "Image", Key = "Width",  Value = $"{frame.PixelWidth} px" });
-                                items.Add(new MetadataItem { Category = "Image", Key = "Height", Value = $"{frame.PixelHeight} px" });
-                                items.Add(new MetadataItem { Category = "Image", Key = "DPI X",  Value = $"{frame.DpiX:F1}" });
-                                items.Add(new MetadataItem { Category = "Image", Key = "DPI Y",  Value = $"{frame.DpiY:F1}" });
-                                items.Add(new MetadataItem { Category = "Image", Key = "Format", Value = frame.Format.ToString() });
-
-                                // BitmapMetadata is available for JPEG/TIFF
-                                if (frame.Metadata is BitmapMetadata bm)
-                                {
-                                    TryAdd(items, "EXIF", "Title",    bm.Title);
-                                    TryAdd(items, "EXIF", "Subject",  bm.Subject);
-                                    TryAdd(items, "EXIF", "Comment",  bm.Comment);
-                                    TryAdd(items, "EXIF", "Author",   string.Join("; ", bm.Author ?? []));
-                                    TryAdd(items, "EXIF", "Keywords", bm.Keywords != null ? string.Join("; ", bm.Keywords) : null);
-                                    TryAdd(items, "EXIF", "Camera Manufacturer", bm.CameraManufacturer);
-                                    TryAdd(items, "EXIF", "Camera Model",        bm.CameraModel);
-                                    TryAdd(items, "EXIF", "Date Taken",          bm.DateTaken);
-                                    TryAdd(items, "EXIF", "Copyright",           bm.Copyright);
-                                    TryAdd(items, "EXIF", "Rating",              bm.Rating > 0 ? bm.Rating.ToString() : null);
-                                    TryAdd(items, "EXIF", "Application Name",    bm.ApplicationName);
-                                    TryAdd(items, "EXIF", "Format",              bm.Format);
-                                    TryAdd(items, "EXIF", "Location",            bm.Location);
-                                }
-                            }
-                            catch
-                            {
-                                items.Add(new MetadataItem { Category = "Image", Key = "Note", Value = "Could not read image metadata." });
-                            }
-                        });
-                    }
-                    catch { /* Dispatcher unavailable */ }
+                    using var images = await ImageProcessingService.ReadRasterAsync(path, CancellationToken.None);
+                    var frame = images[0];
+                    items.Add(new() { Category = "Image", Key = "Width", Value = $"{frame.Width} px" });
+                    items.Add(new() { Category = "Image", Key = "Height", Value = $"{frame.Height} px" });
+                    items.Add(new() { Category = "Image", Key = "Frames", Value = images.Count.ToString() });
+                    items.Add(new() { Category = "Image", Key = "Format", Value = frame.Format.ToString() });
+                    items.Add(new() { Category = "Image", Key = "Density", Value = frame.Density.ToString() });
+                    foreach (var attribute in frame.AttributeNames)
+                        TryAdd(items, "Image", attribute, frame.GetAttribute(attribute));
+                    var exif = frame.GetExifProfile();
+                    if (exif is not null)
+                        foreach (var value in exif.Values)
+                            TryAdd(items, "EXIF", value.Tag.ToString(), value.ToString());
                 }
                 else if (AudioExtensions.Contains(ext))
                 {
                     fileType = "Audio";
                     try
                     {
-                        var tagFile = TagLibFile.Create(path);
+                        using var tagFile = TagLibFile.Create(path);
                         var tag = tagFile.Tag;
                         var properties = tagFile.Properties;
 
@@ -217,17 +184,12 @@ public class MetadataEditorViewModel : ViewModelBase
                     }
                 }
 
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    Metadata.Clear();
-                    foreach (var item in items)
-                        Metadata.Add(item);
-
-                    FileType      = fileType;
-                    HasMetadata   = Metadata.Count > 0;
-                    StatusMessage = $"Loaded {Metadata.Count} metadata fields.";
-                });
+                return (items, fileType);
             });
+            foreach (var item in loaded.items) Metadata.Add(item);
+            FileType = loaded.fileType;
+            HasMetadata = Metadata.Count > 0;
+            StatusMessage = $"Loaded {Metadata.Count} metadata fields.";
         }
         catch (Exception ex)
         {
@@ -262,9 +224,10 @@ public class MetadataEditorViewModel : ViewModelBase
 
         var dlg = new SaveFileDialog
         {
-            Title      = "Save stripped image",
+            Title      = "Save without metadata",
             FileName   = Path.GetFileName(defaultOut),
-            Filter     = "Images|*.jpg;*.jpeg;*.png;*.bmp;*.tiff;*.tif|All Files|*.*",
+            Filter     = $"Original format (*{ext})|*{ext}",
+            DefaultExt = ext,
             InitialDirectory = saveDir
         };
 
@@ -276,50 +239,12 @@ public class MetadataEditorViewModel : ViewModelBase
 
         try
         {
-            await Task.Run(() =>
-            {
-                if (ImageExtensions.Contains(ext))
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        BitmapDecoder decoder;
-                        using (var inStream = File.OpenRead(FilePath))
-                        {
-                            decoder = BitmapDecoder.Create(
-                                inStream,
-                                BitmapCreateOptions.PreservePixelFormat,
-                                BitmapCacheOption.OnLoad);
-                        }
-
-                        var frame = decoder.Frames[0];
-                        // Copy raw pixels into a new WriteableBitmap (strips metadata)
-                        var clean = new WriteableBitmap(frame);
-
-                        BitmapEncoder encoder = ext switch
-                        {
-                            ".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = 95 },
-                            ".png" => new PngBitmapEncoder(),
-                            ".bmp" => new BmpBitmapEncoder(),
-                            ".tiff" or ".tif" => new TiffBitmapEncoder(),
-                            _ => new PngBitmapEncoder()
-                        };
-
-                        encoder.Frames.Add(BitmapFrame.Create(clean));
-
-                        using var outStream = File.Create(outputPath);
-                        encoder.Save(outStream);
-                    });
-                }
-                else
-                {
-                    System.IO.File.Copy(FilePath, outputPath, overwrite: true);
-                    var audioFile = TagLibFile.Create(outputPath);
-                    audioFile.RemoveTags(TagLibTagTypes.AllTags);
-                    audioFile.Save();
-                }
-            });
-
-            StatusMessage = $"Stripped image saved to: {outputPath}";
+            var inputPath = FilePath;
+            if (ImageExtensions.Contains(ext))
+                await new ImageProcessingService().StripMetadataAsync(inputPath, outputPath);
+            else
+                await AudioMetadataService.StripAsync(inputPath, outputPath);
+            StatusMessage = $"Saved without metadata: {outputPath}";
         }
         catch (Exception ex)
         {

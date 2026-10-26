@@ -99,8 +99,8 @@ public class StartupManagerViewModel : ViewModelBase
         _diagnostics = diagnostics;
 
         LoadCommand    = new AsyncRelayCommand(LoadEntriesAsync);
-        ToggleCommand  = new RelayCommand(ToggleSelected, () => SelectedEntry != null);
-        RemoveCommand  = new RelayCommand(RemoveSelected, () => SelectedEntry != null);
+        ToggleCommand  = new RelayCommand(ToggleSelected, () => !IsLoading && SelectedEntry != null);
+        RemoveCommand  = new RelayCommand(RemoveSelected, () => !IsLoading && SelectedEntry != null);
         RefreshCommand = new RelayCommand(() => LoadCommand.Execute(null));
         ExportCsvCommand = new RelayCommand(ExportCsv, () => Entries.Count > 0);
         CopyDiagnosticsCommand = new RelayCommand(CopyDiagnostics, () => Entries.Count > 0);
@@ -118,12 +118,11 @@ public class StartupManagerViewModel : ViewModelBase
         {
             var snapshot = await Task.Run(CollectEntries);
 
-            Application.Current.Dispatcher.Invoke(() =>
-            {
+
                 Entries.Clear();
                 foreach (var e in snapshot.Entries)
                     Entries.Add(e);
-            });
+
 
             HklmEntriesSkipped = snapshot.HklmSkipped;
             RefreshDiagnosticsSummary("Loaded");
@@ -153,7 +152,7 @@ public class StartupManagerViewModel : ViewModelBase
                     result.Add(new StartupEntry
                     {
                         Name      = name,
-                        Command   = key.GetValue(name)?.ToString() ?? string.Empty,
+                        Command   = key.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? string.Empty,
                         IsEnabled = true,
                         Source    = "HKCU",
                     });
@@ -171,7 +170,7 @@ public class StartupManagerViewModel : ViewModelBase
                     result.Add(new StartupEntry
                     {
                         Name      = name,
-                        Command   = key.GetValue(name)?.ToString() ?? string.Empty,
+                        Command   = key.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? string.Empty,
                         IsEnabled = false,
                         Source    = "HKCU",
                     });
@@ -190,7 +189,7 @@ public class StartupManagerViewModel : ViewModelBase
                     result.Add(new StartupEntry
                     {
                         Name      = name,
-                        Command   = lmKey.GetValue(name)?.ToString() ?? string.Empty,
+                        Command   = lmKey.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? string.Empty,
                         IsEnabled = true,
                         Source    = "HKLM",
                     });
@@ -226,32 +225,11 @@ public class StartupManagerViewModel : ViewModelBase
                 return;
             }
 
-            if (entry.IsEnabled)
-            {
-                // Move from Run → Run_Disabled
-                using var src = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true);
-                using var dst = Registry.CurrentUser.CreateSubKey(RunDisabledKeyPath);
-                if (src != null && dst != null)
-                {
-                    dst.SetValue(entry.Name, entry.Command);
-                    src.DeleteValue(entry.Name, throwOnMissingValue: false);
-                    entry.IsEnabled = false;
-                    RefreshDiagnosticsSummary($"Disabled '{entry.Name}'.");
-                }
-            }
-            else
-            {
-                // Move from Run_Disabled → Run
-                using var src = Registry.CurrentUser.OpenSubKey(RunDisabledKeyPath, writable: true);
-                using var dst = Registry.CurrentUser.CreateSubKey(RunKeyPath);
-                if (src != null && dst != null)
-                {
-                    dst.SetValue(entry.Name, entry.Command);
-                    src.DeleteValue(entry.Name, throwOnMissingValue: false);
-                    entry.IsEnabled = true;
-                    RefreshDiagnosticsSummary($"Enabled '{entry.Name}'.");
-                }
-            }
+            var source = entry.IsEnabled ? RunKeyPath : RunDisabledKeyPath;
+            var destination = entry.IsEnabled ? RunDisabledKeyPath : RunKeyPath;
+            RegistryValueMover.Move(Registry.CurrentUser, source, destination, entry.Name, entry.Command);
+            entry.IsEnabled = !entry.IsEnabled;
+            RefreshDiagnosticsSummary($"{(entry.IsEnabled ? "Enabled" : "Disabled")} '{entry.Name}'.");
         }
         catch (Exception ex)
         {
@@ -274,7 +252,9 @@ public class StartupManagerViewModel : ViewModelBase
 
             var keyPath = entry.IsEnabled ? RunKeyPath : RunDisabledKeyPath;
             using var key = Registry.CurrentUser.OpenSubKey(keyPath, writable: true);
-            key?.DeleteValue(entry.Name, throwOnMissingValue: false);
+            if (key is null) throw new InvalidOperationException("The startup entry no longer exists. Refresh the list.");
+            RegistryValueMover.ValidateCurrent(key, entry.Name, entry.Command);
+            key.DeleteValue(entry.Name, throwOnMissingValue: true);
 
             Entries.Remove(entry);
             SelectedEntry = null;

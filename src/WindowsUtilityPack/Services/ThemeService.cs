@@ -15,9 +15,9 @@ namespace WindowsUtilityPack.Services;
 /// </summary>
 public class ThemeService : IThemeService, IDisposable
 {
-    private const string DarkThemeUri  = "Themes/DarkTheme.xaml";
-    private const string LightThemeUri = "Themes/LightTheme.xaml";
-    private const string AuroraThemeUri = "Themes/AuroraTheme.xaml";
+    private const string DarkThemeUri  = "/WindowsUtilityPack;component/Themes/DarkTheme.xaml";
+    private const string LightThemeUri = "/WindowsUtilityPack;component/Themes/LightTheme.xaml";
+    private const string AuroraThemeUri = "/WindowsUtilityPack;component/Themes/AuroraTheme.xaml";
 
     /// <inheritdoc/>
     public AppTheme CurrentTheme { get; private set; } = AppTheme.Dark;

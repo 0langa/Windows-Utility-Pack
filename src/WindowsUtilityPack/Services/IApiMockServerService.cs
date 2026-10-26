@@ -32,6 +32,7 @@ public interface IApiMockServerService
 public sealed class ApiMockServerService : IApiMockServerService
 {
     private readonly object _sync = new();
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private readonly List<ApiMockEndpoint> _endpoints =
     [
         new ApiMockEndpoint
@@ -76,11 +77,21 @@ public sealed class ApiMockServerService : IApiMockServerService
     public void SetEndpoints(IReadOnlyList<ApiMockEndpoint> endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
+        if (endpoints.Count > 256) throw new ArgumentException("At most 256 endpoints are supported.", nameof(endpoints));
+        var validated = endpoints.Select(endpoint =>
+        {
+            if (endpoint is null || endpoint.StatusCode is < 200 or > 599 ||
+                string.IsNullOrWhiteSpace(endpoint.Method) || endpoint.Method.Any(c => !char.IsAsciiLetter(c)) ||
+                !System.Net.Http.Headers.MediaTypeHeaderValue.TryParse(endpoint.ContentType, out _) ||
+                Encoding.UTF8.GetByteCount(endpoint.ResponseBody ?? string.Empty) > BoundedHttpContent.DefaultMaximumBytes)
+                throw new ArgumentException("Each endpoint needs a valid method, final status (200–599), content type and body of at most 4 MiB.", nameof(endpoints));
+            return CloneEndpoint(endpoint);
+        }).ToArray();
 
         lock (_sync)
         {
             _endpoints.Clear();
-            _endpoints.AddRange(endpoints.Select(CloneEndpoint));
+            _endpoints.AddRange(validated);
         }
     }
 
@@ -103,85 +114,51 @@ public sealed class ApiMockServerService : IApiMockServerService
         }
     }
 
-    public Task StartAsync(int port, CancellationToken cancellationToken = default)
+    public async Task StartAsync(int port, CancellationToken cancellationToken = default)
     {
-        if (port is < 1025 or > 65535)
+        if (port is < 1025 or > 65535) throw new InvalidOperationException("Port must be between 1025 and 65535.");
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            throw new InvalidOperationException("Port must be between 1025 and 65535.");
-        }
-
-        lock (_sync)
-        {
-            if (_listener?.IsListening == true)
-            {
-                return Task.CompletedTask;
-            }
-
+            if (IsRunning) return;
+            if (_loopTask is not null) await _loopTask.ConfigureAwait(false);
+            _cts?.Dispose();
+            var listener = new HttpListener();
             var prefix = $"http://localhost:{port}/";
-            _listener = new HttpListener();
-            _listener.Prefixes.Add(prefix);
-
-            try
+            listener.Prefixes.Add(prefix);
+            try { listener.Start(); }
+            catch (Exception ex) { listener.Close(); throw new InvalidOperationException($"Unable to start listener on {prefix}.", ex); }
+            var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            lock (_sync)
             {
-                _listener.Start();
+                _listener = listener;
+                _cts = lifetime;
+                BaseUrl = prefix;
+                _loopTask = Task.Run(() => AcceptLoopAsync(listener, lifetime.Token));
             }
-            catch (HttpListenerException ex)
-            {
-                _listener = null;
-                throw new InvalidOperationException($"Unable to start listener on {prefix}.", ex);
-            }
-
-            _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            BaseUrl = prefix;
-            _loopTask = Task.Run(() => AcceptLoopAsync(_listener, _cts.Token), _cts.Token);
         }
-
-        return Task.CompletedTask;
+        finally { _lifecycleGate.Release(); }
     }
 
     public async Task StopAsync()
     {
-        Task? loopTask;
-        HttpListener? listener;
-        CancellationTokenSource? cts;
-
-        lock (_sync)
-        {
-            loopTask = _loopTask;
-            listener = _listener;
-            cts = _cts;
-            _loopTask = null;
-            _listener = null;
-            _cts = null;
-            BaseUrl = string.Empty;
-        }
-
-        cts?.Cancel();
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
         try
         {
-            listener?.Stop();
-        }
-        catch
-        {
-            // Ignore listener shutdown errors.
-        }
-
-        if (loopTask is not null)
-        {
-            try
+            _cts?.Cancel();
+            if (_loopTask is not null) await _loopTask.ConfigureAwait(false);
+            lock (_sync)
             {
-                await loopTask.ConfigureAwait(false);
-            }
-            catch
-            {
-                // Ignore loop cancellation errors.
+                _listener?.Close();
+                _listener = null;
+                _loopTask = null;
+                _cts?.Dispose();
+                _cts = null;
+                BaseUrl = string.Empty;
             }
         }
-
-        listener?.Close();
-        cts?.Dispose();
+        finally { _lifecycleGate.Release(); }
     }
-
     internal (int StatusCode, string ContentType, string Body, string EndpointName) ResolveResponse(string method, string path)
     {
         var normalizedMethod = (method ?? string.Empty).Trim().ToUpperInvariant();
@@ -206,24 +183,26 @@ public sealed class ApiMockServerService : IApiMockServerService
 
     private async Task AcceptLoopAsync(HttpListener listener, CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        var requests = new HashSet<Task>();
+        using var registration = cancellationToken.Register(() =>
         {
-            HttpListenerContext context;
-            try
+            try { listener.Stop(); } catch (ObjectDisposedException) { }
+        });
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
             {
-                context = await listener.GetContextAsync().ConfigureAwait(false);
+                if (requests.Count >= 16) await Task.WhenAny(requests).ConfigureAwait(false);
+                requests.RemoveWhere(task => task.IsCompleted);
+                var context = await listener.GetContextAsync().ConfigureAwait(false);
+                requests.Add(HandleRequestAsync(context, cancellationToken));
             }
-            catch (Exception)
-            {
-                if (!listener.IsListening || cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                continue;
-            }
-
-            _ = Task.Run(() => HandleRequestAsync(context, cancellationToken), cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or OperationCanceledException) { }
+        finally
+        {
+            listener.Close();
+            await Task.WhenAll(requests).ConfigureAwait(false);
         }
     }
 
@@ -232,47 +211,32 @@ public sealed class ApiMockServerService : IApiMockServerService
         var method = context.Request.HttpMethod;
         var path = context.Request.Url?.AbsolutePath ?? "/";
         var resolved = ResolveResponse(method, path);
-
-        context.Response.StatusCode = resolved.StatusCode;
-        context.Response.ContentType = string.IsNullOrWhiteSpace(resolved.ContentType)
-            ? "application/json"
-            : resolved.ContentType;
-
-        var payload = Encoding.UTF8.GetBytes(resolved.Body ?? string.Empty);
-        context.Response.ContentLength64 = payload.Length;
-
         try
         {
-            await context.Response.OutputStream.WriteAsync(payload.AsMemory(0, payload.Length), cancellationToken).ConfigureAwait(false);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(10));
+            context.Response.StatusCode = resolved.StatusCode;
+            context.Response.ContentType = resolved.ContentType;
+            var payload = Encoding.UTF8.GetBytes(resolved.Body ?? string.Empty);
+            context.Response.ContentLength64 = payload.Length;
+            if (!method.Equals("HEAD", StringComparison.OrdinalIgnoreCase))
+                await context.Response.OutputStream.WriteAsync(payload, deadline.Token).ConfigureAwait(false);
         }
-        catch
-        {
-            // Ignore write failures from disconnected clients.
-        }
+        catch (Exception ex) when (ex is HttpListenerException or System.IO.IOException or ObjectDisposedException or OperationCanceledException) { }
         finally
         {
-            context.Response.OutputStream.Close();
-            context.Response.Close();
+            try { context.Response.Close(); } catch (ObjectDisposedException) { }
         }
-
         lock (_sync)
         {
             _requestLog.Add(new ApiMockRequestLogEntry
             {
-                TimestampUtc = DateTime.UtcNow,
-                Method = method,
-                Path = path,
-                StatusCode = resolved.StatusCode,
-                EndpointName = resolved.EndpointName,
+                TimestampUtc = DateTime.UtcNow, Method = method, Path = path,
+                StatusCode = resolved.StatusCode, EndpointName = resolved.EndpointName,
             });
-
-            if (_requestLog.Count > 2_000)
-            {
-                _requestLog.RemoveRange(0, _requestLog.Count - 2_000);
-            }
+            if (_requestLog.Count > 2_000) _requestLog.RemoveRange(0, _requestLog.Count - 2_000);
         }
     }
-
     private static string NormalizePath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))

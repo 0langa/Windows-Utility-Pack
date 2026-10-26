@@ -8,6 +8,7 @@ namespace WindowsUtilityPack.Services.Downloader.Engines;
 /// <summary>gallery-dl based engine for gallery/collection style downloads.</summary>
 public sealed class GalleryDownloadEngine : DownloadEngineBase
 {
+    private const string OutputMarker = "WUP_OUTPUT:";
     private readonly IDependencyManagerService _dependencyManager;
 
     public GalleryDownloadEngine(IDependencyManagerService dependencyManager)
@@ -64,6 +65,10 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
             QuoteArg(plan.TargetDirectory),
             "--write-log",
             QuoteArg(Path.Combine(plan.TargetDirectory, "gallery-dl.log")),
+            "--Print",
+            QuoteArg("after:" + OutputMarker + "{_path}"),
+            "--Print",
+            QuoteArg("skip:" + OutputMarker + "{_path}"),
         };
 
         if (!string.IsNullOrWhiteSpace(settings.Connections.CookieFilePath) && File.Exists(settings.Connections.CookieFilePath))
@@ -92,10 +97,11 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
 
         using var process = Process.Start(psi) ?? throw new InvalidOperationException("Unable to start gallery-dl process.");
 
-        var downloadedFiles = 0;
+        var completedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var lastOutputPath = string.Empty;
         var lastError = string.Empty;
 
-        async Task ReadAsync(StreamReader reader)
+        async Task ReadAsync(StreamReader reader, bool isOutput)
         {
             while (true)
             {
@@ -106,16 +112,19 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
                     break;
                 }
 
-                if (line.StartsWith("#", StringComparison.Ordinal))
+                // gallery-dl's ordinary '#' lines indicate skipped files, not new downloads.
+                // Explicit after/skip events also give history the actual nested output path.
+                if (isOutput && TryGetOutputPath(line, out var outputPath) && completedPaths.Add(outputPath))
                 {
-                    downloadedFiles++;
+                    lastOutputPath = outputPath;
                     // Use soft progress (capped at 99) so the bar is never falsely full
-                    var softPercent = Math.Min(99, downloadedFiles * 5.0);
+                    var softPercent = Math.Min(99, completedPaths.Count * 5.0);
                     progress.Report(new DownloadProgressUpdate
                     {
                         Status = DownloadJobStatus.Downloading,
                         ProgressPercent = softPercent,
-                        StatusMessage = $"Downloading gallery file {downloadedFiles}…",
+                        StatusMessage = $"Gallery file {completedPaths.Count} ready…",
+                        OutputFilePath = outputPath,
                     });
                 }
 
@@ -128,7 +137,7 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
 
         try
         {
-            await Task.WhenAll(ReadAsync(process.StandardOutput), ReadAsync(process.StandardError));
+            await Task.WhenAll(ReadAsync(process.StandardOutput, true), ReadAsync(process.StandardError, false));
             await process.WaitForExitAsync(cancellationToken);
         }
         catch (OperationCanceledException)
@@ -147,9 +156,20 @@ public sealed class GalleryDownloadEngine : DownloadEngineBase
         progress.Report(new DownloadProgressUpdate
         {
             Status = DownloadJobStatus.Completed,
-            StatusMessage = $"Gallery complete ({downloadedFiles} file(s)).",
+            StatusMessage = $"Gallery complete ({completedPaths.Count} file(s)).",
             ProgressPercent = 100,
+            OutputFilePath = lastOutputPath,
         });
+    }
+
+    internal static bool TryGetOutputPath(string line, out string path)
+    {
+        path = string.Empty;
+        if (!line.StartsWith(OutputMarker, StringComparison.Ordinal)) return false;
+        var candidate = line[OutputMarker.Length..];
+        if (!Path.IsPathFullyQualified(candidate) || !File.Exists(candidate)) return false;
+        path = candidate;
+        return true;
     }
 
 }

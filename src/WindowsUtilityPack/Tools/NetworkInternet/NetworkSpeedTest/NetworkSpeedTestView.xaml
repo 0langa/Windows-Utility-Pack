@@ -18,7 +18,7 @@
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="Download" Foreground="{DynamicResource SecondaryTextBrush}"
                                    HorizontalAlignment="Center" FontSize="13" Margin="0,0,0,6"/>
-                        <TextBlock Text="{Binding DownloadSpeed}" FontSize="28" FontWeight="Bold"
+                        <TextBlock AutomationProperties.AutomationId="DownloadSpeed" Text="{Binding DownloadSpeed}" FontSize="28" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                         <ProgressBar Value="{Binding DownloadProgress}" Minimum="0" Maximum="100"
                                      Height="6" MinWidth="120" Margin="0,8,0,0" HorizontalAlignment="Stretch"/>
@@ -27,18 +27,18 @@
                     <StackPanel Grid.Column="1" HorizontalAlignment="Center">
                         <TextBlock Text="Latency" Foreground="{DynamicResource SecondaryTextBrush}"
                                    HorizontalAlignment="Center" FontSize="13" Margin="0,0,0,6"/>
-                        <TextBlock Text="{Binding Latency}" FontSize="28" FontWeight="Bold"
+                        <TextBlock AutomationProperties.AutomationId="Latency" Text="{Binding Latency}" FontSize="28" FontWeight="Bold"
                                    Foreground="{DynamicResource PrimaryTextBrush}" HorizontalAlignment="Center"/>
-                        <TextBlock Text="{Binding LatencyJitter, StringFormat=Jitter: {0}}" Margin="0,6,0,0"
+                        <TextBlock AutomationProperties.AutomationId="LatencyJitter" Text="{Binding LatencyJitter, StringFormat=Jitter: {0}}" Margin="0,6,0,0"
                                    Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" FontSize="12"/>
-                        <TextBlock Text="{Binding PacketLoss, StringFormat=Loss: {0}}" Margin="0,2,0,0"
+                        <TextBlock AutomationProperties.AutomationId="PacketLoss" Text="{Binding PacketLoss, StringFormat=Loss: {0}}" Margin="0,2,0,0"
                                    Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" FontSize="12"/>
                     </StackPanel>
                     <!-- Upload -->
                     <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                         <TextBlock Text="Upload" Foreground="{DynamicResource SecondaryTextBrush}"
                                    HorizontalAlignment="Center" FontSize="13" Margin="0,0,0,6"/>
-                        <TextBlock Text="{Binding UploadSpeed}" FontSize="28" FontWeight="Bold"
+                        <TextBlock AutomationProperties.AutomationId="UploadSpeed" Text="{Binding UploadSpeed}" FontSize="28" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                         <ProgressBar Value="{Binding UploadProgress}" Minimum="0" Maximum="100"
                                      Height="6" MinWidth="120" Margin="0,8,0,0" HorizontalAlignment="Stretch"/>
@@ -56,39 +56,43 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Profile" Foreground="{DynamicResource SecondaryTextBrush}"
                                    FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Column="1"
+                        <ComboBox AutomationProperties.AutomationId="SelectedProfile" Grid.Column="1"
                                   ItemsSource="{Binding Profiles}"
                                   SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
                                   IsEnabled="{Binding IsTesting, Converter={StaticResource BoolNegationConverter}}"/>
                     </Grid>
-                    <TextBlock Text="Test Server URL" Foreground="{DynamicResource SecondaryTextBrush}"
+                    <TextBlock Text="Download URL" Foreground="{DynamicResource SecondaryTextBrush}"
                                FontSize="12" Margin="0,0,0,6"/>
                     <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox AutomationProperties.AutomationId="ServerUrl" Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="8,6" FontFamily="Consolas" FontSize="12"
                                  IsEnabled="{Binding IsTesting, Converter={StaticResource BoolNegationConverter}}"
                                  AutomationProperties.Name="Speed test server URL"/>
                     </Grid>
+                    <TextBlock Text="Upload URL" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,6"/>
+                    <TextBox AutomationProperties.AutomationId="UploadUrl" AutomationProperties.Name="Speed test upload URL"
+                             Text="{Binding UploadUrl, UpdateSourceTrigger=PropertyChanged}" Padding="8,6" FontFamily="Consolas" FontSize="12" Margin="0,0,0,10"
+                             IsEnabled="{Binding IsTesting, Converter={StaticResource BoolNegationConverter}}"/>
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Run Test"
+                        <Button AutomationProperties.AutomationId="RunTestCommand" Content="Run Test"
                                 Command="{Binding RunTestCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}"
                                 Margin="0,0,8,0"/>
-                        <Button Content="Stop"
+                        <Button AutomationProperties.AutomationId="StopCommand" Content="Stop"
                                 Command="{Binding StopCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"
                                 Margin="0,0,8,0"/>
-                        <Button Content="Copy Results"
+                        <Button AutomationProperties.AutomationId="CopyResultsCommand" Content="Copy Results"
                                 Command="{Binding CopyResultsCommand}"
                                 Style="{StaticResource SecondaryActionButtonStyle}"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding StatusMessage}"
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage" Text="{Binding StatusMessage}"
                                Foreground="{DynamicResource SecondaryTextBrush}"
                                FontSize="12" Margin="0,8,0,0"/>
-                    <TextBlock Text="{Binding MethodologySummary}"
+                    <TextBlock AutomationProperties.AutomationId="MethodologySummary" Text="{Binding MethodologySummary}"
                                Foreground="{DynamicResource SecondaryTextBrush}"
                                TextWrapping="Wrap"
                                FontSize="11" Margin="0,6,0,0"/>
@@ -100,7 +104,7 @@
                 <StackPanel>
                     <TextBlock Text="History (last 10)" FontWeight="SemiBold"
                                Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,8"/>
-                    <DataGrid ItemsSource="{Binding History}"
+                    <DataGrid AutomationProperties.AutomationId="History" ItemsSource="{Binding History}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               HeadersVisibility="Column"

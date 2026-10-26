@@ -15,6 +15,10 @@ public class CleanupRecommendation
     /// <summary>Human-readable explanation of why this is recommended.</summary>
     public string Rationale { get; init; } = string.Empty;
 
+    /// <summary>Immutable full-hash evidence used to prove that a duplicate copy survives deletion.</summary>
+    public string DuplicateSha256 { get; init; } = string.Empty;
+    public IReadOnlyList<DuplicateFileEvidence> DuplicateFiles { get; init; } = [];
+
     /// <summary>Estimated space that would be freed by acting on this recommendation.</summary>
     public long PotentialSavingsBytes => Item.IsDirectory ? Item.TotalSizeBytes : Item.SizeBytes;
 
@@ -27,6 +31,8 @@ public class CleanupRecommendation
     /// <summary>Whether this recommendation is selected for review (default true for low risk).</summary>
     public bool IsSelected { get; set; } = true;
 }
+
+public sealed record DuplicateFileEvidence(string FullPath, long SizeBytes, DateTime LastModified);
 
 /// <summary>Categories of cleanup recommendations.</summary>
 public enum CleanupCategory

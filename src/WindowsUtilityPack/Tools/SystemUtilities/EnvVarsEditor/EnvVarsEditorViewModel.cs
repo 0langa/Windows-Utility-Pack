@@ -15,7 +15,7 @@ public class EnvVarEntry
     public string Scope { get; set; } = string.Empty; // "User" or "Machine"
 }
 
-public class EnvVarsEditorViewModel : ViewModelBase
+public class EnvVarsEditorViewModel : ViewModelBase, INavigationGuard
 {
     private ObservableCollection<EnvVarEntry> _allEntries      = [];
     private ObservableCollection<EnvVarEntry> _filteredEntries = [];
@@ -44,6 +44,7 @@ public class EnvVarsEditorViewModel : ViewModelBase
         get => _selectedEntry;
         set
         {
+            if (_selectedEntry != value && !CanNavigateAway()) { OnPropertyChanged(); return; }
             if (SetProperty(ref _selectedEntry, value) && value != null)
             {
                 EditName  = value.Name;
@@ -97,10 +98,14 @@ public class EnvVarsEditorViewModel : ViewModelBase
     public RelayCommand CopyValueCommand  { get; }
 
     private readonly IClipboardService _clipboard;
+    private readonly IEnvironmentVariableStore _store;
+    private readonly IUserDialogService _dialogs;
 
-    public EnvVarsEditorViewModel(IClipboardService clipboard)
+    public EnvVarsEditorViewModel(IClipboardService clipboard) : this(clipboard, new EnvironmentVariableStore(), new UserDialogService()) { }
+    internal EnvVarsEditorViewModel(IClipboardService clipboard, IEnvironmentVariableStore store, IUserDialogService dialogs)
     {
         _clipboard      = clipboard;
+        _store = store; _dialogs = dialogs;
         LoadCommand     = new RelayCommand(Load);
         SaveCommand     = new RelayCommand(Save);
         DeleteCommand   = new RelayCommand(Delete);
@@ -113,13 +118,17 @@ public class EnvVarsEditorViewModel : ViewModelBase
 
     private void Load()
     {
-        AllEntries.Clear();
-
-        AppendVariables(Environment.GetEnvironmentVariables(EnvironmentVariableTarget.User),    "User");
-        AppendVariables(Environment.GetEnvironmentVariables(EnvironmentVariableTarget.Machine), "Machine");
-
-        ApplyFilter();
-        StatusMessage = $"Loaded {AllEntries.Count} environment variables.";
+        if (!CanNavigateAway()) return;
+        try
+        {
+            var user = _store.Read(EnvironmentVariableTarget.User);
+            var machine = _store.Read(EnvironmentVariableTarget.Machine);
+            IsDirty = false; SelectedEntry = null; EditName = EditValue = ""; IsDirty = false;
+            AllEntries.Clear();
+            AppendVariables(user, "User"); AppendVariables(machine, "Machine");
+            ApplyFilter(); StatusMessage = $"Loaded {AllEntries.Count} environment variables.";
+        }
+        catch (Exception ex) { StatusMessage = $"Load failed: {ex.Message}"; }
     }
 
     private void AppendVariables(IDictionary vars, string scope)
@@ -173,10 +182,12 @@ public class EnvVarsEditorViewModel : ViewModelBase
 
         try
         {
-            Environment.SetEnvironmentVariable(EditName, EditValue, target);
-            StatusMessage = $"Saved '{EditName}' ({scope}).";
+            var name = EditName;
+            EnvironmentVariableEditor.Save(_store, target, SelectedEntry?.Name, SelectedEntry?.Value, name, EditValue);
             IsDirty       = false;
             Load();
+            SelectedEntry = AllEntries.FirstOrDefault(e => e.Name == name && e.Scope == scope);
+            StatusMessage = $"Saved '{name}' ({scope}).";
         }
         catch (Exception ex)
         {
@@ -187,6 +198,7 @@ public class EnvVarsEditorViewModel : ViewModelBase
     private void Delete()
     {
         if (SelectedEntry == null) return;
+        if (!_dialogs.Confirm("Delete variable", $"Delete '{SelectedEntry.Name}' ({SelectedEntry.Scope})?")) return;
 
         var scope = SelectedEntry.Scope;
         if (scope == "Machine" && !IsAdministrator())
@@ -201,10 +213,13 @@ public class EnvVarsEditorViewModel : ViewModelBase
 
         try
         {
-            Environment.SetEnvironmentVariable(SelectedEntry.Name, null, target);
-            StatusMessage   = $"Deleted '{SelectedEntry.Name}'.";
+            var name = SelectedEntry.Name;
+            if (_store.Get(name, target) != SelectedEntry.Value) throw new InvalidOperationException("This variable changed outside the editor. Reload before deleting.");
+            _store.Set(name, null, target);
+            IsDirty = false;
             SelectedEntry   = null;
             Load();
+            StatusMessage = $"Deleted '{name}'.";
         }
         catch (Exception ex)
         {
@@ -214,6 +229,8 @@ public class EnvVarsEditorViewModel : ViewModelBase
 
     private void New()
     {
+        if (!CanNavigateAway()) return;
+        IsDirty = false;
         SelectedEntry = null;
         EditName      = string.Empty;
         EditValue     = string.Empty;
@@ -253,4 +270,5 @@ public class EnvVarsEditorViewModel : ViewModelBase
         var principal = new WindowsPrincipal(identity);
         return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
+    public bool CanNavigateAway() => !IsDirty || _dialogs.Confirm("Unsaved variable", "Discard the unsaved environment variable changes?");
 }

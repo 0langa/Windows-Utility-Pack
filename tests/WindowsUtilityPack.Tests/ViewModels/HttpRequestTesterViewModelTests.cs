@@ -10,6 +10,29 @@ namespace WindowsUtilityPack.Tests.ViewModels;
 public class HttpRequestTesterViewModelTests
 {
     [Fact]
+    public async Task CancelCommand_ReportsCancellationAndClearsBusyState()
+    {
+        var vm = new HttpRequestTesterViewModel(new TestClipboardService(), new HttpClient(new WaitingHandler()))
+        { Url = "https://example.test/wait" };
+        vm.SendCommand.Execute(null);
+        await WaitUntilAsync(() => vm.IsSending);
+        vm.CancelCommand.Execute(null);
+        await WaitUntilAsync(() => !vm.IsSending);
+        Assert.Equal("Request cancelled.", vm.ResponseStatus);
+        Assert.Equal(0, vm.ResponseStatusCode);
+        Assert.Empty(vm.ResponseBody);
+    }
+
+    private sealed class WaitingHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            throw new InvalidOperationException("The request must be cancelled.");
+        }
+    }
+
+    [Fact]
     public void Method_Setter_TogglesRequestBodyVisibility()
     {
         var vm = new HttpRequestTesterViewModel(new TestClipboardService(), new HttpClient(new StubHttpMessageHandler()));

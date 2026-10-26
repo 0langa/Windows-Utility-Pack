@@ -29,12 +29,21 @@ public sealed class FileSplitJoinService : IFileSplitJoinService
         if (chunkSizeBytes <= 0)
             throw new ArgumentOutOfRangeException(nameof(chunkSizeBytes), "Chunk size must be greater than zero.");
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         Directory.CreateDirectory(outputDirectory);
 
         var sourceInfo = new FileInfo(sourceFilePath);
         var totalBytes = sourceInfo.Length;
-        var totalParts = (int)Math.Ceiling(totalBytes / (double)chunkSizeBytes);
+        var partCount = Math.Max(1, totalBytes / chunkSizeBytes + (totalBytes % chunkSizeBytes == 0 ? 0 : 1));
+        if (partCount > int.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(chunkSizeBytes), "Chunk size would create too many parts.");
+        var totalParts = (int)partCount;
         var baseName = Path.GetFileName(sourceFilePath);
+        var manifestPath = Path.Combine(outputDirectory, $"{baseName}.manifest.json");
+        // A part set is a unit: never mix a new split with an existing set.
+        if (File.Exists(manifestPath) || Directory.EnumerateFiles(outputDirectory, $"{baseName}.part*").Any())
+            throw new IOException("A part set already exists in this folder. Choose an empty output folder.");
 
         var partFiles = new List<string>(Math.Max(totalParts, 1));
         var buffer = new byte[BufferSize];
@@ -42,62 +51,75 @@ public sealed class FileSplitJoinService : IFileSplitJoinService
         var partNumber = 0;
 
         using var source = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
+        if (source.Length != totalBytes)
+            throw new IOException("The source file changed before splitting started. Retry the operation.");
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
-        while (processedBytes < totalBytes)
+        var createdFiles = new List<string>();
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            partNumber++;
-            var partPath = Path.Combine(outputDirectory, $"{baseName}.part{partNumber:D4}");
-            partFiles.Add(partPath);
-
-            await using var partStream = new FileStream(partPath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, useAsync: true);
-            var remainingForPart = chunkSizeBytes;
-
-            while (remainingForPart > 0 && processedBytes < totalBytes)
+            while (partNumber < totalParts)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var toRead = (int)Math.Min(Math.Min(buffer.Length, remainingForPart), totalBytes - processedBytes);
-                var read = await source.ReadAsync(buffer.AsMemory(0, toRead), cancellationToken).ConfigureAwait(false);
-                if (read <= 0)
-                    break;
+                partNumber++;
+                var partPath = Path.Combine(outputDirectory, $"{baseName}.part{partNumber:D4}");
+                await using var partStream = new FileStream(partPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize, useAsync: true);
+                createdFiles.Add(partPath);
+                partFiles.Add(partPath);
+                var remainingForPart = chunkSizeBytes;
 
-                await partStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                hash.AppendData(buffer, 0, read);
-
-                processedBytes += read;
-                remainingForPart -= read;
-
-                progress?.Report(new FileSplitJoinProgress
+                while (remainingForPart > 0 && processedBytes < totalBytes)
                 {
-                    ProcessedBytes = processedBytes,
-                    TotalBytes = totalBytes,
-                    CurrentPart = partNumber,
-                    TotalParts = totalParts,
-                });
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var toRead = (int)Math.Min(Math.Min(buffer.Length, remainingForPart), totalBytes - processedBytes);
+                    var read = await source.ReadAsync(buffer.AsMemory(0, toRead), cancellationToken).ConfigureAwait(false);
+                    if (read <= 0)
+                        throw new EndOfStreamException("The source file changed while it was being split.");
+
+                    await partStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    hash.AppendData(buffer, 0, read);
+
+                    processedBytes += read;
+                    remainingForPart -= read;
+
+                    progress?.Report(new FileSplitJoinProgress
+                    {
+                        ProcessedBytes = processedBytes,
+                        TotalBytes = totalBytes,
+                        CurrentPart = partNumber,
+                        TotalParts = totalParts,
+                    });
+                }
             }
+
+            var sha256 = Convert.ToHexString(hash.GetHashAndReset());
+            var manifest = new SplitManifest
+            {
+                SourceFileName = baseName,
+                SourceFileSizeBytes = totalBytes,
+                ChunkSizeBytes = chunkSizeBytes,
+                PartCount = partFiles.Count,
+                Sha256 = sha256,
+            };
+
+            await using (var manifestStream = new FileStream(manifestPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                createdFiles.Add(manifestPath);
+                await JsonSerializer.SerializeAsync(manifestStream, manifest, new JsonSerializerOptions { WriteIndented = true }, cancellationToken).ConfigureAwait(false);
+            }
+
+            return new SplitOperationResult
+            {
+                PartFiles = partFiles,
+                ManifestPath = manifestPath,
+                Sha256 = sha256,
+            };
         }
-
-        var sha256 = Convert.ToHexString(hash.GetHashAndReset());
-        var manifest = new SplitManifest
+        catch
         {
-            SourceFileName = baseName,
-            SourceFileSizeBytes = totalBytes,
-            ChunkSizeBytes = chunkSizeBytes,
-            PartCount = partFiles.Count,
-            Sha256 = sha256,
-        };
-
-        var manifestPath = Path.Combine(outputDirectory, $"{baseName}.manifest.json");
-        var manifestJson = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(manifestPath, manifestJson, cancellationToken).ConfigureAwait(false);
-
-        return new SplitOperationResult
-        {
-            PartFiles = partFiles,
-            ManifestPath = manifestPath,
-            Sha256 = sha256,
-        };
+            foreach (var path in createdFiles) TryDeleteIncompleteFile(path);
+            throw;
+        }
     }
 
     public async Task<JoinOperationResult> JoinAsync(
@@ -114,11 +136,37 @@ public sealed class FileSplitJoinService : IFileSplitJoinService
         if (string.IsNullOrWhiteSpace(outputFilePath))
             throw new ArgumentException("Output file is required.", nameof(outputFilePath));
 
+        cancellationToken.ThrowIfCancellationRequested();
+        partFilePath = Path.GetFullPath(partFilePath);
+        outputFilePath = Path.GetFullPath(outputFilePath);
+
         var orderedParts = ResolvePartSet(partFilePath);
         if (orderedParts.Count == 0)
             throw new InvalidOperationException("No part files were found for the selected input.");
 
+        if (orderedParts.Any(path => string.Equals(Path.GetFullPath(path), outputFilePath, StringComparison.OrdinalIgnoreCase))
+            || string.Equals(GetManifestPath(partFilePath), outputFilePath, StringComparison.OrdinalIgnoreCase))
+            throw new IOException("The output must not replace an input part or its manifest.");
+
+        for (var index = 0; index < orderedParts.Count; index++)
+            if (ExtractPartIndex(orderedParts[index]) != index + 1)
+                throw new InvalidDataException("The part set has missing or duplicate part numbers.");
+
         var totalBytes = orderedParts.Sum(path => new FileInfo(path).Length);
+        var manifest = LoadManifest(partFilePath);
+        if (verifyChecksum && (manifest is null || !Regex.IsMatch(manifest.Sha256, "\\A[0-9a-fA-F]{64}\\z")))
+            throw new InvalidDataException("A valid SHA-256 manifest is required for checksum verification.");
+        if (manifest is not null)
+        {
+            if (manifest.PartCount != orderedParts.Count || manifest.SourceFileSizeBytes != totalBytes || manifest.ChunkSizeBytes <= 0)
+                throw new InvalidDataException("The part set does not match the manifest count or size.");
+            for (var index = 0; index < orderedParts.Count; index++)
+            {
+                var expected = Math.Min(manifest.ChunkSizeBytes, totalBytes - index * manifest.ChunkSizeBytes);
+                if (new FileInfo(orderedParts[index]).Length != expected)
+                    throw new InvalidDataException("A part size does not match the manifest.");
+            }
+        }
         var processedBytes = 0L;
         var buffer = new byte[BufferSize];
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -127,56 +175,65 @@ public sealed class FileSplitJoinService : IFileSplitJoinService
         if (!string.IsNullOrWhiteSpace(outputDir))
             Directory.CreateDirectory(outputDir);
 
-        await using (var output = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, useAsync: true))
+        var temporaryPath = Path.Combine(outputDir!, $".wup-join-{Guid.NewGuid():N}.tmp");
+        try
         {
-            for (var index = 0; index < orderedParts.Count; index++)
+            await using (var output = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize, useAsync: true))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var partPath = orderedParts[index];
-                await using var input = new FileStream(partPath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
-
-                while (true)
+                for (var index = 0; index < orderedParts.Count; index++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-                    if (read <= 0)
-                        break;
+                    var partPath = orderedParts[index];
+                    await using var input = new FileStream(partPath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
 
-                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                    hash.AppendData(buffer, 0, read);
-                    processedBytes += read;
-
-                    progress?.Report(new FileSplitJoinProgress
+                    while (true)
                     {
-                        ProcessedBytes = processedBytes,
-                        TotalBytes = totalBytes,
-                        CurrentPart = index + 1,
-                        TotalParts = orderedParts.Count,
-                    });
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                        if (read <= 0)
+                            break;
+
+                        await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                        hash.AppendData(buffer, 0, read);
+                        processedBytes += read;
+
+                        progress?.Report(new FileSplitJoinProgress
+                        {
+                            ProcessedBytes = processedBytes,
+                            TotalBytes = totalBytes,
+                            CurrentPart = index + 1,
+                            TotalParts = orderedParts.Count,
+                        });
+                    }
                 }
             }
-        }
 
-        var joinedSha256 = Convert.ToHexString(hash.GetHashAndReset());
-        var checksumVerified = false;
+            var joinedSha256 = Convert.ToHexString(hash.GetHashAndReset());
+            var checksumVerified = false;
 
-        if (verifyChecksum)
-        {
-            var manifest = TryLoadManifest(partFilePath);
-            if (manifest is not null && !string.IsNullOrWhiteSpace(manifest.Sha256))
+            if (verifyChecksum)
             {
-                checksumVerified = string.Equals(manifest.Sha256, joinedSha256, StringComparison.OrdinalIgnoreCase);
+                checksumVerified = string.Equals(manifest!.Sha256, joinedSha256, StringComparison.OrdinalIgnoreCase);
                 if (!checksumVerified)
                     throw new InvalidOperationException("Checksum verification failed. Reconstructed file does not match manifest hash.");
             }
-        }
 
-        return new JoinOperationResult
+            if (processedBytes != totalBytes)
+                throw new InvalidDataException("The part set changed while it was being joined.");
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporaryPath, outputFilePath, overwrite: true);
+
+            return new JoinOperationResult
+            {
+                OutputPath = outputFilePath,
+                Sha256 = joinedSha256,
+                ChecksumVerified = checksumVerified,
+            };
+        }
+        finally
         {
-            OutputPath = outputFilePath,
-            Sha256 = joinedSha256,
-            ChecksumVerified = checksumVerified,
-        };
+            TryDeleteIncompleteFile(temporaryPath);
+        }
     }
 
     private static List<string> ResolvePartSet(string selectedPartPath)
@@ -206,27 +263,25 @@ public sealed class FileSplitJoinService : IFileSplitJoinService
         return int.TryParse(match.Groups["index"].Value, out var index) ? index : -1;
     }
 
-    private static SplitManifest? TryLoadManifest(string partFilePath)
+    private static string GetManifestPath(string partFilePath)
     {
-        try
-        {
-            var directory = Path.GetDirectoryName(partFilePath) ?? string.Empty;
-            var fileName = Path.GetFileName(partFilePath);
-            var match = PartFileRegex.Match(fileName);
-            if (!match.Success)
-                return null;
+        var fileName = Path.GetFileName(partFilePath);
+        var baseName = fileName[..PartFileRegex.Match(fileName).Index];
+        return Path.Combine(Path.GetDirectoryName(partFilePath)!, $"{baseName}.manifest.json");
+    }
 
-            var baseName = fileName[..match.Index];
-            var manifestPath = Path.Combine(directory, $"{baseName}.manifest.json");
-            if (!File.Exists(manifestPath))
-                return null;
+    private static SplitManifest? LoadManifest(string partFilePath)
+    {
+        var manifestPath = GetManifestPath(partFilePath);
+        if (!File.Exists(manifestPath)) return null;
+        return JsonSerializer.Deserialize<SplitManifest>(File.ReadAllText(manifestPath))
+            ?? throw new InvalidDataException("The manifest is empty or invalid.");
+    }
 
-            var json = File.ReadAllText(manifestPath);
-            return JsonSerializer.Deserialize<SplitManifest>(json);
-        }
-        catch
-        {
-            return null;
-        }
+    private static void TryDeleteIncompleteFile(string path)
+    {
+        try { File.Delete(path); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 }
